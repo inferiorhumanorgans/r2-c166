@@ -284,7 +284,19 @@ impl OpFormat {
             OpFormatType::INDirang2 => {
                 Ok(OpFormat{
                     name: "INDirang2",
-                    decode: |_op, _values| {String::from("")},
+                    decode: |op, values| {
+                        let mnem = values.get("mnemonic");
+                        let irange = values.get("irange0").unwrap().uint_value().expect("integer value");
+
+                        match mnem {
+                            Some(v) => {
+                                format!("{} #{}", v.str_value().unwrap(), irange)
+                            },
+                            _ => {
+                                format!("{:02X} #{}", op.id, irange)
+                            }
+                        }
+                    },
                     esil: |_op, _values| {String::from("")},
 
                 })
@@ -391,11 +403,10 @@ impl OpFormat {
             OpFormatType::Rwm__INDirang2 => {
                 Ok(OpFormat{
                     name: "Rwm__INDirang2",
-                    decode: |op, values| {
+                    decode: |_op, values| {
                         let mnem = values.get("mnemonic").unwrap().str_value().expect("string value");
                         let reg1 = values.get("register1").unwrap().uint_value().expect("integer value");
                         let irange0 = values.get("irange0").unwrap().uint_value().expect("integer value");
-
 
                         format!("{} {}, #{}", mnem, get_word_reg_mnem(reg1), irange0)
                     },
@@ -635,9 +646,14 @@ impl OpFormat {
             OpFormatType::bitaddrQ_q__rel => {
                 Ok(OpFormat{
                     name: "bitaddrQ_q__rel",
-                    decode: |_op, _values| {String::from("")},
-                    esil: |_op, _values| {String::from("")},
+                    decode: |op, values| {
+                        let offset = values.get("bitoff0").unwrap().uint_value().expect("integer value");
+                        let bit0 = values.get("bit0").unwrap().uint_value().expect("integer value");
+                        let relative0 = values.get("relative0").unwrap().uint_value().expect("integer value");
 
+                        format!("{} {}.{}, +{:02X}h", op.mnemonic, format_bitoff(offset, false), bit0, relative0)
+                    },
+                    esil: |_op, _values| {String::from("")},
                 })
             },
             OpFormatType::bitaddrZ_z__bitaddrQ_q => {
@@ -658,15 +674,25 @@ impl OpFormat {
             OpFormatType::bitoffQ__INDmask8__INDdata8 => {
                 Ok(OpFormat{
                     name: "bitoffQ__INDmask8__INDdata8",
-                    decode: |_op, _values| {String::from("")},
-                    esil: |_op, _values| {String::from("")},
+                    decode: |op, values| {
+                        let mask0 = values.get("mask0").unwrap().uint_value().expect("integer value");
+                        let data0 = values.get("data0").unwrap().uint_value().expect("integer value");
+                        let offset0 = values.get("bitoff0").unwrap().uint_value().expect("integer value");
 
+                        format!("{} {}, #{:02X}h, #{:02X}h", op.mnemonic, format_bitoff(offset0, false), mask0, data0)
+                    },
+                    esil: |_op, _values| {String::from("")},
                 })
             },
             OpFormatType::cc__DREFRwn => {
                 Ok(OpFormat{
                     name: "cc__DREFRwn",
-                    decode: |_op, _values| {String::from("")},
+                    decode: |op, values| {
+                        let condition0 = values.get("condition0").unwrap().uint_value().expect("integer value");
+                        let reg0 = values.get("register0").unwrap().uint_value().expect("integer value");
+
+                        format!("{} {}, [{}]", op.mnemonic, condition0, get_word_reg_mnem(reg0))
+                    },
                     esil: |_op, _values| {String::from("")},
 
                 })
@@ -681,7 +707,6 @@ impl OpFormat {
                         format!("{} {}, {:04X}h", op.mnemonic, get_condition(condition0), address0)
                     },
                     esil: |_op, _values| {String::from("")},
-
                 })
             },
             OpFormatType::cc__rel => {
@@ -694,7 +719,6 @@ impl OpFormat {
                         format!("{} {}, +{:02X}h", op.mnemonic, get_condition(condition0), relative0)
                     },
                     esil: |_op, _values| {String::from("")},
-
                 })
             },
             OpFormatType::mem__DREFRwn => {
@@ -715,15 +739,17 @@ impl OpFormat {
                         format!("{} {:04X}h, {}", op.mnemonic, address0, get_word_reg_mnem(reg0))
                     },
                     esil: |_op, _values| {String::from("")},
-
                 })
             },
             OpFormatType::reg => {
                 Ok(OpFormat{
                     name: "reg",
-                    decode: |_op, _values| {String::from("")},
-                    esil: |_op, _values| {String::from("")},
+                    decode: |op, values| {
+                        let reg0 = values.get("register0").unwrap().uint_value().expect("integer value");
 
+                        format!("{} {}", op.mnemonic, get_word_reg_mnem(reg0))
+                    },
+                    esil: |_op, _values| {String::from("")},
                 })
             },
             OpFormatType::reg__INDdata16 => {
@@ -736,7 +762,6 @@ impl OpFormat {
                         format!("{} {}, #{:04X}h", op.mnemonic, get_word_reg_mnem(reg0), data0)
                     },
                     esil: |_op, _values| {String::from("")},
-
                 })
             },
             OpFormatType::reg__INDdata8 => {
