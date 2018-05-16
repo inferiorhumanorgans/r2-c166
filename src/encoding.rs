@@ -53,6 +53,13 @@ impl<'a> EncodingValue<'a> {
             _ => None,
         }
     }
+
+    pub fn str_value(&self) -> Option<&'a str> {
+       match *self {
+            EncodingValue::String(v) => Some(v),
+            _ => None,
+        }
+    }
 }
 
 pub struct Encoding {
@@ -110,7 +117,17 @@ impl Encoding {
                 Ok(Encoding {
                     name: "cc_rr",
                     length: 2,
-                    decode: |_buf| {HashMap::<&str, EncodingValue>::new()}
+                    decode: |buf| {
+                        let mut values = HashMap::<&str, EncodingValue>::new();
+
+                        let condition0 : u8 = (buf[0] & 0b11110000) >> 4;
+                        let relative0 : u8 = buf[1];
+
+                        values.insert("condition0", EncodingValue::UInt(condition0 as u32));
+                        values.insert("relative0", EncodingValue::UInt(relative0 as u32));
+
+                        values
+                    }
                 })
             },
 
@@ -118,7 +135,30 @@ impl Encoding {
                 Ok(Encoding {
                     name: "ext_d7",
                     length: 4,
-                    decode: |_buf| {HashMap::<&str, EncodingValue>::new()}
+                    decode: |buf| {
+                        let mut values = HashMap::<&str, EncodingValue>::new();
+
+                        let sub_op : u8 = (buf[1] & 0b11000000) >> 6;
+
+                        let mnem = match sub_op {
+                            1 => "extp",
+                            3 => "extpr",
+                            0 => "exts",
+                            2 => "extsr",
+                            _ => "InvalidSubOp"
+                        };
+
+                        let irange : u8 = ((buf[1] & 0b00110000) >> 4) + 1;
+
+                        let segment0 = buf[2];
+
+                        values.insert("mnemonic", EncodingValue::String(mnem));
+                        values.insert("sub_op", EncodingValue::UInt(sub_op as u32));
+                        values.insert("irange0", EncodingValue::UInt(irange as u32));
+                        values.insert("segment0", EncodingValue::UInt(segment0 as u32));
+
+                        values
+                    }
                 })
             },
 
@@ -126,7 +166,30 @@ impl Encoding {
                 Ok(Encoding {
                     name: "ext_dc",
                     length: 2,
-                    decode: |_buf| {HashMap::<&str, EncodingValue>::new()}
+                    decode: |buf| {
+                        let mut values = HashMap::<&str, EncodingValue>::new();
+
+                        let sub_op : u8 = (buf[1] & 0b11000000) >> 6;
+
+                        let mnem = match sub_op {
+                            1 => "extp",
+                            3 => "extpr",
+                            0 => "exts",
+                            2 => "extsr",
+                            _ => "InvalidSubOp"
+                        };
+
+                        let irange : u8 = ((buf[1] & 0b00110000) >> 4) + 1;
+
+                        let register1 : u8 = (buf[1] & 0b00001111);
+
+                        values.insert("mnemonic", EncodingValue::String(mnem));
+                        values.insert("sub_op", EncodingValue::UInt(sub_op as u32));
+                        values.insert("irange0", EncodingValue::UInt(irange as u32));
+                        values.insert("register1", EncodingValue::UInt(register1 as u32));
+
+                        values
+                    }
                 })
             },
 
@@ -134,7 +197,37 @@ impl Encoding {
                 Ok(Encoding {
                     name: "data3_or_reg",
                     length: 2,
-                    decode: |_buf| {HashMap::<&str, EncodingValue>::new()}
+                    decode: |buf| {
+                        let mut values = HashMap::<&str, EncodingValue>::new();
+
+                        let register0 : u8 = (buf[1] & 0b11110000) >> 4;
+
+                        let sub_op : u8 = (buf[1] & 0b00001100) >> 2;
+
+                        let sub_mnem;
+                        match sub_op {
+                            2 => {
+                                sub_mnem = "reg";
+                                let register1 : u8 = buf[1] & 0b00000011;
+                                values.insert("register1", EncodingValue::UInt(register1 as u32));
+                            },
+                            3 => {
+                                sub_mnem = "reg_inc";
+                                let register1 : u8 = buf[1] & 0b00000011;
+                                values.insert("register1", EncodingValue::UInt(register1 as u32));
+                            },
+                            _ => {
+                                sub_mnem = "#data3";
+                                let data0 : u8 = buf[1] & 0b00000111;
+                                values.insert("data0", EncodingValue::UInt(data0 as u32));
+                            }
+                        }
+
+                        values.insert("register0", EncodingValue::UInt(register0 as u32));
+                        values.insert("sub_op", EncodingValue::String(sub_mnem));
+
+                        values
+                    }
                 })
             },
 
@@ -158,7 +251,19 @@ impl Encoding {
                 Ok(Encoding {
                     name: "Fn_II_II",
                     length: 4,
-                    decode: |_buf| {HashMap::<&str, EncodingValue>::new()}
+                    decode: |buf| {
+                        let mut values = HashMap::<&str, EncodingValue>::new();
+
+                        let register0 : u8 = buf[1] & 0b00001111;
+
+                        let slice = &buf[2..4];
+                        let data0 : u32 = LittleEndian::read_u16(slice) as u32;
+
+                        values.insert("register0", EncodingValue::UInt(register0 as u32));
+                        values.insert("data0", EncodingValue::UInt(data0));
+
+                        values
+                    }
                 })
             },
 
@@ -174,7 +279,17 @@ impl Encoding {
                 Ok(Encoding {
                     name: "q_QQ",
                     length: 2,
-                    decode: |_buf| {HashMap::<&str, EncodingValue>::new()}
+                    decode: |buf| {
+                        let mut values = HashMap::<&str, EncodingValue>::new();
+
+                        let bit0 : u8 = (buf[0] & 0b11110000) >> 4;
+                        let bitoff0 : u8 = buf[1];
+
+                        values.insert("bit0", EncodingValue::UInt(bit0 as u32));
+                        values.insert("bitoff0", EncodingValue::UInt(bitoff0 as u32));
+
+                        values
+                    }
                 })
             },
 
@@ -190,7 +305,22 @@ impl Encoding {
                 Ok(Encoding {
                     name: "QQ_ZZ_qz",
                     length: 4,
-                    decode: |_buf| {HashMap::<&str, EncodingValue>::new()}
+                    decode: |buf| {
+                        let mut values = HashMap::<&str, EncodingValue>::new();
+
+                        let bit1 : u8 = (buf[3] & 0b11110000) >> 4;
+                        let bit0 : u8 = buf[3] & 0b00001111;
+
+                        let bitoff1 : u8 = buf[1];
+                        let bitoff0 : u8 = buf[2];
+
+                        values.insert("bit0", EncodingValue::UInt(bit0 as u32));
+                        values.insert("bitoff0", EncodingValue::UInt(bitoff0 as u32));
+                        values.insert("bit1", EncodingValue::UInt(bit1 as u32));
+                        values.insert("bitoff1", EncodingValue::UInt(bitoff1 as u32));
+
+                        values
+                    }
                 })
             },
 
@@ -214,7 +344,19 @@ impl Encoding {
                 Ok(Encoding {
                     name: "RR_II_II",
                     length: 4,
-                    decode: |_buf| {HashMap::<&str, EncodingValue>::new()}
+                    decode: |buf| {
+                        let mut values = HashMap::<&str, EncodingValue>::new();
+
+                        let register0 : u8 = buf[1] & 0b00001111;
+
+                        let slice = &buf[2..4];
+                        let data0 : u32 = LittleEndian::read_u16(slice) as u32;
+
+                        values.insert("register0", EncodingValue::UInt(register0 as u32));
+                        values.insert("data0", EncodingValue::UInt(data0));
+
+                        values
+                    }
                 })
             },
 
@@ -222,7 +364,17 @@ impl Encoding {
                 Ok(Encoding {
                     name: "RR_II_xx",
                     length: 4,
-                    decode: |_buf| {HashMap::<&str, EncodingValue>::new()}
+                    decode: |buf| {
+                        let mut values = HashMap::<&str, EncodingValue>::new();
+
+                        let register0 : u8 = buf[1] & 0b00001111;
+                        let data0 : u8 = buf[2];
+
+                        values.insert("register0", EncodingValue::UInt(register0 as u32));
+                        values.insert("data0", EncodingValue::UInt(data0 as u32));
+
+                        values
+                    }
                 })
             },
 
@@ -361,7 +513,21 @@ impl Encoding {
                 Ok(Encoding {
                     name: "nm_II_II",
                     length: 4,
-                    decode: |_buf| {HashMap::<&str, EncodingValue>::new()}
+                    decode: |buf| {
+                        let mut values = HashMap::<&str, EncodingValue>::new();
+
+                        let register0 : u8 = (buf[1] & 0b11110000) >> 4;
+                        let register1 : u8 = (buf[1] & 0b00001111);
+
+                        let slice = &buf[2..4];
+                        let data0 : u32 = LittleEndian::read_u16(slice) as u32;
+
+                        values.insert("register0", EncodingValue::UInt(register0 as u32));
+                        values.insert("register1", EncodingValue::UInt(register1 as u32));
+                        values.insert("data0", EncodingValue::UInt(data0));
+
+                        values
+                    }
                 })
             },
 
@@ -369,7 +535,15 @@ impl Encoding {
                 Ok(Encoding {
                     name: "nn",
                     length: 2,
-                    decode: |_buf| {HashMap::<&str, EncodingValue>::new()}
+                    decode: |buf| {
+                        let mut values = HashMap::<&str, EncodingValue>::new();
+
+                        let register0 : u8 = (buf[1] & 0b11110000) >> 4;
+
+                        values.insert("register0", EncodingValue::UInt(register0 as u32));
+
+                        values
+                    }
                 })
             },
 
