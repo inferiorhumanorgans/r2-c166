@@ -1,0 +1,15 @@
+[package]
+name = "rust-c166"
+version = "0.1.0"
+authors = ["Alex Zepeda <alex@inferiorhumanorgans.com>"]
+
+[lib]
+name = "c166_rs"
+crate-type = ["cdylib"]
+
+[dependencies]
+libc = "*"
+byteorder = "1"
+
+[build-dependencies]
+bindgen = "*"
