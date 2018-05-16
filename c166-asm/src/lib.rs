@@ -1,18 +1,13 @@
-extern crate byteorder;
-
-mod encoding;
-mod instruction;
-mod opformat;
-mod r2;
+extern crate c166_core;
 
 use std::os::raw::c_void;
 use std::os::raw::c_char;
 use std::ptr;
 
-use r2::*;
-use instruction::Instruction;
-use encoding::Encoding;
-use opformat::OpFormat;
+use c166_core::r2::*;
+use c166_core::instruction::Instruction;
+use c166_core::encoding::Encoding;
+use c166_core::opformat::OpFormat;
 
 // https://github.com/rust-lang/rfcs/issues/400
 macro_rules! cstr {

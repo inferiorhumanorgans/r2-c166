@@ -1,0 +1,11 @@
+[package]
+name = "c166-analysis"
+version = "0.1.0"
+authors = ["alex"]
+
+[dependencies]
+c166-core = { path = "../c166-core" }
+
+[lib]
+name = "c166_analysis"
+crate-type = ["cdylib"]
