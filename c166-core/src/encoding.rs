@@ -35,7 +35,7 @@ pub enum EncodingType {
     nm_II_II,	// nm ## ##
     nn,	        // nn
     rr,	        // rr
-    tbitttt0,	// t:ttt0
+    trap7,	    // t:ttt0
 }
 
 #[derive(Debug)]
@@ -622,11 +622,18 @@ impl Encoding {
                 })
             },
 
-            EncodingType::tbitttt0 => {
+            EncodingType::trap7 => {
                 Ok(Encoding {
-                    name: "tbitttt0",
+                    name: "trap7",
                     length: 2,
-                    decode: |_buf| {HashMap::<&str, EncodingValue>::new()}
+                    decode: |buf| {
+                        let mut values = HashMap::<&str, EncodingValue>::new();
+
+                        let trap0 = (buf[1] & 0b11111110) >> 1;
+                        values.insert("trap0", EncodingValue::UInt(trap0 as u32));
+
+                        values
+                    }
                 })
             },
 /*            _ => {

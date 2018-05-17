@@ -2274,7 +2274,7 @@ impl Instruction {
                     id: 0x9B,
                     mnemonic: "trap",
                     format: OpFormatType::INDtrap7,
-                    encoding: EncodingType::tbitttt0,
+                    encoding: EncodingType::trap7,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_TRAP
                 })
             },

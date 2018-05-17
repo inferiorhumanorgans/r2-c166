@@ -312,15 +312,17 @@ impl OpFormat {
                         format!("{} #{:02X}h, #{}", mnem, segment0, irange0)
                     },
                     esil: |_op, _values| {String::from("")},
-
                 })
             },
             OpFormatType::INDtrap7 => {
                 Ok(OpFormat{
                     name: "INDtrap7",
-                    decode: |_op, _values| {String::from("")},
-                    esil: |_op, _values| {String::from("")},
+                    decode: |op, values| {
+                        let trap0 = values.get("trap0").unwrap().uint_value().expect("integer value");
 
+                        format!("{} #{:02X}h", op.mnemonic, trap0)
+                    },
+                    esil: |_op, _values| {String::from("")},
                 })
             },
             OpFormatType::Rbn => {
@@ -332,7 +334,6 @@ impl OpFormat {
                         format!("{} {}", op.mnemonic, get_byte_reg_mnem(reg0))
                     },
                     esil: |_op, _values| {String::from("")},
-
                 })
             },
             OpFormatType::Rbn__INDdata4 => {
