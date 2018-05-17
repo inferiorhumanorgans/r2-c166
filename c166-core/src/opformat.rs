@@ -767,7 +767,12 @@ impl OpFormat {
             OpFormatType::reg__INDdata8 => {
                 Ok(OpFormat{
                     name: "reg__INDdata8",
-                    decode: |_op, _values| {String::from("")},
+                    decode: |op, values| {
+                        let reg0 = values.get("register0").unwrap().uint_value().expect("integer value");
+                        let data0 = values.get("data0").unwrap().uint_value().expect("integer value");
+
+                        format!("{} {}, #{:02X}h", op.mnemonic, get_word_reg_mnem(reg0), data0)
+                    },
                     esil: |_op, _values| {String::from("")},
 
                 })
