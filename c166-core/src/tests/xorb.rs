@@ -19,34 +19,54 @@ macro_rules! test_disasm_op {
     };
 }
 
-mod xorb {
-    test_requires!();
+test_requires!();
 
-    #[test]
-    fn c166_op_51() {
-        test_disasm_op!([0x51, 0x08], "xorb rl0, rl4");
-    }
+#[test]
+fn c166_op_51() {
+    test_disasm_op!([0x51, 0x08], "xorb rl0, rl4");
+}
 
-    #[test]
-    fn c166_op_59() {
-        test_disasm_op!([0x59, (0x02 << 4) | (0b10 << 2) | 0x03], "xorb rl1, [r3]");
-    }
+#[test]
+fn c166_op_59_1() {
+    test_disasm_op!([0x59, (0x02 << 4) | (0b10 << 2) | 0x03], "xorb rl1, [r3]");
+}
 
-    #[test]
-    fn c166_op_57() {
-        test_disasm_op!([0x57, 0x08, 0x25, 0x42], "xorb rl4, #25h");
-        test_disasm_op!([0x57, 0x0F, 0x25, 0x42], "xorb rh7, #25h");
-    }
+#[test]
+fn c166_op_59_2() {
+    test_disasm_op!([0x59, (0x02 << 4) | (0b11 << 2) | 0x03], "xorb rl1, [r3+]");
+}
 
-    #[test]
-    fn c166_op_53() {
-        test_disasm_op!([0x53, 0x08, 0x25, 0x42], "xorb rl4, 4225h");
-        test_disasm_op!([0x53, 0x0F, 0x25, 0x42], "xorb rh7, 4225h");
-    }
+#[test]
+fn c166_op_59_3() {
+    test_disasm_op!([0x59, (0x02 << 4) | (0b00 << 2) | 0x03], "xorb rl1, #03h");
+}
 
-    #[test]
-    fn c166_op_55() {
-        test_disasm_op!([0x55, 0x02, 0x25, 0x42], "xorb 4225, rl1");
-        test_disasm_op!([0x55, 0x05, 0x25, 0x42], "xorb 4225, rh2");
-    }
+#[test]
+fn c166_op_57_1() {
+    test_disasm_op!([0x57, 0x08, 0x25, 0x42], "xorb rl4, #25h");
+}
+
+#[test]
+fn c166_op_57_2() {
+    test_disasm_op!([0x57, 0x0F, 0x25, 0x42], "xorb rh7, #25h");
+}
+
+#[test]
+fn c166_op_53_1() {
+    test_disasm_op!([0x53, 0x08, 0x25, 0x42], "xorb rl4, 4225h");
+}
+
+#[test]
+fn c166_op_53_2() {
+    test_disasm_op!([0x53, 0x0F, 0x25, 0x42], "xorb rh7, 4225h");
+}
+
+#[test]
+fn c166_op_55_1() {
+    test_disasm_op!([0x55, 0x02, 0x25, 0x42], "xorb 4225, rl1");
+}
+
+#[test]
+fn c166_op_55_2() {
+    test_disasm_op!([0x55, 0x05, 0x25, 0x42], "xorb 4225, rh2");
 }
