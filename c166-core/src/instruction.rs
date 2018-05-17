@@ -2243,8 +2243,8 @@ impl Instruction {
                 Ok(Instruction {
                     id: 0x37,
                     mnemonic: "subcb",
-                    format: OpFormatType::reg__INDdata16,
-                    encoding: EncodingType::RR_II_II,
+                    format: OpFormatType::breg__INDdata8,
+                    encoding: EncodingType::RR_II_xx,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_SUB | _RAnalOpType::R_ANAL_OP_TYPE_REG
                 })
             },

@@ -70,7 +70,7 @@ extern "C" fn _op(_a: *mut RAnal, raw_op: *mut RAnalOp, addr: u64, buf: *const u
                 let raw_type : u32 =  op.r2_op_type.uint_value() & 0b11111111;
                 if (raw_type & jump_type) > 0 || (raw_type & call_type) > 0 {
                     out_op.fail = addr + out_op.size as u64;
-                    let values = (encoding.decode)(bytes);
+                    let values = (encoding.decode)(bytes).expect("ISN was valid");
                     let condition = match values.get("condition0") {
                         Some(condition) => condition.uint_value().expect("integer value"),
                         _ => 0

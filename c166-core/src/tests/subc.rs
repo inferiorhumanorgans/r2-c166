@@ -22,15 +22,15 @@ fn c166_op_38_3() {
 
 #[test]
 fn c166_op_36() {
-    test_disasm_op!([0x36, 0xC, 0xFF, 0xCC], "subc r12, #CCFFh");
+    test_disasm_op!([0x36, 0xFC, 0xFF, 0xCC], "subc r12, #CCFFh");
 }
 
 #[test]
 fn c166_op_32() {
-    test_disasm_op!([0x32, 0xC, 0xFF, 0xCC], "subc r12, CCFFh");
+    test_disasm_op!([0x32, 0xFC, 0xFF, 0xCC], "subc r12, CCFFh");
 }
 
 #[test]
 fn c166_op_34() {
-    test_disasm_op!([0x34, 0xC, 0xFF, 0xCC], "subc CCFFh, r12");
+    test_disasm_op!([0x34, 0xFC, 0xFF, 0xCC], "subc CCFFh, r12");
 }

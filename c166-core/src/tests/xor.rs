@@ -22,30 +22,30 @@ fn c166_op_58_3() {
 
 #[test]
 fn c166_op_56_1() {
-    test_disasm_op!([0x56, 0x08, 0x25, 0x42], "xor r8, #4225h");
+    test_disasm_op!([0x56, 0xF8, 0x25, 0x42], "xor r8, #4225h");
 }
 
 #[test]
 fn c166_op_56_2() {
-    test_disasm_op!([0x56, 0x0F, 0x25, 0x42], "xor r15, #4225h");
+    test_disasm_op!([0x56, 0xFF, 0x25, 0x42], "xor r15, #4225h");
 }
 
 #[test]
 fn c166_op_52_1() {
-    test_disasm_op!([0x52, 0x08, 0x25, 0x42], "xor r8, 4225h");
+    test_disasm_op!([0x52, 0xF8, 0x25, 0x42], "xor r8, 4225h");
 }
 
 #[test]
 fn c166_op_52_2() {
-    test_disasm_op!([0x52, 0x0F, 0x25, 0x42], "xor r15, 4225h");
+    test_disasm_op!([0x52, 0x06, 0x25, 0x42], "xor MDH, 4225h");
 }
 
 #[test]
 fn c166_op_54_1() {
-    test_disasm_op!([0x54, 0x02, 0x25, 0x42], "xor 4225h, r2");
+    test_disasm_op!([0x54, 0xF4, 0x25, 0x42], "xor 4225h, r4");
 }
 
 #[test]
 fn c166_op_54_2() {
-    test_disasm_op!([0x54, 0x05, 0x25, 0x42], "xor 4225h, r5");
+    test_disasm_op!([0x54, 0xF4, 0x25, 0x42], "xor 4225h, r4");
 }

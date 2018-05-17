@@ -42,7 +42,7 @@ extern "C" fn _disassemble(_asm: *mut RAsm, raw_op: *mut RAsmOp, buf: *const u8,
                     let format = OpFormat::from_format_type(&op.format).unwrap();
 
                     // https://github.com/rust-lang/rust/issues/18343
-                    let values = (encoding.decode)(bytes);
+                    let values = (encoding.decode)(bytes).expect("ISN was valid");
                     let desc = (format.decode)(&op, values);
 
                     out_op.size = encoding.length;

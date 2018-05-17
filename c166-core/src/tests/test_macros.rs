@@ -12,7 +12,7 @@ macro_rules! test_disasm_op {
         let op = Instruction::from_addr_array(&bytes).unwrap();
         let encoding = Encoding::from_encoding_type(&op.encoding).unwrap();
         let format = OpFormat::from_format_type(&op.format).unwrap();
-        let values = (encoding.decode)(&bytes);
+        let values = (encoding.decode)(&bytes).expect("Instruction was invalid");
         let desc = (format.decode)(&op, values);
 
         assert_eq!(desc, $expected);
