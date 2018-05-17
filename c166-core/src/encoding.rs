@@ -128,8 +128,23 @@ impl Encoding {
                 Ok(Encoding {
                     name: "_0n_MM_MM",
                     length: 4,
-                    decode: |_buf| {
-                        Ok(HashMap::<&str, EncodingValue>::new())
+                    decode: |buf| {
+                        match buf[1] & 0b11110000 {
+                            0 => {
+                                let mut values = HashMap::<&str, EncodingValue>::new();
+
+                                let register0 : u8 = buf[1] & 0b00001111;
+
+                                let slice = &buf[2..4];
+                                let address0 : u32 = LittleEndian::read_u16(slice) as u32;
+
+                                values.insert("register0", EncodingValue::UInt(register0 as u32));
+                                values.insert("address0", EncodingValue::UInt(address0));
+
+                                Ok(values)
+                            },
+                            _ => Err("Invalid instruction")
+                        }
                     }
                 })
             },
@@ -371,17 +386,22 @@ impl Encoding {
                     name: "QQ_rr_q0",
                     length: 4,
                     decode: |buf| {
-                        let mut values = HashMap::<&str, EncodingValue>::new();
+                        match buf[3] & 0b00001111 {
+                            0 => {
+                                let mut values = HashMap::<&str, EncodingValue>::new();
 
-                        let bitoff0 : u8 = buf[1];
-                        let bit0 : u8 = (buf[3] & 0b11110000) >> 4;
-                        let relative0 : u8 = buf[2];
+                                let bitoff0 : u8 = buf[1];
+                                let bit0 : u8 = (buf[3] & 0b11110000) >> 4;
+                                let relative0 : u8 = buf[2];
 
-                        values.insert("bit0", EncodingValue::UInt(bit0 as u32));
-                        values.insert("bitoff0", EncodingValue::UInt(bitoff0 as u32));
-                        values.insert("relative0", EncodingValue::UInt(relative0 as u32));
+                                values.insert("bit0", EncodingValue::UInt(bit0 as u32));
+                                values.insert("bitoff0", EncodingValue::UInt(bitoff0 as u32));
+                                values.insert("relative0", EncodingValue::UInt(relative0 as u32));
 
-                        Ok(values)
+                                Ok(values)
+                            },
+                            _ => Err("Invalid instruction")
+                        }
                     }
                 })
             },

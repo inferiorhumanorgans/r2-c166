@@ -1,6 +1,21 @@
 #[macro_use]
 mod test_macros;
 
+pub mod jmps;
+pub mod jnb;
+pub mod jnbs;
+pub mod mov;
+pub mod movb;
+pub mod movbs;
+pub mod movbz;
+pub mod mul;
+pub mod mulu;
+pub mod neg;
+pub mod negb;
+pub mod nop;
+pub mod or;
+pub mod orb;
+pub mod pcall;
 pub mod pop;
 pub mod prior;
 pub mod push;

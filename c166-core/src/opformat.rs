@@ -113,8 +113,8 @@ fn format_bitoff(offset: u32, is_ext : bool) -> String {
             }
         },
         0xF0...0xFF => {
-            let address = 2 * (offset & 0b00001111);
-            format!("CP + {:04X}", address)
+            let address = offset & 0b00001111;
+            format!("{}", get_word_gpr_mnem(address))
         },
         _ => {
             format!("Invalid bit offset {:X}", offset)
@@ -184,7 +184,7 @@ impl OpFormat {
                     decode: |op, values| {
                         let reg0 = values.get("register0").unwrap().uint_value().expect("integer value");
 
-                        format!("{} {}", op.mnemonic, get_byte_reg_mnem(reg0))
+                        format!("{} {}", op.mnemonic, get_byte_gpr_mnem(reg0))
                     },
                     esil: |_op, _values| {String::from("")},
                 })
@@ -196,7 +196,7 @@ impl OpFormat {
                         let reg0 = values.get("register0").unwrap().uint_value().expect("integer value");
                         let data0 = values.get("data0").unwrap().uint_value().expect("integer value");
 
-                        format!("{} {}, #{:02X}h", op.mnemonic, get_byte_reg_mnem(reg0), data0)
+                        format!("{} {}, #{:02X}h", op.mnemonic, get_byte_gpr_mnem(reg0), data0)
                     },
                     esil: |_op, _values| {String::from("")},
 
@@ -209,7 +209,7 @@ impl OpFormat {
                         let reg0 = values.get("register0").unwrap().uint_value().expect("integer value");
                         let reg1 = values.get("register1").unwrap().uint_value().expect("integer value");
 
-                        format!("{} {}, {}", op.mnemonic, get_byte_reg_mnem(reg0), get_byte_reg_mnem(reg1))
+                        format!("{} {}, {}", op.mnemonic, get_byte_gpr_mnem(reg0), get_byte_gpr_mnem(reg1))
                     },
                     esil: |_op, _values| {String::from("")},
 
@@ -223,7 +223,7 @@ impl OpFormat {
                         let reg1 = values.get("register1").unwrap().uint_value().expect("integer value");
                         let data0 = values.get("data0").unwrap().uint_value().expect("integer value");
 
-                        format!("{} {}, [{} + #{:04X}h]", op.mnemonic, get_byte_reg_mnem(reg0), get_word_reg_mnem(reg1), data0)
+                        format!("{} {}, [{} + #{:04X}h]", op.mnemonic, get_byte_gpr_mnem(reg0), get_word_gpr_mnem(reg1), data0)
                     },
                     esil: |_op, _values| {String::from("")},
                 })
@@ -235,7 +235,7 @@ impl OpFormat {
                         let reg0 = values.get("register0").unwrap().uint_value().expect("integer value");
                         let reg1 = values.get("register1").unwrap().uint_value().expect("integer value");
 
-                        format!("{} {}, [{}+]", op.mnemonic, get_byte_reg_mnem(reg0), get_word_reg_mnem(reg1))
+                        format!("{} {}, [{}+]", op.mnemonic, get_byte_gpr_mnem(reg0), get_word_gpr_mnem(reg1))
                     },
                     esil: |_op, _values| {String::from("")},
                 })
@@ -247,7 +247,7 @@ impl OpFormat {
                         let reg0 = values.get("register0").unwrap().uint_value().expect("integer value");
                         let reg1 = values.get("register1").unwrap().uint_value().expect("integer value");
 
-                        format!("{} {}, [{}]", op.mnemonic, get_byte_reg_mnem(reg0), get_word_reg_mnem(reg1))
+                        format!("{} {}, [{}]", op.mnemonic, get_byte_gpr_mnem(reg0), get_word_gpr_mnem(reg1))
 
                     },
                     esil: |_op, _values| {String::from("")},
@@ -262,7 +262,7 @@ impl OpFormat {
                         let reg1 = values.get("register1").unwrap().uint_value().expect("integer value");
                         let irange0 = values.get("irange0").unwrap().uint_value().expect("integer value");
 
-                        format!("{} {}, #{}", mnem, get_word_reg_mnem(reg1), irange0)
+                        format!("{} {}, #{}", mnem, get_word_gpr_mnem(reg1), irange0)
                     },
                     esil: |_op, _values| {String::from("")},
                 })
@@ -273,7 +273,7 @@ impl OpFormat {
                     decode: |op, values| {
                         let reg0 = values.get("register0").unwrap().uint_value().expect("integer value");
 
-                        format!("{} {}", op.mnemonic, get_word_reg_mnem(reg0))
+                        format!("{} {}", op.mnemonic, get_word_gpr_mnem(reg0))
                     },
                     esil: |_op, _values| {String::from("")},
                 })
@@ -285,7 +285,7 @@ impl OpFormat {
                         let reg0 = values.get("register0").unwrap().uint_value().expect("integer value");
                         let data0 = values.get("data0").unwrap().uint_value().expect("integer value");
 
-                        format!("{} {}, #{:04X}h", op.mnemonic, get_word_reg_mnem(reg0), data0)
+                        format!("{} {}, #{:04X}h", op.mnemonic, get_word_gpr_mnem(reg0), data0)
                     },
                     esil: |_op, _values| {String::from("")},
                 })
@@ -297,7 +297,7 @@ impl OpFormat {
                         let reg0 = values.get("register0").unwrap().uint_value().expect("integer value");
                         let data0 = values.get("data0").unwrap().uint_value().expect("integer value");
 
-                        format!("{} {}, #{:02X}h", op.mnemonic, get_word_reg_mnem(reg0), data0)
+                        format!("{} {}, #{:02X}h", op.mnemonic, get_word_gpr_mnem(reg0), data0)
                     },
                     esil: |_op, _values| {String::from("")},
                 })
@@ -309,7 +309,7 @@ impl OpFormat {
                         let reg0 = values.get("register0").unwrap().uint_value().expect("integer value");
                         let reg1 = values.get("register1").unwrap().uint_value().expect("integer value");
 
-                        format!("{} {}, {}", op.mnemonic, get_word_reg_mnem(reg0), get_byte_reg_mnem(reg1))
+                        format!("{} {}, {}", op.mnemonic, get_word_gpr_mnem(reg0), get_byte_gpr_mnem(reg1))
                     },
                     esil: |_op, _values| {String::from("")},
 
@@ -322,7 +322,7 @@ impl OpFormat {
                         let reg0 = values.get("register0").unwrap().uint_value().expect("integer value");
                         let reg1 = values.get("register1").unwrap().uint_value().expect("integer value");
 
-                        format!("{} {}, {}", op.mnemonic, get_word_reg_mnem(reg0), get_word_reg_mnem(reg1))
+                        format!("{} {}, {}", op.mnemonic, get_word_gpr_mnem(reg0), get_word_gpr_mnem(reg1))
                     },
                     esil: |_op, _values| {String::from("")},
 
@@ -336,7 +336,7 @@ impl OpFormat {
                         let reg1 = values.get("register1").unwrap().uint_value().expect("integer value");
                         let data0 = values.get("data0").unwrap().uint_value().expect("integer value");
 
-                        format!("{} {}, [{} + #{:04X}h]", op.mnemonic, get_word_reg_mnem(reg0), get_word_reg_mnem(reg1), data0)
+                        format!("{} {}, [{} + #{:04X}h]", op.mnemonic, get_word_gpr_mnem(reg0), get_word_gpr_mnem(reg1), data0)
                     },
                     esil: |_op, _values| {String::from("")},
                 })
@@ -348,7 +348,7 @@ impl OpFormat {
                         let reg0 = values.get("register0").unwrap().uint_value().expect("integer value");
                         let reg1 = values.get("register1").unwrap().uint_value().expect("integer value");
 
-                        format!("{} {}, [{}+]", op.mnemonic, get_word_reg_mnem(reg0), get_word_reg_mnem(reg1))
+                        format!("{} {}, [{}+]", op.mnemonic, get_word_gpr_mnem(reg0), get_word_gpr_mnem(reg1))
                     },
                     esil: |_op, _values| {String::from("")},
                 })
@@ -360,7 +360,7 @@ impl OpFormat {
                         let reg0 = values.get("register0").unwrap().uint_value().expect("integer value");
                         let reg1 = values.get("register1").unwrap().uint_value().expect("integer value");
 
-                        format!("{} {}, [{}]", op.mnemonic, get_word_reg_mnem(reg0), get_word_reg_mnem(reg1))
+                        format!("{} {}, [{}]", op.mnemonic, get_word_gpr_mnem(reg0), get_word_gpr_mnem(reg1))
                     },
                     esil: |_op, _values| {String::from("")},
                 })
@@ -376,7 +376,12 @@ impl OpFormat {
             OpFormatType::DREFDECRwm__Rbn => {
                 Ok(OpFormat{
                     name: "DREFDECRwm__Rbn",
-                    decode: |_op, _values| {String::from("")},
+                    decode: |op, values| {
+                        let reg0 = values.get("register0").unwrap().uint_value().expect("integer value");
+                        let reg1 = values.get("register1").unwrap().uint_value().expect("integer value");
+
+                        format!("{} [-{}], {}", op.mnemonic, get_word_gpr_mnem(reg1), get_byte_gpr_mnem(reg0))
+                    },
                     esil: |_op, _values| {String::from("")},
                 })
             },
@@ -387,7 +392,7 @@ impl OpFormat {
                         let reg0 = values.get("register0").unwrap().uint_value().expect("integer value");
                         let reg1 = values.get("register1").unwrap().uint_value().expect("integer value");
 
-                        format!("{} [{}-], {}", op.mnemonic, get_word_reg_mnem(reg1), get_word_reg_mnem(reg0))
+                        format!("{} [-{}], {}", op.mnemonic, get_word_gpr_mnem(reg1), get_word_gpr_mnem(reg0))
                     },
                     esil: |_op, _values| {String::from("")},
                 })
@@ -400,7 +405,7 @@ impl OpFormat {
                         let reg1 = values.get("register1").unwrap().uint_value().expect("integer value");
                         let data0 = values.get("data0").unwrap().uint_value().expect("integer value");
 
-                        format!("{} [{} + #{:04X}h], {}", op.mnemonic, get_word_reg_mnem(reg1), data0, get_byte_reg_mnem(reg0))
+                        format!("{} [{} + #{:04X}h], {}", op.mnemonic, get_word_gpr_mnem(reg1), data0, get_byte_gpr_mnem(reg0))
                     },
                     esil: |_op, _values| {String::from("")},
 
@@ -409,7 +414,13 @@ impl OpFormat {
             OpFormatType::DREFRwmINCINDdata16__Rwn => {
                 Ok(OpFormat{
                     name: "DREFRwmINCINDdata16__Rwn",
-                    decode: |_op, _values| {String::from("")},
+                    decode: |op, values| {
+                        let reg0 = values.get("register0").unwrap().uint_value().expect("integer value");
+                        let reg1 = values.get("register1").unwrap().uint_value().expect("integer value");
+                        let data0 = values.get("data0").unwrap().uint_value().expect("integer value");
+
+                        format!("{} [{} + #{:04X}h], {}", op.mnemonic, get_word_gpr_mnem(reg1), data0, get_word_gpr_mnem(reg0))
+                    },
                     esil: |_op, _values| {String::from("")},
 
                 })
@@ -421,7 +432,7 @@ impl OpFormat {
                         let reg0 = values.get("register0").unwrap().uint_value().expect("integer value");
                         let reg1 = values.get("register1").unwrap().uint_value().expect("integer value");
 
-                        format!("{} [{}], {}", op.mnemonic, get_word_reg_mnem(reg1), get_byte_reg_mnem(reg0))
+                        format!("{} [{}], {}", op.mnemonic, get_word_gpr_mnem(reg1), get_byte_gpr_mnem(reg0))
                     },
                     esil: |_op, _values| {String::from("")},
 
@@ -434,7 +445,7 @@ impl OpFormat {
                         let reg0 = values.get("register0").unwrap().uint_value().expect("integer value");
                         let reg1 = values.get("register1").unwrap().uint_value().expect("integer value");
 
-                        format!("{} [{}], {}", op.mnemonic, get_word_reg_mnem(reg1), get_word_reg_mnem(reg0))
+                        format!("{} [{}], {}", op.mnemonic, get_word_gpr_mnem(reg1), get_word_gpr_mnem(reg0))
                     },
                     esil: |_op, _values| {String::from("")},
 
@@ -447,7 +458,7 @@ impl OpFormat {
                         let reg0 = values.get("register0").unwrap().uint_value().expect("integer value");
                         let reg1 = values.get("register1").unwrap().uint_value().expect("integer value");
 
-                        format!("{} [{}+], [{}]", op.mnemonic, get_word_reg_mnem(reg1), get_word_reg_mnem(reg0))
+                        format!("{} [{}+], [{}]", op.mnemonic, get_word_gpr_mnem(reg0), get_word_gpr_mnem(reg1))
                     },
                     esil: |_op, _values| {String::from("")},
                 })
@@ -459,7 +470,7 @@ impl OpFormat {
                         let reg0 = values.get("register0").unwrap().uint_value().expect("integer value");
                         let reg1 = values.get("register1").unwrap().uint_value().expect("integer value");
 
-                        format!("{} [{}], [{}+]", op.mnemonic, get_word_reg_mnem(reg0), get_word_reg_mnem(reg1))
+                        format!("{} [{}], [{}+]", op.mnemonic, get_word_gpr_mnem(reg0), get_word_gpr_mnem(reg1))
                     },
                     esil: |_op, _values| {String::from("")},
                 })
@@ -471,7 +482,7 @@ impl OpFormat {
                         let reg0 = values.get("register0").unwrap().uint_value().expect("integer value");
                         let reg1 = values.get("register1").unwrap().uint_value().expect("integer value");
 
-                        format!("{} [{}], [{}]", op.mnemonic, get_word_reg_mnem(reg0), get_word_reg_mnem(reg1))
+                        format!("{} [{}], [{}]", op.mnemonic, get_word_gpr_mnem(reg0), get_word_gpr_mnem(reg1))
                     },
                     esil: |_op, _values| {String::from("")},
                 })
@@ -479,7 +490,12 @@ impl OpFormat {
             OpFormatType::DREFRwn__mem => {
                 Ok(OpFormat{
                     name: "DREFRwn__mem",
-                    decode: |_op, _values| {String::from("")},
+                    decode: |op, values| {
+                        let reg0 = values.get("register0").unwrap().uint_value().expect("integer value");
+                        let address0 = values.get("address0").unwrap().uint_value().expect("integer value");
+
+                        format!("{} [{}], {:04X}h", op.mnemonic, get_word_gpr_mnem(reg0), address0)
+                    },
                     esil: |_op, _values| {String::from("")},
 
                 })
@@ -545,7 +561,7 @@ impl OpFormat {
                         let condition0 = values.get("condition0").unwrap().uint_value().expect("integer value");
                         let reg0 = values.get("register0").unwrap().uint_value().expect("integer value");
 
-                        format!("{} {}, [{}]", op.mnemonic, condition0, get_word_reg_mnem(reg0))
+                        format!("{} {}, [{}]", op.mnemonic, condition0, get_word_gpr_mnem(reg0))
                     },
                     esil: |_op, _values| {String::from("")},
 
@@ -578,7 +594,12 @@ impl OpFormat {
             OpFormatType::mem__DREFRwn => {
                 Ok(OpFormat{
                     name: "mem__DREFRwn",
-                    decode: |_op, _values| {String::from("")},
+                    decode: |op, values| {
+                        let reg0 = values.get("register0").unwrap().uint_value().expect("integer value");
+                        let address0 = values.get("address0").unwrap().uint_value().expect("integer value");
+
+                        format!("{} {:04X}h, [{}]", op.mnemonic, address0, get_word_gpr_mnem(reg0))
+                    },
                     esil: |_op, _values| {String::from("")},
 
                 })
@@ -625,7 +646,7 @@ impl OpFormat {
                         let reg0 = values.get("register0").unwrap().uint_value().expect("integer value");
                         let data0 = values.get("data0").unwrap().uint_value().expect("integer value");
 
-                        format!("{} {}, #{:02X}h", op.mnemonic, get_word_reg_mnem(reg0), data0)
+                        format!("{} {}, #{:02X}h", op.mnemonic, get_word_gpr_mnem(reg0), data0)
                     },
                     esil: |_op, _values| {String::from("")},
 
@@ -638,7 +659,7 @@ impl OpFormat {
                         let reg0 = values.get("register0").unwrap().uint_value().expect("integer value");
                         let address0 = values.get("address0").unwrap().uint_value().expect("integer value");
 
-                        format!("{} {}, {:04X}h", op.mnemonic, get_word_reg_mnem(reg0), address0)
+                        format!("{} {}, {:04X}h", op.mnemonic, get_register_mnem(reg0), address0)
                     },
                     esil: |_op, _values| {String::from("")},
 
@@ -685,7 +706,7 @@ impl OpFormat {
                         let reg0 = values.get("register0").unwrap().uint_value().expect("integer value");
                         let address0 = values.get("address0").unwrap().uint_value().expect("integer value");
 
-                        format!("{} {:04X}h, {}", op.mnemonic, address0, get_byte_reg_mnem(reg0))
+                        format!("{} {:04X}h, {}", op.mnemonic, address0, get_byte_register_mnem(reg0))
                     },
                     esil: |_op, _values| {String::from("")},
 
@@ -698,7 +719,7 @@ impl OpFormat {
                         let reg0 = values.get("register0").unwrap().uint_value().expect("integer value");
                         let address0 = values.get("address0").unwrap().uint_value().expect("integer value");
 
-                        format!("{} {}, {:04X}h", op.mnemonic, get_byte_reg_mnem(reg0), address0)
+                        format!("{} {}, {:04X}h", op.mnemonic, get_byte_register_mnem(reg0), address0)
                     },
                     esil: |_op, _values| {String::from("")},
 
@@ -711,7 +732,7 @@ impl OpFormat {
                         let reg0 = values.get("register0").unwrap().uint_value().expect("integer value");
                         let data0 = values.get("data0").unwrap().uint_value().expect("integer value");
 
-                        format!("{} {}, #{:02X}h", op.mnemonic, get_byte_reg_mnem(reg0), data0)
+                        format!("{} {}, #{:02X}h", op.mnemonic, get_byte_register_mnem(reg0), data0)
                     },
                     esil: |_op, _values| {String::from("")},
 
@@ -728,8 +749,8 @@ impl OpFormat {
 
                         // GROSS
                         let reg0_mnem = match op.mnemonic {
-                            "subcb" => get_byte_reg_mnem(register0),
-                            _ => get_word_reg_mnem(register0)
+                            "subcb" => get_byte_gpr_mnem(register0),
+                            _ => get_word_gpr_mnem(register0)
                         };
 
                         match sub_op {
@@ -738,11 +759,11 @@ impl OpFormat {
                             },
                             "reg" => {
                                 let reg1 = register1.unwrap().uint_value().expect("integer value");
-                                format!("{} {}, [{}]", op.mnemonic, reg0_mnem, get_word_reg_mnem(reg1))
+                                format!("{} {}, [{}]", op.mnemonic, reg0_mnem, get_word_gpr_mnem(reg1))
                             },
                             "reg_inc" => {
                                 let reg1 = register1.unwrap().uint_value().expect("integer value");
-                                format!("{} {}, [{}+]", op.mnemonic, reg0_mnem, get_word_reg_mnem(reg1))
+                                format!("{} {}, [{}+]", op.mnemonic, reg0_mnem, get_word_gpr_mnem(reg1))
                             },
                             _ => {
                                 format!("{} {}, INVALID={}", op.mnemonic, reg0_mnem, sub_op)
@@ -765,18 +786,18 @@ impl OpFormat {
 
                         match sub_op {
                             "#data3" => {
-                                format!("{} {}, #{:02X}h", op.mnemonic, get_byte_reg_mnem(register0), data0.unwrap().uint_value().expect("integer value"))
+                                format!("{} {}, #{:02X}h", op.mnemonic, get_byte_gpr_mnem(register0), data0.unwrap().uint_value().expect("integer value"))
                             },
                             "reg" => {
                                 let reg1 = register1.unwrap().uint_value().expect("integer value");
-                                format!("{} {}, [{}]", op.mnemonic, get_byte_reg_mnem(register0), get_word_reg_mnem(reg1))
+                                format!("{} {}, [{}]", op.mnemonic, get_byte_gpr_mnem(register0), get_word_gpr_mnem(reg1))
                             },
                             "reg_inc" => {
                                 let reg1 = register1.unwrap().uint_value().expect("integer value");
-                                format!("{} {}, [{}+]", op.mnemonic, get_byte_reg_mnem(register0), get_word_reg_mnem(reg1))
+                                format!("{} {}, [{}+]", op.mnemonic, get_byte_gpr_mnem(register0), get_word_gpr_mnem(reg1))
                             },
                             _ => {
-                                format!("{} {}, INVALID={}", op.mnemonic, get_byte_reg_mnem(register0), sub_op)
+                                format!("{} {}, INVALID={}", op.mnemonic, get_byte_gpr_mnem(register0), sub_op)
 
                             }
                         }

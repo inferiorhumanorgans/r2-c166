@@ -22,30 +22,30 @@ fn c166_op_59_3() {
 
 #[test]
 fn c166_op_57_1() {
-    test_disasm_op!([0x57, 0x08, 0x25, 0x42], "xorb rl4, #25h");
+    test_disasm_op!([0x57, 0xF8, 0x25, 0x42], "xorb rl4, #25h");
 }
 
 #[test]
 fn c166_op_57_2() {
-    test_disasm_op!([0x57, 0x0F, 0x25, 0x42], "xorb rh7, #25h");
+    test_disasm_op!([0x57, 0xFF, 0x25, 0x42], "xorb rh7, #25h");
 }
 
 #[test]
 fn c166_op_53_1() {
-    test_disasm_op!([0x53, 0x08, 0x25, 0x42], "xorb rl4, 4225h");
+    test_disasm_op!([0x53, 0xF8, 0x25, 0x42], "xorb rl4, 4225h");
 }
 
 #[test]
 fn c166_op_53_2() {
-    test_disasm_op!([0x53, 0x0F, 0x25, 0x42], "xorb rh7, 4225h");
+    test_disasm_op!([0x53, 0xFF, 0x25, 0x42], "xorb rh7, 4225h");
 }
 
 #[test]
 fn c166_op_55_1() {
-    test_disasm_op!([0x55, 0x02, 0x25, 0x42], "xorb 4225h, rl1");
+    test_disasm_op!([0x55, 0xF2, 0x25, 0x42], "xorb 4225h, rl1");
 }
 
 #[test]
 fn c166_op_55_2() {
-    test_disasm_op!([0x55, 0x05, 0x25, 0x42], "xorb 4225h, rh2");
+    test_disasm_op!([0x55, 0xF5, 0x25, 0x42], "xorb 4225h, rh2");
 }

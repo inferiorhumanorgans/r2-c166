@@ -22,15 +22,15 @@ fn c166_op_39_3() {
 
 #[test]
 fn c166_op_37() {
-    test_disasm_op!([0x37, 0xC, 0xFF, 0xCC], "subcb rl6, #FFh");
+    test_disasm_op!([0x37, 0xFC, 0xFF, 0xCC], "subcb rl6, #FFh");
 }
 
 #[test]
 fn c166_op_33() {
-    test_disasm_op!([0x33, 0xC, 0xFF, 0xCC], "subcb rl6, CCFFh");
+    test_disasm_op!([0x33, 0x0B, 0xFF, 0xCC], "subcb STKUN, CCFFh");
 }
 
 #[test]
 fn c166_op_35() {
-    test_disasm_op!([0x35, 0xC, 0xFF, 0xCC], "subcb CCFFh, rl6");
+    test_disasm_op!([0x35, 0xFC, 0xFF, 0xCC], "subcb CCFFh, rl6");
 }

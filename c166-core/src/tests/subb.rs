@@ -22,15 +22,15 @@ fn c166_op_29_3() {
 
 #[test]
 fn c166_op_27() {
-    test_disasm_op!([0x27, 0xC, 0xFF, 0xCC], "subb rl6, #FFh");
+    test_disasm_op!([0x27, 0x0C, 0xFF, 0xCC], "subb ADDRSEL1, #FFh");
 }
 
 #[test]
 fn c166_op_23() {
-    test_disasm_op!([0x23, 0xC, 0xFF, 0xCC], "subb rl6, CCFFh");
+    test_disasm_op!([0x23, 0xFC, 0xFF, 0xCC], "subb rl6, CCFFh");
 }
 
 #[test]
 fn c166_op_25() {
-    test_disasm_op!([0x25, 0xC, 0xFF, 0xCC], "subb CCFFh, rl6");
+    test_disasm_op!([0x25, 0xFC, 0xFF, 0xCC], "subb CCFFh, rl6");
 }
