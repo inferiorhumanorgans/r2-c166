@@ -1,3 +1,11 @@
+pub mod einit;
+pub mod extr;
+pub mod extp;
+pub mod extpr;
+pub mod exts;
+pub mod extsr;
+pub mod idle;
+pub mod jb;
 pub mod jbc;
 pub mod jmpa;
 pub mod jmpi;

@@ -174,6 +174,10 @@ impl Encoding {
                     decode: |buf| {
                         let mut values = HashMap::<&str, EncodingValue>::new();
 
+                        if (buf[1] & 0b00001111) != 0 {
+                            return Err("Instruction was invalid")
+                        }
+
                         let sub_op : u8 = (buf[1] & 0b11000000) >> 6;
 
                         let mnem = match sub_op {
@@ -186,12 +190,38 @@ impl Encoding {
 
                         let irange : u8 = ((buf[1] & 0b00110000) >> 4) + 1;
 
-                        let segment0 = buf[2];
+                        if irange > 4 {
+                            // This should be unreachable, but...
+                            return Err("Instruction was invalid")
+                        }
 
                         values.insert("mnemonic", EncodingValue::String(mnem));
                         values.insert("sub_op", EncodingValue::UInt(sub_op as u32));
                         values.insert("irange0", EncodingValue::UInt(irange as u32));
-                        values.insert("segment0", EncodingValue::UInt(segment0 as u32));
+
+                        match (buf[1] & 0b11000000) >> 6 {
+                            0b10 | 0b00 => {
+                                // Seg op
+                                match buf[3] {
+                                    0x00 => {
+                                        let segment0 = buf[2];
+                                        values.insert("segment0", EncodingValue::UInt(segment0 as u32));
+                                    },
+                                    _    => return Err("Instruction was invalid")
+                                }
+                            },
+                            0b11 | 0b01 => {
+                                // Page is 10 bits so the top 6 bits of byte 3 need to be zero
+                                match (buf[3] & 0b11111100) >> 2 {
+                                    0x00 => {
+                                        let page : u16 = ((buf[3] & 0b00000011) as u16) << 8 | buf[2] as u16;
+                                        values.insert("page0", EncodingValue::UInt(page as u32));
+                                    },
+                                    _    => return Err("Instruction was invalid")
+                                }
+                            },
+                            _ => unreachable!()
+                        }
 
                         Ok(values)
                     }

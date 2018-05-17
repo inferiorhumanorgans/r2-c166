@@ -1073,7 +1073,7 @@ impl Instruction {
                 Ok(Instruction {
                     id: 0xD7,
                     mnemonic: "ext*",
-                    format: OpFormatType::INDpag__INDirang2,
+                    format: OpFormatType::ext_page_seg,
                     encoding: EncodingType::ext_d7,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_NULL
                 })

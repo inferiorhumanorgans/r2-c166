@@ -7,7 +7,7 @@ use ::register::*;
 pub enum OpFormatType {
     NO_ARGS,
     INDirang2,
-    INDpag__INDirang2,
+    ext_page_seg,
     INDtrap7,
     Rbn,
     Rbn__INDdata4,
@@ -154,15 +154,24 @@ impl OpFormat {
 
                 })
             },
-            OpFormatType::INDpag__INDirang2 => {
+            OpFormatType::ext_page_seg => {
                 Ok(OpFormat{
-                    name: "INDpag__INDirang2",
+                    name: "ext_page_seg",
                     decode: |_op, values| {
                         let mnem = values.get("mnemonic").unwrap().str_value().expect("string value");
-                        let segment0 = values.get("segment0").unwrap().uint_value().expect("integer value");
                         let irange0 = values.get("irange0").unwrap().uint_value().expect("integer value");
 
-                        format!("{} #{:02X}h, #{}", mnem, segment0, irange0)
+                        match mnem {
+                            "extp" | "extpr" => {
+                                let page0 = values.get("page0").unwrap().uint_value().expect("integer value");
+                                format!("{} #{:04X}h, #{}", mnem, page0, irange0)
+                            },
+                            "exts" | "extsr" => {
+                                let segment0 = values.get("segment0").unwrap().uint_value().expect("integer value");
+                                format!("{} #{:02X}h, #{}", mnem, segment0, irange0)
+                            },
+                            _ => unreachable!()
+                        }
                     },
                     esil: |_op, _values| {String::from("")},
                 })
