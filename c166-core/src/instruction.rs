@@ -1754,7 +1754,7 @@ impl Instruction {
                     id: 0xCC,
                     mnemonic: "nop",
                     format: OpFormatType::NO_ARGS,
-                    encoding: EncodingType::nop,
+                    encoding: EncodingType::NO_ARGS2,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_NOP
                 })
             },

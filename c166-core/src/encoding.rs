@@ -12,7 +12,6 @@ pub enum EncodingType {
     ext_d7,
     ext_dc,
     data3_or_reg,
-    nop,
     atomic_extr,// :00##-0
     Fn_II_II,   // Fn ## ##
     Fn_MM_MM,	// Fn MM MM
@@ -77,10 +76,11 @@ impl Encoding {
                     length: 2,
                     decode: |buf| {
                         let values = HashMap::<&str, EncodingValue>::new();
-                        match buf[0..2] {
+                        match &buf[0..2] {
                             [0xDB, 0x00] => Ok(values),
                             [0xFB, 0x88] => Ok(values),
                             [0xCB, 0x00] => Ok(values),
+                            [0xCC, 0x00] => Ok(values),
                             _ => Err("Invalid instruction")
                         }
                     }
@@ -93,10 +93,13 @@ impl Encoding {
                     length: 4,
                     decode: |buf| {
                         let values = HashMap::<&str, EncodingValue>::new();
-                        match buf[0..4] {
+                        match &buf[0..4] {
                             [0xB7, 0x48, 0xB7, 0xB7] => Ok(values),
                             [0xA7, 0x58, 0xA7, 0xA7] => Ok(values),
                             [0x97, 0x68, 0x97, 0x97] => Ok(values),
+                            [0xB5, 0x4A, 0xB5, 0xB5] => Ok(values),
+                            [0xA5, 0x5A, 0xA5, 0xA5] => Ok(values),
+                            [0x87, 0x78, 0x87, 0x87] => Ok(values),
                             _ => Err("Invalid instruction")
                         }
                     }
@@ -245,16 +248,6 @@ impl Encoding {
                         values.insert("sub_op", EncodingValue::String(sub_mnem));
 
                         Ok(values)
-                    }
-                })
-            },
-
-            EncodingType::nop => {
-                Ok(Encoding {
-                    name: "nop",
-                    length: 2,
-                    decode: |_buf| {
-                        Ok(HashMap::<&str, EncodingValue>::new())
                     }
                 })
             },
