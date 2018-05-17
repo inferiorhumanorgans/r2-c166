@@ -831,7 +831,7 @@ impl OpFormat {
                         let reg0 = values.get("register0").unwrap().uint_value().expect("integer value");
                         let address0 = values.get("address0").unwrap().uint_value().expect("integer value");
 
-                        format!("{} {:04X}, {}", op.mnemonic, address0, get_byte_reg_mnem(reg0))
+                        format!("{} {:04X}h, {}", op.mnemonic, address0, get_byte_reg_mnem(reg0))
                     },
                     esil: |_op, _values| {String::from("")},
 
@@ -857,7 +857,7 @@ impl OpFormat {
                         let reg0 = values.get("register0").unwrap().uint_value().expect("integer value");
                         let data0 = values.get("data0").unwrap().uint_value().expect("integer value");
 
-                        format!("{} {}, #{:02}h", op.mnemonic, get_byte_reg_mnem(reg0), data0)
+                        format!("{} {}, #{:02X}h", op.mnemonic, get_byte_reg_mnem(reg0), data0)
                     },
                     esil: |_op, _values| {String::from("")},
 
