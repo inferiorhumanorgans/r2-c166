@@ -23,5 +23,11 @@ ffi: src/ffi.rs
 
 src/ffi.rs: ./bindings.h
 	@echo "Generating FFI bindings with bindgen"
-	@bindgen bindings.h --bitfield-enum=_RAnalOpType --blacklist-type=IPPORT_RESERVED -- -I/usr/include/libr > src/ffi.rs
+	@bindgen bindings.h --bitfield-enum=_RAnalOpType --bitfield-enum=_RAnalCond --blacklist-type=IPPORT_RESERVED -- -I/usr/include/libr -I/usr/local/include/libr > src/ffi.rs || rm -f src/ffi.rs
 	@echo
+
+test-asm:
+	@cargo test c166 --no-fail-fast
+
+test:
+	@cargo test --no-fail-fast

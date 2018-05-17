@@ -90,12 +90,3 @@ pub static mut radare_plugin: RLibStruct = RLibStruct {
     version : R2_VERSION   as *const [u8] as *const c_char,
     free : None
 };
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-        assert_eq!(2 + 2, 4);
-    }
-}
-

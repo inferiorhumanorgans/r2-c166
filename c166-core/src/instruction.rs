@@ -2333,7 +2333,7 @@ impl Instruction {
                 Ok(Instruction {
                     id: 0x51,
                     mnemonic: "xorb",
-                    format: OpFormatType::Rwn__Rwm,
+                    format: OpFormatType::Rbn__Rbm,
                     encoding: EncodingType::nm,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_XOR | _RAnalOpType::R_ANAL_OP_TYPE_REG
                 })
@@ -2343,7 +2343,7 @@ impl Instruction {
                 Ok(Instruction {
                     id: 0x59,
                     mnemonic: "xorb",
-                    format: OpFormatType::data3_or_reg,
+                    format: OpFormatType::data3_or_breg,
                     encoding: EncodingType::data3_or_reg,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_XOR
                 })
