@@ -1,11 +1,16 @@
-INST_DIR=~/.config/radare2/plugins/
-TEST_FILE=test.r2
-BIN_FILE=/dev/null
-BUILD_DIR=target/debug
+INST_DIR ?= ~/.config/radare2/plugins/
+BIN_FILE ?= /dev/null
+BUILD_MODE ?= debug
+BUILD_DIR=target/${BUILD_MODE}
+CARGO_FLAGS=
+
+ifeq ($(BUILD_MODE),release)
+  CARGO_FLAGS+=--release
+endif
 
 all: ffi
-	@echo "Building"
-	@cargo build
+	@echo "Building ${BUILD_MODE}"
+	@cargo build ${CARGO_FLAGS}
 	@echo
 
 # Need to find the proper directory for rasm2 plugins :(
@@ -18,6 +23,9 @@ run: all
 	@echo Running ${TEST_FILE}
 	@radare2 -q -i ${TEST_FILE} ${BIN_FILE}
 	@echo
+
+interactive: all
+	@RUST_BACKTRACE=1 radare2 -i interactive.r2 ${BIN_FILE}
 
 ffi: src/ffi.rs
 
