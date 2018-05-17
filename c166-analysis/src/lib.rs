@@ -70,25 +70,32 @@ extern "C" fn _op(_a: *mut RAnal, raw_op: *mut RAnalOp, addr: u64, buf: *const u
                 let raw_type : u32 =  op.r2_op_type.uint_value() & 0b11111111;
                 if (raw_type & jump_type) > 0 || (raw_type & call_type) > 0 {
                     out_op.fail = addr + out_op.size as u64;
-                    let values = (encoding.decode)(bytes).expect("ISN was valid");
-                    let condition = match values.get("condition0") {
-                        Some(condition) => condition.uint_value().expect("integer value"),
-                        _ => 0
-                    };
-                    out_op.cond = condition_to_r2(condition).uint_value() as i32;
-                    match values.get("address0") {
-                        Some(address) => {
-                            let jump_target = address.uint_value().expect("integer value");
-                            out_op.jump = jump_target as u64;
-                        },
-                        _ => {
-                            match values.get("relative0") {
-                                Some(relative) => {
-                                    let rel_target = relative.uint_value().expect("integer value");
-                                    out_op.jump = addr + (rel_target * 2) as u64;
+                    match (encoding.decode)(bytes) {
+                        Ok(values) => {
+                            let condition = match values.get("condition0") {
+                                Some(condition) => condition.uint_value().expect("integer value"),
+                                _ => 0
+                            };
+                            out_op.cond = condition_to_r2(condition).uint_value() as i32;
+                            match values.get("address0") {
+                                Some(address) => {
+                                    let jump_target = address.uint_value().expect("integer value");
+                                    out_op.jump = jump_target as u64;
                                 },
-                                _ => {}
+                                _ => {
+                                    match values.get("relative0") {
+                                        Some(relative) => {
+                                            let rel_target = relative.uint_value().expect("integer value");
+                                            out_op.jump = addr + (rel_target * 2) as u64;
+                                        },
+                                        _ => {}
+                                    }
+                                }
                             }
+                        },
+                        Err(_) => {
+                            out_op.size = -1;
+                            out_op.type_ = _RAnalOpType::R_ANAL_OP_TYPE_ILL.uint_value();
                         }
                     }
                 }

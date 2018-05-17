@@ -42,15 +42,23 @@ extern "C" fn _disassemble(_asm: *mut RAsm, raw_op: *mut RAsmOp, buf: *const u8,
                     let format = OpFormat::from_format_type(&op.format).unwrap();
 
                     // https://github.com/rust-lang/rust/issues/18343
-                    let values = (encoding.decode)(bytes).expect("ISN was valid");
-                    let desc = (format.decode)(&op, values);
+                    match (encoding.decode)(bytes) {
+                        Ok(values) => {
+                            let desc = (format.decode)(&op, values);
 
-                    out_op.size = encoding.length;
-                    out_op.payload = 0;
-                    out_op.buf_asm[desc.len()] = 0;
+                            out_op.size = encoding.length;
+                            out_op.payload = 0;
+                            out_op.buf_asm[desc.len()] = 0;
 
-                    unsafe {
-                        std::ptr::copy(desc.as_bytes() as *const [u8] as *const c_char, &mut out_op.buf_asm as *mut [c_char] as *mut c_char, desc.len());
+                            unsafe {
+                                std::ptr::copy(desc.as_bytes() as *const [u8] as *const c_char, &mut out_op.buf_asm as *mut [c_char] as *mut c_char, desc.len());
+                            }
+                        },
+                        Err(_) => {
+                            out_op.size = -1;
+                            out_op.payload = 0;
+                            out_op.buf_asm[0] = 0;
+                        }
                     }
                 } else {
                     out_op.size = -1;
