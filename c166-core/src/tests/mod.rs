@@ -1,6 +1,10 @@
 #[macro_use]
 mod test_macros;
 
+pub mod jbc;
+pub mod jmpa;
+pub mod jmpi;
+pub mod jmpr;
 pub mod jmps;
 pub mod jnb;
 pub mod jnbs;
