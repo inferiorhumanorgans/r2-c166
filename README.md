@@ -1,5 +1,15 @@
 # README
 
-A rust version of the Siemens C166 family assembly and analysis plugins for radare2.  Currently requires `rustfmt-nightly`.  Install bindgen globally via cargo before building.  Does not work on older versions of OSX.
+Siemens C166 family (dis)assembly and analysis plugins for radare2.  This project is written in rust, and depends on the nightly
+toolchain.
 
-https://github.com/rustwasm/wasm-bindgen/issues/186
+## Installation and Usage
+
+* Install `rustfmt-nightly` and  `bindgen` globally via cargo before building.
+* Run `make` to build and install the library.
+* Run `make test-asm` to validate the instruction decoding.
+
+## Notes
+
+* `rasm2` currently does not look in the user's plugin path so you may have to symlink or copy the installed library into a different location.
+* This is known to not work on older versions of OSX.  Probably due to something like: <https://github.com/rustwasm/wasm-bindgen/issues/186>
