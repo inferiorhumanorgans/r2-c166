@@ -1,23 +1,13 @@
 extern crate c166_core;
 
-use std::mem::transmute;
-
 use c166_core::r2::*;
 use c166_core::instruction::Instruction;
 use c166_core::encoding::Encoding;
-use c166_core::opformat::OpFormat;
 
 use std::os::raw::c_void;
 use std::os::raw::c_char;
-use std::ptr;
 
 // https://github.com/rust-lang/rfcs/issues/400
-macro_rules! cstr {
-  ($s:expr) => (
-    concat!($s, "\0") as *const str as *const [c_char] as *const c_char
-  );
-}
-
 macro_rules! cstr_mut {
   ($s:expr) => (
     concat!($s, "\0") as *const str as *const [c_char] as *mut c_char
@@ -30,7 +20,6 @@ const MY_ARCH : *mut c_char = cstr_mut!("c166");
 const MY_DESC : *mut c_char = cstr_mut!("c166 analysis plugin in Rust");
 const MY_LICENSE : *mut c_char = cstr_mut!("GPL3");
 const MY_AUTHOR : *mut c_char = cstr_mut!("inferiorhumanorgans");
-const EMPTY_STRING : *const c_char = b"\0" as *const [u8] as *const c_char;
 
 fn condition_to_r2(condition: u32) -> _RAnalCond {
     if condition > 15 {
@@ -118,6 +107,7 @@ extern "C" fn _op(_a: *mut RAnal, raw_op: *mut RAnalOp, addr: u64, buf: *const u
     out_op.size
 }
 
+#[allow(non_upper_case_globals)]
 const r_anal_plugin_c166rs: RAnalPlugin = RAnalPlugin {
     name: MY_NAME,
     desc: MY_DESC,

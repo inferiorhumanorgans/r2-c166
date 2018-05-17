@@ -61,6 +61,7 @@ extern "C" fn _disassemble(_asm: *mut RAsm, raw_op: *mut RAsmOp, buf: *const u8,
         return out_op.size;
 }
 
+#[allow(non_upper_case_globals)]
 const r_asm_plugin_c166rs: RAsmPlugin = RAsmPlugin {
     name : MY_NAME,
     arch : MY_ARCH,

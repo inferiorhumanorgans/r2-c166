@@ -920,9 +920,6 @@ impl OpFormat {
                     esil: |_op, _values| {String::from("")},
 
                 })
-            },
-            _ => {
-                Err("Format type not found")
             }
         }
     }
