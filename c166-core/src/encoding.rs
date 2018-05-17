@@ -325,17 +325,22 @@ impl Encoding {
                     name: "Fn_II_II",
                     length: 4,
                     decode: |buf| {
-                        let mut values = HashMap::<&str, EncodingValue>::new();
+                        match (buf[1] & 0b11110000) >> 4 {
+                            0x0F => {
+                                let mut values = HashMap::<&str, EncodingValue>::new();
 
-                        let register0 : u8 = buf[1] & 0b00001111;
+                                let register0 : u8 = buf[1] & 0b00001111;
 
-                        let slice = &buf[2..4];
-                        let data0 : u32 = LittleEndian::read_u16(slice) as u32;
+                                let slice = &buf[2..4];
+                                let data0 : u32 = LittleEndian::read_u16(slice) as u32;
 
-                        values.insert("register0", EncodingValue::UInt(register0 as u32));
-                        values.insert("data0", EncodingValue::UInt(data0));
+                                values.insert("register0", EncodingValue::UInt(register0 as u32));
+                                values.insert("data0", EncodingValue::UInt(data0));
 
-                        Ok(values)
+                                Ok(values)
+                            },
+                            _ => Err("Instruction was invalid")
+                        }
                     }
                 })
             },
@@ -344,8 +349,23 @@ impl Encoding {
                 Ok(Encoding {
                     name: "Fn_MM_MM",
                     length: 4,
-                    decode: |_buf| {
-                        Ok(HashMap::<&str, EncodingValue>::new())
+                    decode: |buf| {
+                        match (buf[1] & 0b11110000) >> 4 {
+                            0x0F => {
+                                let mut values = HashMap::<&str, EncodingValue>::new();
+
+                                let register0 : u8 = buf[1] & 0b00001111;
+
+                                let slice = &buf[2..4];
+                                let address0 : u32 = LittleEndian::read_u16(slice) as u32;
+
+                                values.insert("register0", EncodingValue::UInt(register0 as u32));
+                                values.insert("address0", EncodingValue::UInt(address0));
+
+                                Ok(values)
+                            },
+                            _ => Err("Instruction was invalid")
+                        }
                     }
                 })
             },
@@ -598,12 +618,17 @@ impl Encoding {
                     name: "n0",
                     length: 2,
                     decode: |buf| {
-                        let mut values = HashMap::<&str, EncodingValue>::new();
+                        match buf[1] & 0b00001111 {
+                            0 => {
+                                let mut values = HashMap::<&str, EncodingValue>::new();
 
-                        let register0 = (buf[1] & 0b11110000) >> 4;
-                        values.insert("register0", EncodingValue::UInt(register0 as u32));
+                                let register0 = (buf[1] & 0b11110000) >> 4;
+                                values.insert("register0", EncodingValue::UInt(register0 as u32));
 
-                        Ok(values)
+                                Ok(values)
+                            }
+                            _ => Err("Instruction was invalid")
+                        }
                     }
                 })
             },
@@ -673,12 +698,18 @@ impl Encoding {
                     name: "nn",
                     length: 2,
                     decode: |buf| {
-                        let mut values = HashMap::<&str, EncodingValue>::new();
+                        let lower : u8 = buf[1] & 0b00001111;
+                        let upper : u8 = (buf[1] & 0b11110000) >> 4;
+                        if lower == upper {
+                            let mut values = HashMap::<&str, EncodingValue>::new();
 
-                        let register0 : u8 = (buf[1] & 0b11110000) >> 4;
-                        values.insert("register0", EncodingValue::UInt(register0 as u32));
+                            let register0 : u8 = lower;
+                            values.insert("register0", EncodingValue::UInt(register0 as u32));
 
-                        Ok(values)
+                            Ok(values)
+                        } else {
+                            Err("Instruction was invalid")
+                        }
                     }
                 })
             },

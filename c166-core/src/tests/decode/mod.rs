@@ -1,3 +1,14 @@
+pub mod cmpd1;
+pub mod cmpd2;
+pub mod cmpi1;
+pub mod cmpi2;
+pub mod cpl;
+pub mod cplb;
+pub mod diswdt;
+pub mod div;
+pub mod divl;
+pub mod divlu;
+pub mod divu;
 pub mod einit;
 pub mod extr;
 pub mod extp;

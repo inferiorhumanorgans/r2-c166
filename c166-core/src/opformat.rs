@@ -377,9 +377,13 @@ impl OpFormat {
             OpFormatType::Rwn__mem => {
                 Ok(OpFormat{
                     name: "Rwn__mem",
-                    decode: |_op, _values| {String::from("")},
-                    esil: |_op, _values| {String::from("")},
+                    decode: |op, values| {
+                        let reg0 = values.get("register0").unwrap().uint_value().expect("integer value");
+                        let address0 = values.get("address0").unwrap().uint_value().expect("integer value");
 
+                        format!("{} {}, {:04X}h", op.mnemonic, get_word_gpr_mnem(reg0), address0)
+                    },
+                    esil: |_op, _values| {String::from("")},
                 })
             },
             OpFormatType::DREFDECRwm__Rbn => {

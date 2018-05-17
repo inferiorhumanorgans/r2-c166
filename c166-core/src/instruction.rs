@@ -1003,7 +1003,7 @@ impl Instruction {
                 Ok(Instruction {
                     id: 0xB1,
                     mnemonic: "cplb",
-                    format: OpFormatType::Rwn,
+                    format: OpFormatType::Rbn,
                     encoding: EncodingType::n0,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_CPL | _RAnalOpType::R_ANAL_OP_TYPE_REG
                 })
