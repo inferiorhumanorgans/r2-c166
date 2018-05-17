@@ -507,17 +507,22 @@ impl Encoding {
                     name: "c0_MM_MM",
                     length: 4,
                     decode: |buf| {
-                        let mut values = HashMap::<&str, EncodingValue>::new();
+                        match buf[1] & 0b00001111 {
+                            0 => {
+                                let mut values = HashMap::<&str, EncodingValue>::new();
 
-                        let condition0 : u8 = (buf[1] & 0b11110000) >> 4;
+                                let condition0 : u8 = (buf[1] & 0b11110000) >> 4;
 
-                        let slice = &buf[2..4];
-                        let address0 : u32 = LittleEndian::read_u16(slice) as u32;
+                                let slice = &buf[2..4];
+                                let address0 : u32 = LittleEndian::read_u16(slice) as u32;
 
-                        values.insert("condition0", EncodingValue::UInt(condition0 as u32));
-                        values.insert("address0", EncodingValue::UInt(address0));
+                                values.insert("condition0", EncodingValue::UInt(condition0 as u32));
+                                values.insert("address0", EncodingValue::UInt(address0));
 
-                        Ok(values)
+                                Ok(values)
+                            },
+                            _ => Err("Invalid instruction")
+                        }
                     }
                 })
             },

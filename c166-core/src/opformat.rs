@@ -561,7 +561,7 @@ impl OpFormat {
                         let condition0 = values.get("condition0").unwrap().uint_value().expect("integer value");
                         let reg0 = values.get("register0").unwrap().uint_value().expect("integer value");
 
-                        format!("{} {}, [{}]", op.mnemonic, condition0, get_word_gpr_mnem(reg0))
+                        format!("{} {}, [{}]", op.mnemonic, get_condition(condition0), get_word_gpr_mnem(reg0))
                     },
                     esil: |_op, _values| {String::from("")},
 
