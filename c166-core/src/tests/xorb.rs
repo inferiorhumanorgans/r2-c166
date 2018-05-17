@@ -63,10 +63,10 @@ fn c166_op_53_2() {
 
 #[test]
 fn c166_op_55_1() {
-    test_disasm_op!([0x55, 0x02, 0x25, 0x42], "xorb 4225, rl1");
+    test_disasm_op!([0x55, 0x02, 0x25, 0x42], "xorb 4225h, rl1");
 }
 
 #[test]
 fn c166_op_55_2() {
-    test_disasm_op!([0x55, 0x05, 0x25, 0x42], "xorb 4225, rh2");
+    test_disasm_op!([0x55, 0x05, 0x25, 0x42], "xorb 4225h, rh2");
 }
