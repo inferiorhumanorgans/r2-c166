@@ -37,18 +37,25 @@ extern "C" fn _disassemble(_asm: *mut RAsm, raw_op: *mut RAsmOp, buf: *const u8,
         match Instruction::from_addr_array(bytes) {
             Ok(op) => {
                 let encoding = Encoding::from_encoding_type(&op.encoding).unwrap();
-                let format = OpFormat::from_format_type(&op.format).unwrap();
 
-                // https://github.com/rust-lang/rust/issues/18343
-                let values = (encoding.decode)(bytes);
-                let desc = (format.decode)(&op, values);
+                if encoding.length <= len {
+                    let format = OpFormat::from_format_type(&op.format).unwrap();
 
-                out_op.size = encoding.length;
-                out_op.payload = 0;
-                out_op.buf_asm[desc.len()] = 0;
+                    // https://github.com/rust-lang/rust/issues/18343
+                    let values = (encoding.decode)(bytes);
+                    let desc = (format.decode)(&op, values);
 
-                unsafe {
-                    std::ptr::copy(desc.as_bytes() as *const [u8] as *const c_char, &mut out_op.buf_asm as *mut [c_char] as *mut c_char, desc.len());
+                    out_op.size = encoding.length;
+                    out_op.payload = 0;
+                    out_op.buf_asm[desc.len()] = 0;
+
+                    unsafe {
+                        std::ptr::copy(desc.as_bytes() as *const [u8] as *const c_char, &mut out_op.buf_asm as *mut [c_char] as *mut c_char, desc.len());
+                    }
+                } else {
+                    out_op.size = -1;
+                    out_op.payload = 0;
+                    out_op.buf_asm[0] = 0;
                 }
             },
             Err(_) => {
