@@ -694,7 +694,11 @@ impl OpFormat {
             OpFormatType::rel => {
                 Ok(OpFormat{
                     name: "rel",
-                    decode: |_op, _values| {String::from("")},
+                    decode: |op, values| {
+                        let relative0 = values.get("relative0").unwrap().uint_value().expect("integer value");
+
+                        format!("{} +{:02X}h", op.mnemonic, relative0)
+                    },
                     esil: |_op, _values| {String::from("")},
 
                 })

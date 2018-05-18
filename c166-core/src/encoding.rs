@@ -302,20 +302,25 @@ impl Encoding {
                     name: "atomic_extr",
                     length: 2,
                     decode: |buf| {
-                        let mut values = HashMap::<&str, EncodingValue>::new();
+                        match buf[1] & 0b00001111 {
+                            0 => {
+                                let mut values = HashMap::<&str, EncodingValue>::new();
 
-                        let sub_op = (buf[1] & 0b11000000) >> 6;
+                                let sub_op = (buf[1] & 0b11000000) >> 6;
 
-                        if sub_op == 0b00 {
-                            values.insert("mnemonic", EncodingValue::String("atomic"));
-                        } else if sub_op == 0b10 {
-                            values.insert("mnemonic", EncodingValue::String("extr"));
+                                if sub_op == 0b00 {
+                                    values.insert("mnemonic", EncodingValue::String("atomic"));
+                                } else if sub_op == 0b10 {
+                                    values.insert("mnemonic", EncodingValue::String("extr"));
+                                }
+
+                                let irange0 = ((buf[1] & 0b00110000) >> 4) + 1;
+                                values.insert("irange0", EncodingValue::UInt(irange0 as u32));
+
+                                Ok(values)
+                            },
+                            _ => Err("Instruction was invalid")
                         }
-
-                        let irange0 = ((buf[1] & 0b00110000) >> 4) + 1;
-                        values.insert("irange0", EncodingValue::UInt(irange0 as u32));
-
-                        Ok(values)
                     }
                 })
             },
