@@ -272,12 +272,12 @@ impl Encoding {
 
                         let sub_mnem;
                         match sub_op {
-                            2 => {
+                            0b10 => {
                                 sub_mnem = "reg";
                                 let register1 : u8 = buf[1] & 0b00000011;
                                 values.insert("register1", EncodingValue::UInt(register1 as u32));
                             },
-                            3 => {
+                            0b11 => {
                                 sub_mnem = "reg_inc";
                                 let register1 : u8 = buf[1] & 0b00000011;
                                 values.insert("register1", EncodingValue::UInt(register1 as u32));

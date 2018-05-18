@@ -1,3 +1,4 @@
+pub mod cmp;
 pub mod cmpb;
 pub mod cmpd1;
 pub mod cmpd2;
