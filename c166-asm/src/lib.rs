@@ -17,11 +17,13 @@ macro_rules! cstr {
 }
 const EMPTY_STRING : *const c_char = b"\0" as *const [u8] as *const c_char;
 
-extern "C" fn c166_disassemble(_asm: *mut RAsm, raw_op: *mut RAsmOp, buf: *const u8, len: i32) -> i32 {
+extern "C" fn c166_disassemble(raw_asm: *mut RAsm, raw_op: *mut RAsmOp, buf: *const u8, len: i32) -> i32 {
+        let asm : &RAsm;
         let out_op : &mut RAsmOp;
         let bytes;
 
         unsafe {
+            asm = &(*raw_asm);
             out_op = &mut (*raw_op);
             bytes = std::slice::from_raw_parts(buf as *const u8, len as usize);
         }
@@ -37,14 +39,20 @@ extern "C" fn c166_disassemble(_asm: *mut RAsm, raw_op: *mut RAsmOp, buf: *const
                     // https://github.com/rust-lang/rust/issues/18343
                     match (encoding.decode)(bytes) {
                         Ok(values) => {
-                            let desc = (format.decode)(&op, values);
+                            if asm.pc > <u32>::max_value() as u64 {
+                                out_op.size = -1;
+                                out_op.payload = 0;
+                                out_op.buf_asm[0] = 0;
+                            } else {
+                                let desc = (format.decode)(&op, values, asm.pc as u32);
 
-                            out_op.size = encoding.length;
-                            out_op.payload = 0;
-                            out_op.buf_asm[desc.len()] = 0;
+                                out_op.size = encoding.length;
+                                out_op.payload = 0;
+                                out_op.buf_asm[desc.len()] = 0;
 
-                            unsafe {
-                                std::ptr::copy(desc.as_bytes() as *const [u8] as *const c_char, &mut out_op.buf_asm as *mut [c_char] as *mut c_char, desc.len());
+                                unsafe {
+                                    std::ptr::copy(desc.as_bytes() as *const [u8] as *const c_char, &mut out_op.buf_asm as *mut [c_char] as *mut c_char, desc.len());
+                                }
                             }
                         },
                         Err(_) => {

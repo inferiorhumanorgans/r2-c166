@@ -60,7 +60,7 @@ pub enum OpFormatType {
 
 pub struct OpFormat {
     pub name : &'static str,
-    pub decode : fn(&Instruction, HashMap<&str, EncodingValue>) -> String,
+    pub decode : fn(&Instruction, HashMap<&str, EncodingValue>, u32) -> String,
     pub esil : fn(&Instruction, HashMap<&str, EncodingValue>) -> String,
 }
 
@@ -127,7 +127,7 @@ impl OpFormat {
             OpFormatType::NO_ARGS => {
                 Ok(OpFormat{
                     name: "NO_ARGS",
-                    decode: |op, _values| {
+                    decode: |op, _values, _pc| {
                         format!("{}", op.mnemonic)
                     },
                     esil: |_op, _values| {String::from("")},
@@ -137,7 +137,7 @@ impl OpFormat {
             OpFormatType::INDirang2 => {
                 Ok(OpFormat{
                     name: "INDirang2",
-                    decode: |op, values| {
+                    decode: |op, values, _pc| {
                         let mnem = values.get("mnemonic");
                         let irange = values.get("irange0").unwrap().uint_value().expect("integer value");
 
@@ -157,7 +157,7 @@ impl OpFormat {
             OpFormatType::ext_page_seg => {
                 Ok(OpFormat{
                     name: "ext_page_seg",
-                    decode: |_op, values| {
+                    decode: |_op, values, _pc| {
                         let mnem = values.get("mnemonic").unwrap().str_value().expect("string value");
                         let irange0 = values.get("irange0").unwrap().uint_value().expect("integer value");
 
@@ -179,7 +179,7 @@ impl OpFormat {
             OpFormatType::INDtrap7 => {
                 Ok(OpFormat{
                     name: "INDtrap7",
-                    decode: |op, values| {
+                    decode: |op, values, _pc| {
                         let trap0 = values.get("trap0").unwrap().uint_value().expect("integer value");
 
                         format!("{} #{:02X}h", op.mnemonic, trap0)
@@ -190,7 +190,7 @@ impl OpFormat {
             OpFormatType::Rbn => {
                 Ok(OpFormat{
                     name: "Rbn",
-                    decode: |op, values| {
+                    decode: |op, values, _pc| {
                         let reg0 = values.get("register0").unwrap().uint_value().expect("integer value");
 
                         format!("{} {}", op.mnemonic, get_byte_gpr_mnem(reg0))
@@ -201,7 +201,7 @@ impl OpFormat {
             OpFormatType::Rbn__INDdata4 => {
                 Ok(OpFormat{
                     name: "Rbn__INDdata4",
-                    decode: |op, values| {
+                    decode: |op, values, _pc| {
                         let reg0 = values.get("register0").unwrap().uint_value().expect("integer value");
                         let data0 = values.get("data0").unwrap().uint_value().expect("integer value");
 
@@ -214,7 +214,7 @@ impl OpFormat {
             OpFormatType::Rbn__Rbm => {
                 Ok(OpFormat{
                     name: "Rbn__Rbm",
-                    decode: |op, values| {
+                    decode: |op, values, _pc| {
                         let reg0 = values.get("register0").unwrap().uint_value().expect("integer value");
                         let reg1 = values.get("register1").unwrap().uint_value().expect("integer value");
 
@@ -227,7 +227,7 @@ impl OpFormat {
             OpFormatType::Rbn__DREFRwmINCINDdata16 => {
                 Ok(OpFormat{
                     name: "Rbn__DREFRwmINCINDdata16",
-                    decode: |op, values| {
+                    decode: |op, values, _pc| {
                         let reg0 = values.get("register0").unwrap().uint_value().expect("integer value");
                         let reg1 = values.get("register1").unwrap().uint_value().expect("integer value");
                         let data0 = values.get("data0").unwrap().uint_value().expect("integer value");
@@ -240,7 +240,7 @@ impl OpFormat {
             OpFormatType::Rbn__DREFRwmINC => {
                 Ok(OpFormat{
                     name: "Rbn__DREFRwmINC",
-                    decode: |op, values| {
+                    decode: |op, values, _pc| {
                         let reg0 = values.get("register0").unwrap().uint_value().expect("integer value");
                         let reg1 = values.get("register1").unwrap().uint_value().expect("integer value");
 
@@ -252,7 +252,7 @@ impl OpFormat {
             OpFormatType::Rbn__DREFRwm => {
                 Ok(OpFormat{
                     name: "Rbn__DREFRwm",
-                    decode: |op, values| {
+                    decode: |op, values, _pc| {
                         let reg0 = values.get("register0").unwrap().uint_value().expect("integer value");
                         let reg1 = values.get("register1").unwrap().uint_value().expect("integer value");
 
@@ -266,7 +266,7 @@ impl OpFormat {
             OpFormatType::Rwm__INDirang2 => {
                 Ok(OpFormat{
                     name: "Rwm__INDirang2",
-                    decode: |_op, values| {
+                    decode: |_op, values, _pc| {
                         let mnem = values.get("mnemonic").unwrap().str_value().expect("string value");
                         let reg1 = values.get("register1").unwrap().uint_value().expect("integer value");
                         let irange0 = values.get("irange0").unwrap().uint_value().expect("integer value");
@@ -279,7 +279,7 @@ impl OpFormat {
             OpFormatType::Rwn => {
                 Ok(OpFormat{
                     name: "Rwn",
-                    decode: |op, values| {
+                    decode: |op, values, _pc| {
                         let reg0 = values.get("register0").unwrap().uint_value().expect("integer value");
 
                         format!("{} {}", op.mnemonic, get_word_gpr_mnem(reg0))
@@ -290,7 +290,7 @@ impl OpFormat {
             OpFormatType::Rwn__INDdata16 => {
                 Ok(OpFormat{
                     name: "Rwn__INDdata16",
-                    decode: |op, values| {
+                    decode: |op, values, _pc| {
                         let reg0 = values.get("register0").unwrap().uint_value().expect("integer value");
                         let data0 = values.get("data0").unwrap().uint_value().expect("integer value");
 
@@ -302,7 +302,7 @@ impl OpFormat {
             OpFormatType::Rwn__INDdata4 => {
                 Ok(OpFormat{
                     name: "Rwn__INDdata4",
-                    decode: |op, values| {
+                    decode: |op, values, _pc| {
                         let reg0 = values.get("register0").unwrap().uint_value().expect("integer value");
                         let data0 = values.get("data0").unwrap().uint_value().expect("integer value");
 
@@ -314,7 +314,7 @@ impl OpFormat {
             OpFormatType::Rwn__Rbm => {
                 Ok(OpFormat{
                     name: "Rwn__Rbm",
-                    decode: |op, values| {
+                    decode: |op, values, _pc| {
                         let reg0 = values.get("register0").unwrap().uint_value().expect("integer value");
                         let reg1 = values.get("register1").unwrap().uint_value().expect("integer value");
 
@@ -327,7 +327,7 @@ impl OpFormat {
             OpFormatType::Rwn__Rwm => {
                 Ok(OpFormat{
                     name: "Rwn__Rwm",
-                    decode: |op, values| {
+                    decode: |op, values, _pc| {
                         let reg0 = values.get("register0").unwrap().uint_value().expect("integer value");
                         let reg1 = values.get("register1").unwrap().uint_value().expect("integer value");
 
@@ -340,7 +340,7 @@ impl OpFormat {
             OpFormatType::Rwn__DREFRwmINCINDdata16 => {
                 Ok(OpFormat{
                     name: "Rwn__DREFRwmINCINDdata16",
-                    decode: |op, values| {
+                    decode: |op, values, _pc| {
                         let reg0 = values.get("register0").unwrap().uint_value().expect("integer value");
                         let reg1 = values.get("register1").unwrap().uint_value().expect("integer value");
                         let data0 = values.get("data0").unwrap().uint_value().expect("integer value");
@@ -353,7 +353,7 @@ impl OpFormat {
             OpFormatType::Rwn__DREFRwmINC => {
                 Ok(OpFormat{
                     name: "Rwn__DREFRwmINC",
-                    decode: |op, values| {
+                    decode: |op, values, _pc| {
                         let reg0 = values.get("register0").unwrap().uint_value().expect("integer value");
                         let reg1 = values.get("register1").unwrap().uint_value().expect("integer value");
 
@@ -365,7 +365,7 @@ impl OpFormat {
             OpFormatType::Rwn__DREFRwm => {
                 Ok(OpFormat{
                     name: "Rwn__DREFRwm",
-                    decode: |op, values| {
+                    decode: |op, values, _pc| {
                         let reg0 = values.get("register0").unwrap().uint_value().expect("integer value");
                         let reg1 = values.get("register1").unwrap().uint_value().expect("integer value");
 
@@ -377,7 +377,7 @@ impl OpFormat {
             OpFormatType::Rwn__mem => {
                 Ok(OpFormat{
                     name: "Rwn__mem",
-                    decode: |op, values| {
+                    decode: |op, values, _pc| {
                         let reg0 = values.get("register0").unwrap().uint_value().expect("integer value");
                         let address0 = values.get("address0").unwrap().uint_value().expect("integer value");
 
@@ -389,7 +389,7 @@ impl OpFormat {
             OpFormatType::DREFDECRwm__Rbn => {
                 Ok(OpFormat{
                     name: "DREFDECRwm__Rbn",
-                    decode: |op, values| {
+                    decode: |op, values, _pc| {
                         let reg0 = values.get("register0").unwrap().uint_value().expect("integer value");
                         let reg1 = values.get("register1").unwrap().uint_value().expect("integer value");
 
@@ -401,7 +401,7 @@ impl OpFormat {
             OpFormatType::DREFDECRwm__Rwn => {
                 Ok(OpFormat{
                     name: "DREFDECRwm__Rwn",
-                    decode: |op, values| {
+                    decode: |op, values, _pc| {
                         let reg0 = values.get("register0").unwrap().uint_value().expect("integer value");
                         let reg1 = values.get("register1").unwrap().uint_value().expect("integer value");
 
@@ -413,7 +413,7 @@ impl OpFormat {
             OpFormatType::DREFRwmINCINDdata16__Rbn => {
                 Ok(OpFormat{
                     name: "DREFRwmINCINDdata16__Rbn",
-                    decode: |op, values| {
+                    decode: |op, values, _pc| {
                         let reg0 = values.get("register0").unwrap().uint_value().expect("integer value");
                         let reg1 = values.get("register1").unwrap().uint_value().expect("integer value");
                         let data0 = values.get("data0").unwrap().uint_value().expect("integer value");
@@ -427,7 +427,7 @@ impl OpFormat {
             OpFormatType::DREFRwmINCINDdata16__Rwn => {
                 Ok(OpFormat{
                     name: "DREFRwmINCINDdata16__Rwn",
-                    decode: |op, values| {
+                    decode: |op, values, _pc| {
                         let reg0 = values.get("register0").unwrap().uint_value().expect("integer value");
                         let reg1 = values.get("register1").unwrap().uint_value().expect("integer value");
                         let data0 = values.get("data0").unwrap().uint_value().expect("integer value");
@@ -441,7 +441,7 @@ impl OpFormat {
             OpFormatType::DREFRwm__Rbn => {
                 Ok(OpFormat{
                     name: "DREFRwm__Rbn",
-                    decode: |op, values| {
+                    decode: |op, values, _pc| {
                         let reg0 = values.get("register0").unwrap().uint_value().expect("integer value");
                         let reg1 = values.get("register1").unwrap().uint_value().expect("integer value");
 
@@ -454,7 +454,7 @@ impl OpFormat {
             OpFormatType::DREFRwm__Rwn => {
                 Ok(OpFormat{
                     name: "DREFRwm__Rwn",
-                    decode: |op, values| {
+                    decode: |op, values, _pc| {
                         let reg0 = values.get("register0").unwrap().uint_value().expect("integer value");
                         let reg1 = values.get("register1").unwrap().uint_value().expect("integer value");
 
@@ -467,7 +467,7 @@ impl OpFormat {
             OpFormatType::DREFRwnINC__DREFRwm => {
                 Ok(OpFormat{
                     name: "DREFRwnINC__DREFRwm",
-                    decode: |op, values| {
+                    decode: |op, values, _pc| {
                         let reg0 = values.get("register0").unwrap().uint_value().expect("integer value");
                         let reg1 = values.get("register1").unwrap().uint_value().expect("integer value");
 
@@ -479,7 +479,7 @@ impl OpFormat {
             OpFormatType::DREFRwn__DREFRwmINC => {
                 Ok(OpFormat{
                     name: "DREFRwn__DREFRwmINC",
-                    decode: |op, values| {
+                    decode: |op, values, _pc| {
                         let reg0 = values.get("register0").unwrap().uint_value().expect("integer value");
                         let reg1 = values.get("register1").unwrap().uint_value().expect("integer value");
 
@@ -491,7 +491,7 @@ impl OpFormat {
             OpFormatType::DREFRwn__DREFRwm => {
                 Ok(OpFormat{
                     name: "DREFRwn__DREFRwm",
-                    decode: |op, values| {
+                    decode: |op, values, _pc| {
                         let reg0 = values.get("register0").unwrap().uint_value().expect("integer value");
                         let reg1 = values.get("register1").unwrap().uint_value().expect("integer value");
 
@@ -503,7 +503,7 @@ impl OpFormat {
             OpFormatType::DREFRwn__mem => {
                 Ok(OpFormat{
                     name: "DREFRwn__mem",
-                    decode: |op, values| {
+                    decode: |op, values, _pc| {
                         let reg0 = values.get("register0").unwrap().uint_value().expect("integer value");
                         let address0 = values.get("address0").unwrap().uint_value().expect("integer value");
 
@@ -516,7 +516,7 @@ impl OpFormat {
             OpFormatType::bitaddrQ_q => {
                 Ok(OpFormat{
                     name: "bitaddrQ_q",
-                    decode: |op, values| {
+                    decode: |op, values, _pc| {
                         let offset = values.get("bitoff0").unwrap().uint_value().expect("integer value");
                         let bit0 = values.get("bit0").unwrap().uint_value().expect("integer value");
 
@@ -529,12 +529,12 @@ impl OpFormat {
             OpFormatType::bitaddrQ_q__rel => {
                 Ok(OpFormat{
                     name: "bitaddrQ_q__rel",
-                    decode: |op, values| {
+                    decode: |op, values, pc| {
                         let offset = values.get("bitoff0").unwrap().uint_value().expect("integer value");
                         let bit0 = values.get("bit0").unwrap().uint_value().expect("integer value");
                         let relative0 = values.get("relative0").unwrap().uint_value().expect("integer value");
 
-                        format!("{} {}.{}, +{:02X}h", op.mnemonic, format_bitoff(offset, false), bit0, relative0)
+                        format!("{} {}.{}, {:04X}h", op.mnemonic, format_bitoff(offset, false), bit0, pc + ( 2 * relative0 ))
                     },
                     esil: |_op, _values| {String::from("")},
                 })
@@ -542,7 +542,7 @@ impl OpFormat {
             OpFormatType::bitaddrZ_z__bitaddrQ_q => {
                 Ok(OpFormat{
                     name: "bitaddrZ_z__bitaddrQ_q",
-                    decode: |op, values| {
+                    decode: |op, values, _pc| {
                         let offset0 = values.get("bitoff0").unwrap().uint_value().expect("integer value");
                         let bit0 = values.get("bit0").unwrap().uint_value().expect("integer value");
 
@@ -557,7 +557,7 @@ impl OpFormat {
             OpFormatType::bitoffQ__INDmask8__INDdata8 => {
                 Ok(OpFormat{
                     name: "bitoffQ__INDmask8__INDdata8",
-                    decode: |op, values| {
+                    decode: |op, values, _pc| {
                         let mask0 = values.get("mask0").unwrap().uint_value().expect("integer value");
                         let data0 = values.get("data0").unwrap().uint_value().expect("integer value");
                         let offset0 = values.get("bitoff0").unwrap().uint_value().expect("integer value");
@@ -570,7 +570,7 @@ impl OpFormat {
             OpFormatType::cc__DREFRwn => {
                 Ok(OpFormat{
                     name: "cc__DREFRwn",
-                    decode: |op, values| {
+                    decode: |op, values, _pc| {
                         let condition0 = values.get("condition0").unwrap().uint_value().expect("integer value");
                         let reg0 = values.get("register0").unwrap().uint_value().expect("integer value");
 
@@ -583,7 +583,7 @@ impl OpFormat {
             OpFormatType::cc__caddr => {
                 Ok(OpFormat{
                     name: "cc__caddr",
-                    decode: |op, values| {
+                    decode: |op, values, _pc| {
                         let condition0 = values.get("condition0").unwrap().uint_value().expect("integer value");
                         let address0 = values.get("address0").unwrap().uint_value().expect("integer value");
 
@@ -595,11 +595,11 @@ impl OpFormat {
             OpFormatType::cc__rel => {
                 Ok(OpFormat{
                     name: "cc__rel",
-                    decode: |op, values| {
+                    decode: |op, values, pc| {
                         let condition0 = values.get("condition0").unwrap().uint_value().expect("integer value");
                         let relative0 = values.get("relative0").unwrap().uint_value().expect("integer value");
 
-                        format!("{} {}, +{:02X}h", op.mnemonic, get_condition(condition0), relative0)
+                        format!("{} {}, {:04X}h", op.mnemonic, get_condition(condition0), pc + ( 2 * relative0 ))
                     },
                     esil: |_op, _values| {String::from("")},
                 })
@@ -607,7 +607,7 @@ impl OpFormat {
             OpFormatType::mem__DREFRwn => {
                 Ok(OpFormat{
                     name: "mem__DREFRwn",
-                    decode: |op, values| {
+                    decode: |op, values, _pc| {
                         let reg0 = values.get("register0").unwrap().uint_value().expect("integer value");
                         let address0 = values.get("address0").unwrap().uint_value().expect("integer value");
 
@@ -620,7 +620,7 @@ impl OpFormat {
             OpFormatType::mem__reg => {
                 Ok(OpFormat{
                     name: "mem__reg",
-                    decode: |op, values| {
+                    decode: |op, values, _pc| {
                         let reg0 = values.get("register0").unwrap().uint_value().expect("integer value");
                         let address0 = values.get("address0").unwrap().uint_value().expect("integer value");
 
@@ -632,7 +632,7 @@ impl OpFormat {
             OpFormatType::reg => {
                 Ok(OpFormat{
                     name: "reg",
-                    decode: |op, values| {
+                    decode: |op, values, _pc| {
                         let reg0 = values.get("register0").unwrap().uint_value().expect("integer value");
 
                         format!("{} {}", op.mnemonic, get_register_mnem(reg0))
@@ -643,7 +643,7 @@ impl OpFormat {
             OpFormatType::reg__INDdata16 => {
                 Ok(OpFormat{
                     name: "reg__INDdata16",
-                    decode: |op, values| {
+                    decode: |op, values, _pc| {
                         let reg0 = values.get("register0").unwrap().uint_value().expect("integer value");
                         let data0 = values.get("data0").unwrap().uint_value().expect("integer value");
 
@@ -655,7 +655,7 @@ impl OpFormat {
             OpFormatType::reg__INDdata8 => {
                 Ok(OpFormat{
                     name: "reg__INDdata8",
-                    decode: |op, values| {
+                    decode: |op, values, _pc| {
                         let reg0 = values.get("register0").unwrap().uint_value().expect("integer value");
                         let data0 = values.get("data0").unwrap().uint_value().expect("integer value");
 
@@ -668,7 +668,7 @@ impl OpFormat {
             OpFormatType::reg__caddr => {
                 Ok(OpFormat{
                     name: "reg__caddr",
-                    decode: |op, values| {
+                    decode: |op, values, _pc| {
                         let reg0 = values.get("register0").unwrap().uint_value().expect("integer value");
                         let address0 = values.get("address0").unwrap().uint_value().expect("integer value");
 
@@ -681,7 +681,7 @@ impl OpFormat {
             OpFormatType::reg__mem => {
                 Ok(OpFormat{
                     name: "reg__mem",
-                    decode: |op, values| {
+                    decode: |op, values, _pc| {
                         let reg0 = values.get("register0").unwrap().uint_value().expect("integer value");
                         let address0 = values.get("address0").unwrap().uint_value().expect("integer value");
 
@@ -694,10 +694,10 @@ impl OpFormat {
             OpFormatType::rel => {
                 Ok(OpFormat{
                     name: "rel",
-                    decode: |op, values| {
+                    decode: |op, values, pc| {
                         let relative0 = values.get("relative0").unwrap().uint_value().expect("integer value");
 
-                        format!("{} +{:02X}h", op.mnemonic, relative0)
+                        format!("{} +{:02X}h", op.mnemonic, pc + ( 2 * relative0 ))
                     },
                     esil: |_op, _values| {String::from("")},
 
@@ -706,7 +706,7 @@ impl OpFormat {
             OpFormatType::seg__caddr => {
                 Ok(OpFormat{
                     name: "seg__caddr",
-                    decode: |op, values| {
+                    decode: |op, values, _pc| {
                         let segment0 = values.get("segment0").unwrap().uint_value().expect("integer value");
                         let memory0 = values.get("memory0").unwrap().uint_value().expect("integer value");
 
@@ -719,7 +719,7 @@ impl OpFormat {
             OpFormatType::mem__breg => {
                 Ok(OpFormat{
                     name: "mem__breg",
-                    decode: |op, values| {
+                    decode: |op, values, _pc| {
                         let reg0 = values.get("register0").unwrap().uint_value().expect("integer value");
                         let address0 = values.get("address0").unwrap().uint_value().expect("integer value");
 
@@ -732,7 +732,7 @@ impl OpFormat {
             OpFormatType::breg__mem => {
                 Ok(OpFormat{
                     name: "breg__mem",
-                    decode: |op, values| {
+                    decode: |op, values, _pc| {
                         let reg0 = values.get("register0").unwrap().uint_value().expect("integer value");
                         let address0 = values.get("address0").unwrap().uint_value().expect("integer value");
 
@@ -745,7 +745,7 @@ impl OpFormat {
             OpFormatType::breg__INDdata8 => {
                 Ok(OpFormat{
                     name: "breg__INDdata8",
-                    decode: |op, values| {
+                    decode: |op, values, _pc| {
                         let reg0 = values.get("register0").unwrap().uint_value().expect("integer value");
                         let data0 = values.get("data0").unwrap().uint_value().expect("integer value");
 
@@ -758,7 +758,7 @@ impl OpFormat {
             OpFormatType::data3_or_reg => {
                 Ok(OpFormat{
                     name: "data3_or_reg",
-                    decode: |op, values| {
+                    decode: |op, values, _pc| {
                         let register0 = values.get("register0").unwrap().uint_value().expect("integer value");
                         let register1 = values.get("register1"); //.unwrap().uint_value().expect("integer value");
                         let data0 = values.get("data0");
@@ -794,7 +794,7 @@ impl OpFormat {
             OpFormatType::data3_or_breg => {
                 Ok(OpFormat{
                     name: "data3_or_breg",
-                    decode: |op, values| {
+                    decode: |op, values, _pc| {
                         let register0 = values.get("register0").unwrap().uint_value().expect("integer value");
 
                         let register1 = values.get("register1"); //.unwrap().uint_value().expect("integer value");
