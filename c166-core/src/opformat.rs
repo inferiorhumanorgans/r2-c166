@@ -714,7 +714,7 @@ impl OpFormat {
                     decode: |op, values, pc| {
                         let relative0 = values.get("relative0").unwrap().uint_value().expect("integer value");
 
-                        format!("{} +{:02X}h", op.mnemonic, pc + ( 2 * relative0 ))
+                        format!("{} {:04X}h", op.mnemonic, pc + ( 2 * relative0 ))
                     },
                     esil: |_op, _values| {String::from("")},
 

@@ -2,7 +2,7 @@ test_requires!();
 
 #[test]
 fn c166_op_9a_1() {
-    test_disasm_op!([0x9A, 0xF2, 0x01, 0xF0], "jnb r2.15, +01h"); // Need to know CP
+    test_disasm_op!([0x9A, 0xF2, 0x01, 0xF0], "jnb r2.15, 0002h"); // Need to know CP
 }
 
 #[test]
