@@ -1,5 +1,19 @@
-// \s+(0x[A-F0-9]+): OpCode\('([a-z_0-9\*]+)', ArgFormat.([A-Za-z_0-9]+), ArgEnc.([A-Za-z_0-9]+), ([A-Z._ |]+).*
-// $1 => {\n    Ok(Instruction {\n        id: $1,\n        mnemonic: String::from("$2"),\n        arg_format: String::from("$3"),\n        arg_encoding: String::from("$4"),\n        r2_op_type: $5\n    })\n},\n
+/*
+    This file is part of r2-c166.
+
+    r2-c166 is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    r2-c166 is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with r2-c166.  If not, see <http://www.gnu.org/licenses/>.
+*/
 
 use ::r2::_RAnalOpType;
 
