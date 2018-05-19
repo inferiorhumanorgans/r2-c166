@@ -65,7 +65,7 @@ extern "C" fn c166_op(_a: *mut RAnal, raw_op: *mut RAnalOp, addr: u64, buf: *con
             // let format = OpFormat::from_format_type(&op.format).unwrap();
 
             if encoding.length <= len {
-                // out_op.id = bytes[0] as i32;
+                out_op.id = bytes[0] as i32;
                 out_op.nopcode = 1;
                 out_op.family = R_ANAL_OP_FAMILY_CPU; // TODO: set privileged as appropriate
                 out_op.type_ = op.r2_op_type.uint_value();
@@ -103,6 +103,7 @@ extern "C" fn c166_op(_a: *mut RAnal, raw_op: *mut RAnalOp, addr: u64, buf: *con
                             }
                         },
                         Err(_) => {
+                            out_op.id = -1;
                             out_op.size = -1;
                             out_op.type_ = _RAnalOpType::R_ANAL_OP_TYPE_ILL.uint_value();
                         }
@@ -110,11 +111,13 @@ extern "C" fn c166_op(_a: *mut RAnal, raw_op: *mut RAnalOp, addr: u64, buf: *con
                 }
             } else {
                 // Not enough room in da buffer
+                out_op.id = -1;
                 out_op.size = -1;
                 out_op.type_ = _RAnalOpType::R_ANAL_OP_TYPE_ILL.uint_value();
             }
         },
         Err(_) => {
+            out_op.id = -1;
             out_op.size = -1;
             out_op.type_ = _RAnalOpType::R_ANAL_OP_TYPE_ILL.uint_value();
         }
