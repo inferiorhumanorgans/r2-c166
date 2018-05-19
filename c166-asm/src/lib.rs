@@ -15,16 +15,9 @@ macro_rules! cstr {
     concat!($s, "\0") as *const str as *const [c_char] as *const c_char
   );
 }
-
-const MY_NAME : *const c_char  = cstr!("c166.rs");
-const MY_VERSION : *const c_char = cstr!("0.1.0");
-const MY_ARCH : *const c_char = cstr!("c166");
-const MY_DESC : *const c_char = cstr!("c166 disassembler in Rust");
-const MY_LICENSE : *const c_char = cstr!("GPL3");
-const MY_AUTHOR : *const c_char = cstr!("inferiorhumanorgans");
 const EMPTY_STRING : *const c_char = b"\0" as *const [u8] as *const c_char;
 
-extern "C" fn _disassemble(_asm: *mut RAsm, raw_op: *mut RAsmOp, buf: *const u8, len: i32) -> i32 {
+extern "C" fn c166_disassemble(_asm: *mut RAsm, raw_op: *mut RAsmOp, buf: *const u8, len: i32) -> i32 {
         let out_op : &mut RAsmOp;
         let bytes;
 
@@ -77,32 +70,32 @@ extern "C" fn _disassemble(_asm: *mut RAsm, raw_op: *mut RAsmOp, buf: *const u8,
 }
 
 #[allow(non_upper_case_globals)]
-const r_asm_plugin_c166rs: RAsmPlugin = RAsmPlugin {
-    name : MY_NAME,
-    arch : MY_ARCH,
-    author : MY_AUTHOR,
-    version : MY_VERSION,
-    license : MY_LICENSE,
-    user : ptr::null_mut(),
-    cpus : EMPTY_STRING,
-    desc : MY_DESC,
-    bits : 16,
-    endian: 0,
-    disassemble: Some(_disassemble),
-    assemble: None, //Some(_assemble),
-    init: None,
-    fini: None,
-    modify: None, //_modify,
-    set_subarch: None, //_set_subarch,
-    mnemonics: None, //_mnemonics,
-    features: EMPTY_STRING,
+const C166_ASM_PLUGIN: RAsmPlugin = RAsmPlugin {
+    name:           cstr!("c166"),
+    arch:           cstr!("c166"),
+    author:         cstr!("inferiorhumanorgans"),
+    version:        cstr!("0.1.0"),
+    license:        cstr!("GPL3"),
+    user:           ptr::null_mut(),
+    cpus:           EMPTY_STRING,
+    desc:           cstr!("c166 disassembler"),
+    bits:           16,
+    endian:         0,
+    disassemble:    Some(c166_disassemble),
+    assemble:       None,
+    init:           None,
+    fini:           None,
+    modify:         None,
+    set_subarch:    None,
+    mnemonics:      None,
+    features:       EMPTY_STRING,
 };
 
 #[no_mangle]
 #[allow(non_upper_case_globals)]
 pub static mut radare_plugin: RLibStruct = RLibStruct {
-    type_ : R_LIB_TYPE_ASM as i32,
-    data : ((&r_asm_plugin_c166rs) as *const RAsmPlugin) as *mut c_void,
-    version : R2_VERSION   as *const [u8] as *const c_char,
-    free : None
+    type_:  R_LIB_TYPE_ASM as i32,
+    data:   ((&C166_ASM_PLUGIN) as *const RAsmPlugin) as *mut c_void,
+    version:R2_VERSION as *const [u8] as *const c_char,
+    free:   None
 };

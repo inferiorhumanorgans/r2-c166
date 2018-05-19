@@ -14,13 +14,6 @@ macro_rules! cstr_mut {
   );
 }
 
-const MY_NAME : *mut c_char  = cstr_mut!("c166.rs");
-const MY_VERSION : *mut c_char = cstr_mut!("0.1.0");
-const MY_ARCH : *mut c_char = cstr_mut!("c166");
-const MY_DESC : *mut c_char = cstr_mut!("c166 analysis plugin in Rust");
-const MY_LICENSE : *mut c_char = cstr_mut!("GPL3");
-const MY_AUTHOR : *mut c_char = cstr_mut!("inferiorhumanorgans");
-
 fn condition_to_r2(condition: u32) -> _RAnalCond {
     if condition > 15 {
         panic!("Condition shouldn't be over 15, but is actually {}", condition);
@@ -43,11 +36,21 @@ fn condition_to_r2(condition: u32) -> _RAnalCond {
         0xD => _RAnalCond::R_ANAL_COND_GE, // cc_SGE
         0xE => _RAnalCond::R_ANAL_COND_HI, // cc_UGT
         0xF => _RAnalCond::R_ANAL_COND_LS, // cc_ULE
-        _   => _RAnalCond::R_ANAL_COND_AL,
+        _   => unreachable!()
     }
 }
 
-extern "C" fn _op(_a: *mut RAnal, raw_op: *mut RAnalOp, addr: u64, buf: *const u8, len: i32) -> i32 {
+extern "C" fn c166_archinfo(_anal: *mut RAnal, query: i32) -> i32 {
+    match query as u32 {
+        R_ANAL_ARCHINFO_ALIGN => 0,
+        R_ANAL_ARCHINFO_MAX_OP_SIZE => 1,
+        R_ANAL_ARCHINFO_MIN_OP_SIZE => 1,
+        _ => panic!("Query must be one of: R_ANAL_ARCHINFO_ALIGN={}, R_ANAL_ARCHINFO_MAX_OP_SIZE={}, R_ANAL_ARCHINFO_MIN_OP_SIZE={}, got {}",
+                R_ANAL_ARCHINFO_ALIGN, R_ANAL_ARCHINFO_MAX_OP_SIZE, R_ANAL_ARCHINFO_MIN_OP_SIZE, query)
+    }
+}
+
+extern "C" fn c166_op(_a: *mut RAnal, raw_op: *mut RAnalOp, addr: u64, buf: *const u8, len: i32) -> i32 {
     let out_op : &mut RAnalOp;
     let bytes;
 
@@ -62,12 +65,18 @@ extern "C" fn _op(_a: *mut RAnal, raw_op: *mut RAnalOp, addr: u64, buf: *const u
             // let format = OpFormat::from_format_type(&op.format).unwrap();
 
             if encoding.length <= len {
+                // out_op.id = bytes[0] as i32;
+                out_op.nopcode = 1;
+                out_op.family = R_ANAL_OP_FAMILY_CPU; // TODO: set privileged as appropriate
                 out_op.type_ = op.r2_op_type.uint_value();
                 out_op.size = encoding.length;
 
+
+                // Gross
                 let jump_type : u32 = _RAnalOpType::R_ANAL_OP_TYPE_JMP.uint_value();
                 let call_type : u32 = _RAnalOpType::R_ANAL_OP_TYPE_CALL.uint_value();
                 let raw_type : u32 =  op.r2_op_type.uint_value() & 0b11111111;
+
                 if (raw_type & jump_type) > 0 || (raw_type & call_type) > 0 {
                     out_op.fail = addr + out_op.size as u64;
                     match (encoding.decode)(bytes) {
@@ -115,60 +124,60 @@ extern "C" fn _op(_a: *mut RAnal, raw_op: *mut RAnalOp, addr: u64, buf: *const u
 }
 
 #[allow(non_upper_case_globals)]
-const r_anal_plugin_c166rs: RAnalPlugin = RAnalPlugin {
-    name: MY_NAME,
-    desc: MY_DESC,
-    license: MY_LICENSE,
-    arch: MY_ARCH,
-    author: MY_AUTHOR,
-    version: MY_VERSION,
-    bits: 16,
-    esil: 0,
-    fileformat_type: 0,
-    custom_fn_anal: 0,
-    init: None,
-    fini: None,
-    reset_counter: None,
-    archinfo: None,
-    anal_mask: None,
-    op: Some(_op),
-    bb: None,
-    fcn: None,
-    analyze_fns: None,
-    op_from_buffer: None,
-    bb_from_buffer: None,
-    fn_from_buffer: None,
+const C166_ANALYSIS_PLUGIN: RAnalPlugin = RAnalPlugin {
+    name:               cstr_mut!("c166"),
+    desc:               cstr_mut!("c166 analysis plugin"),
+    license:            cstr_mut!("GPL3"),
+    arch:               cstr_mut!("c166"),
+    author:             cstr_mut!("inferiorhumanorgans"),
+    version:            cstr_mut!("0.1.0"),
+    bits:               16,
+    esil:               0,
+    fileformat_type:    0,
+    custom_fn_anal:     0,
+    init:               None,
+    fini:               None,
+    reset_counter:      None,
+    archinfo:           Some(c166_archinfo),
+    anal_mask:          None,
+    op:                 Some(c166_op),
+    bb:                 None,
+    fcn:                None,
+    analyze_fns:        None,
+    op_from_buffer:     None, // Does anyone use this?
+    bb_from_buffer:     None,
+    fn_from_buffer:     None,
     analysis_algorithm: None,
-    pre_anal: None,
-    pre_anal_fn_cb: None,
-    pre_anal_op_cb: None,
-    post_anal_op_cb: None,
-    pre_anal_bb_cb: None,
-    post_anal_bb_cb: None,
-    post_anal_fn_cb: None,
-    post_anal: None,
-    revisit_bb_anal: None,
-    cmd_ext: None,
-    set_reg_profile: None,
-    get_reg_profile: None,
-    fingerprint_bb: None,
-    fingerprint_fcn: None,
-    diff_bb: None,
-    diff_fcn: None,
-    diff_eval: None,
-    is_valid_offset: None,
-    esil_init: None,
-    esil_post_loop: None,
-    esil_intr: None,
-    esil_trap: None,
-    esil_fini: None
+    pre_anal:           None,
+    pre_anal_fn_cb:     None,
+    pre_anal_op_cb:     None,
+    post_anal_op_cb:    None,
+    pre_anal_bb_cb:     None,
+    post_anal_bb_cb:    None,
+    post_anal_fn_cb:    None,
+    post_anal:          None,
+    revisit_bb_anal:    None,
+    cmd_ext:            None,
+    set_reg_profile:    None,
+    get_reg_profile:    None,
+    fingerprint_bb:     None,
+    fingerprint_fcn:    None,
+    diff_bb:            None,
+    diff_fcn:           None,
+    diff_eval:          None,
+    is_valid_offset:    None,
+    esil_init:          None,
+    esil_post_loop:     None,
+    esil_intr:          None,
+    esil_trap:          None,
+    esil_fini:          None
 };
 
 #[no_mangle]
 #[allow(non_upper_case_globals)]
 pub static mut radare_plugin: RLibStruct = RLibStruct {
-    type_ : R_LIB_TYPE_ANAL as i32,
-    data : ((&r_anal_plugin_c166rs) as *const RAnalPlugin) as *mut c_void,
-    version : R2_VERSION   as *const [u8] as *const c_char,
-    free : None
+    type_:  R_LIB_TYPE_ANAL as i32,
+    data:   ((&C166_ANALYSIS_PLUGIN) as *const RAnalPlugin) as *mut c_void,
+    version:R2_VERSION as *const [u8] as *const c_char,
+    free:   None
 };
