@@ -1,6 +1,6 @@
 # TODO
 
-* [ ] Travis-CI support + badge
+* [X] Travis-CI support + badge
 * [X] Determine current CP and resolve relative addresses (asm)
 * [ ] Mark entry point
 * [ ] Mark entry as table not func
