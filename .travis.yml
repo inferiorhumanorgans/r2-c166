@@ -2,5 +2,11 @@ os:
   - linux
 language: rust
 dist: trusty
+sudo: required
 rust:
   - nightly
+before_install:
+  - wget http://radare.mikelloc.com/get/2.5.0/radare2_2.5.0_amd64.deb
+  - wget http://radare.mikelloc.com/get/2.5.0/radare2-dev_2.5.0_amd64.deb
+  - sudo dpkg -i radare2_2.5.0_amd64.deb
+  - sudo dpkg -i radare2-dev_2.5.0_amd64.deb
