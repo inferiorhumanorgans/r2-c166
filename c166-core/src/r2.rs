@@ -19,7 +19,7 @@
 #![allow(non_upper_case_globals)]
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
-include!("../../src/ffi.rs");
+include!(concat!(env!("OUT_DIR"), "/ffi.rs"));
 
 impl _RAnalOpType {
     pub fn uint_value(&self) -> u32 {

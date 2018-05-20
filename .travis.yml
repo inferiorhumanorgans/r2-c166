@@ -10,8 +10,6 @@ before_install:
   - wget http://radare.mikelloc.com/get/2.5.0/radare2-dev_2.5.0_amd64.deb
   - sudo dpkg -i radare2_2.5.0_amd64.deb
   - sudo dpkg -i radare2-dev_2.5.0_amd64.deb
-  - cargo install bindgen
   - cargo install --force rustfmt-nightly
-  - bindgen bindings.h --bitfield-enum=_RAnalOpType --bitfield-enum=_RAnalCond --blacklist-type=IPPORT_RESERVED -- -I/usr/include/libr > src/ffi.rs
 script:
   - make test

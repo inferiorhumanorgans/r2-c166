@@ -3,6 +3,9 @@ name = "c166-core"
 version = "0.1.0"
 authors = ["alex"]
 
+[build-dependencies]
+bindgen = "~ 0.37"
+
 [dependencies]
 libc = "*"
 byteorder = "1"
