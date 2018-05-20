@@ -37,5 +37,5 @@ src/ffi.rs: ./bindings.h
 test-asm:
 	@cargo test c166 --no-fail-fast
 
-test:
-	@cargo test --no-fail-fast
+test: ffi
+	@cargo test --all --no-fail-fast -- --skip r2::bindgen_test_layout_max_align_t

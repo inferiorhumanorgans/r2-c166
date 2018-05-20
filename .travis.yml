@@ -14,4 +14,4 @@ before_install:
   - cargo install --force rustfmt-nightly
   - bindgen bindings.h --bitfield-enum=_RAnalOpType --bitfield-enum=_RAnalCond --blacklist-type=IPPORT_RESERVED -- -I/usr/include/libr > src/ffi.rs
 script:
-  - cargo test --all -- --skip r2::bindgen_test_layout_max_align_t
+  - make test
