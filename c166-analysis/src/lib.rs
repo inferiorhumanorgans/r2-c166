@@ -17,12 +17,12 @@
 
 extern crate c166_core;
 
+use std::os::raw::c_void;
+use std::os::raw::c_char;
+
 use c166_core::r2::*;
 use c166_core::instruction::Instruction;
 use c166_core::encoding::Encoding;
-
-use std::os::raw::c_void;
-use std::os::raw::c_char;
 
 // https://github.com/rust-lang/rfcs/issues/400
 macro_rules! cstr_mut {
