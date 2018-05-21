@@ -31,7 +31,7 @@ macro_rules! cstr_mut {
   );
 }
 
-fn condition_to_r2(condition: u32) -> _RAnalCond {
+fn condition_to_r2(condition: u8) -> _RAnalCond {
     if condition > 15 {
         panic!("Condition shouldn't be over 15, but is actually {}", condition);
     }
