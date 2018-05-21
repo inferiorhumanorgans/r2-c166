@@ -9,3 +9,6 @@ bindgen = "~ 0.37"
 [dependencies]
 libc = "*"
 byteorder = "1"
+enum-primitive-derive = "^0.1"
+num-traits = "^0.1"
+bitflags = "1.0"

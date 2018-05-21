@@ -282,17 +282,14 @@ impl Encoding {
 
                         match sub_op {
                             0b10 => {
-                                values.mnemonic = Some("reg".to_string());
                                 let register1 : u8 = buf[1] & 0b00000011;
                                 values.register1 = Some(register1);
                             },
                             0b11 => {
-                                values.mnemonic = Some("reg_inc".to_string());
                                 let register1 : u8 = buf[1] & 0b00000011;
                                 values.register1 = Some(register1);
                             },
                             _ => {
-                                values.mnemonic = Some("#data3".to_string());
                                 let data : u8 = buf[1] & 0b00000111;
                                 values.data = Some(data as u16);
                             }

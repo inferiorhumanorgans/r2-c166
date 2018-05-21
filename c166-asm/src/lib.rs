@@ -24,7 +24,7 @@ use std::ptr;
 use c166_core::r2::*;
 use c166_core::instruction::Instruction;
 use c166_core::encoding::Encoding;
-use c166_core::opformat::OpFormat;
+use c166_core::opformat::*;
 
 // https://github.com/rust-lang/rfcs/issues/400
 macro_rules! cstr {
@@ -51,8 +51,6 @@ extern "C" fn c166_disassemble(raw_asm: *mut RAsm, raw_op: *mut RAsmOp, buf: *co
             let encoding = Encoding::from_encoding_type(&op.encoding).unwrap();
 
             if encoding.length <= len {
-                let format = OpFormat::from_format_type(&op.format).unwrap();
-
                 // https://github.com/rust-lang/rust/issues/18343
                 match (encoding.decode)(bytes) {
                     Ok(values) => {
@@ -61,7 +59,7 @@ extern "C" fn c166_disassemble(raw_asm: *mut RAsm, raw_op: *mut RAsmOp, buf: *co
                             out_op.payload = 0;
                             out_op.buf_asm[0] = 0;
                         } else {
-                            let desc = (format.decode)(&op, &values, asm.pc as u32);
+                            let desc = format_op(&op, &values, asm.pc as u32);
 
                             out_op.size = encoding.length;
                             out_op.payload = 0;
