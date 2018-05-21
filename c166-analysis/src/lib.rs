@@ -88,7 +88,6 @@ extern "C" fn c166_op(_a: *mut RAnal, raw_op: *mut RAnalOp, addr: u64, buf: *con
                 out_op.type_ = op.r2_op_type.uint_value();
                 out_op.size = encoding.length;
 
-
                 // Gross
                 let jump_type : u32 = _RAnalOpType::R_ANAL_OP_TYPE_JMP.uint_value();
                 let call_type : u32 = _RAnalOpType::R_ANAL_OP_TYPE_CALL.uint_value();
@@ -98,21 +97,19 @@ extern "C" fn c166_op(_a: *mut RAnal, raw_op: *mut RAnalOp, addr: u64, buf: *con
                     out_op.fail = addr + out_op.size as u64;
                     match (encoding.decode)(bytes) {
                         Ok(values) => {
-                            let condition = match values.get("condition0") {
-                                Some(condition) => condition.uint_value().expect("integer value"),
+                            let condition = match values.condition {
+                                Some(condition) => condition,
                                 _ => 0
                             };
                             out_op.cond = condition_to_r2(condition).uint_value() as i32;
-                            match values.get("address0") {
+                            match values.memory {
                                 Some(address) => {
-                                    let jump_target = address.uint_value().expect("integer value");
-                                    out_op.jump = jump_target as u64;
+                                    out_op.jump = address as u64;
                                 },
                                 _ => {
-                                    match values.get("relative0") {
+                                    match values.relative {
                                         Some(relative) => {
-                                            let rel_target = relative.uint_value().expect("integer value");
-                                            out_op.jump = addr + (rel_target * 2) as u64;
+                                            out_op.jump = addr + (relative * 2) as u64;
                                         },
                                         _ => {}
                                     }

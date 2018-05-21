@@ -15,11 +15,7 @@
     along with r2-c166.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-pub fn get_sfr_register_mnem(register: u32) -> Option<&'static str> {
-    if register > <u8>::max_value() as u32 {
-        panic!("Register shouldn't be over 8 bits, but is actually {}", register);
-    }
-
+pub fn get_sfr_register_mnem(register: u8) -> Option<&'static str> {
     match register {
         0xCC => Some("ADCIC"),
         0xD0 => Some("ADCON"),
@@ -244,11 +240,7 @@ pub fn get_esfr_register_mnem(register: u32) -> Option<&'static str> {
    }
 }
 
-pub fn get_register_mnem(register: u32) -> String {
-    if register > <u8>::max_value() as u32 {
-        panic!("Register shouldn't be over 8 bits, but is actually {}", register);
-    }
-
+pub fn get_register_mnem(register: u8) -> String {
     match get_sfr_register_mnem(register) {
         Some(mnem) => String::from(mnem),
         None => {
@@ -275,11 +267,7 @@ pub fn get_register_mnem(register: u32) -> String {
     }
 }
 
-pub fn get_byte_register_mnem(register: u32) -> String {
-    if register > <u8>::max_value() as u32 {
-        panic!("Register shouldn't be over 8 bits, but is actually {}", register);
-    }
-
+pub fn get_byte_register_mnem(register: u8) -> String {
     match get_sfr_register_mnem(register) {
         Some(mnem) => String::from(mnem),
         None => {
@@ -306,8 +294,8 @@ pub fn get_byte_register_mnem(register: u32) -> String {
     }
 }
 
-pub fn get_word_gpr_mnem(register: u32) -> String {
-    if register > 0x0F as u32 {
+pub fn get_word_gpr_mnem(register: u8) -> String {
+    if register > 0x0F {
         panic!("GPR shouldn't be over 4 bits, but is actually {}", register);
     }
 
@@ -315,21 +303,19 @@ pub fn get_word_gpr_mnem(register: u32) -> String {
     format!("r{}", reg)
 }
 
-pub fn get_byte_gpr_mnem(register: u32) -> String {
-    if register > 0x0F as u32 {
+pub fn get_byte_gpr_mnem(register: u8) -> String {
+    if register > 0x0F {
         panic!("GPR shouldn't be over 4 bits, but is actually {}", register);
     }
 
-    let reg : u8 = register as u8;
-
-    if (reg & 0b00000001) == 1 {
-        format!("rh{}", reg >> 1)
+    if (register & 0b00000001) == 1 {
+        format!("rh{}", register >> 1)
     } else {
-        format!("rl{}", reg >> 1)
+        format!("rl{}", register >> 1)
     }
 }
 
-pub fn get_sfr_mnem_from_physical(address: u32) -> Option<&'static str> {
+pub fn get_sfr_mnem_from_physical(address: u16) -> Option<&'static str> {
     match address {
         0xFF98 => Some("ADCIC"),
         0xFFA0 => Some("ADCON"),

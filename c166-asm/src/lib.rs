@@ -61,7 +61,7 @@ extern "C" fn c166_disassemble(raw_asm: *mut RAsm, raw_op: *mut RAsmOp, buf: *co
                             out_op.payload = 0;
                             out_op.buf_asm[0] = 0;
                         } else {
-                            let desc = (format.decode)(&op, values, asm.pc as u32);
+                            let desc = (format.decode)(&op, &values, asm.pc as u32);
 
                             out_op.size = encoding.length;
                             out_op.payload = 0;
