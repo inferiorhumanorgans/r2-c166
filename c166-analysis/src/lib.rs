@@ -201,7 +201,7 @@ const C166_ANALYSIS_PLUGIN: RAnalPlugin = RAnalPlugin {
     license:            cstr_mut!("GPL3"),
     arch:               cstr_mut!("c166"),
     author:             cstr_mut!("inferiorhumanorgans"),
-    version:            cstr_mut!("0.1.0"),
+    version:            cstr_mut!(env!("CARGO_PKG_VERSION")),
     bits:               16,
     esil:               0,
     fileformat_type:    0,

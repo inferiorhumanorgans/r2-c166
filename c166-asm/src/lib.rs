@@ -99,7 +99,7 @@ const C166_ASM_PLUGIN: RAsmPlugin = RAsmPlugin {
     name:           cstr!("c166"),
     arch:           cstr!("c166"),
     author:         cstr!("inferiorhumanorgans"),
-    version:        cstr!("0.1.0"),
+    version:        cstr!(env!("CARGO_PKG_VERSION")),
     license:        cstr!("GPL3"),
     user:           ptr::null_mut(),
     cpus:           EMPTY_STRING,
