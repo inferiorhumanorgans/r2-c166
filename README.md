@@ -7,9 +7,9 @@ toolchain.
 
 ## Installation and Usage
 
-* Install `rustfmt-nightly` and  `bindgen` globally via cargo before building.
-* Run `make` to build and install the library.
-* Run `make test-asm` to validate the instruction decoding.
+* Install `rustfmt-nightly` globally via cargo before building.
+* Run `make` to build and install the library.  Optionally, take a look at the travis.yml file to see how to build (but not install) using just cargo.
+* Run `make test-asm` to validate the instruction decoding or `make test` / `cargo test` to run all the tests.  One of the bindgen generated tests is known to fail.
 
 ## Notes
 
