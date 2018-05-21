@@ -7,4 +7,4 @@
 * [ ] Add comments for decoded SFR ops
 * [ ] Add ESIL
 * [ ] Bin plugin for firmware?
-* [ ] Refactor formatting code to use a purpose built struct instead of a HashMap
+* [X] Refactor formatting code to use a purpose built struct instead of a HashMap
