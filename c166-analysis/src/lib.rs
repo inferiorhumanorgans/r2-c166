@@ -67,7 +67,7 @@ extern "C" fn c166_archinfo(_anal: *mut RAnal, query: i32) -> i32 {
     }
 }
 
-extern "C" fn c166_op(_a: *mut RAnal, raw_op: *mut RAnalOp, addr: u64, buf: *const u8, len: i32) -> i32 {
+extern "C" fn c166_op(_a: *mut RAnal, raw_op: *mut RAnalOp, pc: u64, buf: *const u8, len: i32) -> i32 {
     let out_op : &mut RAnalOp;
     let bytes;
 
@@ -88,40 +88,45 @@ extern "C" fn c166_op(_a: *mut RAnal, raw_op: *mut RAnalOp, addr: u64, buf: *con
                 out_op.type_ = op.r2_op_type.uint_value();
                 out_op.size = encoding.length;
 
-                // Gross
-                let jump_type : u32 = _RAnalOpType::R_ANAL_OP_TYPE_JMP.uint_value();
-                let call_type : u32 = _RAnalOpType::R_ANAL_OP_TYPE_CALL.uint_value();
-                let raw_type : u32 =  op.r2_op_type.uint_value() & 0b11111111;
+                let op_type = c166_core::r2::_RAnalOpType(0x000000FF & out_op.type_);
 
-                if (raw_type & jump_type) > 0 || (raw_type & call_type) > 0 {
-                    out_op.fail = addr + out_op.size as u64;
-                    match (encoding.decode)(bytes) {
-                        Ok(values) => {
-                            let condition = match values.condition {
-                                Some(condition) => condition,
-                                _ => 0
-                            };
-                            out_op.cond = condition_to_r2(condition).uint_value() as i32;
-                            match values.memory {
-                                Some(address) => {
-                                    out_op.jump = address as u64;
-                                },
-                                _ => {
-                                    match values.relative {
-                                        Some(relative) => {
-                                            out_op.jump = addr + (relative * 2) as u64;
-                                        },
-                                        _ => {}
+                match op_type {
+                    _RAnalOpType::R_ANAL_OP_TYPE_JMP | _RAnalOpType::R_ANAL_OP_TYPE_CALL => {
+                        out_op.fail = pc + (out_op.size as u64);
+                        match (encoding.decode)(bytes) {
+                            Ok(values) => {
+                                let condition = match values.condition {
+                                    Some(condition) => condition,
+                                    _ => 0
+                                };
+                                out_op.cond = condition_to_r2(condition).uint_value() as i32;
+                                out_op.addr = pc;
+
+                                match values.memory {
+                                    Some(address) => {
+                                        match values.segment {
+                                            Some(seg) => out_op.jump = (0x10000 * seg as u64) + (address as u64),
+                                            _ => out_op.jump = address as u64
+                                        }
+                                    },
+                                    _ => {
+                                        match values.relative {
+                                            Some(relative) => {
+                                                out_op.jump = pc + ( (relative as u64) * 2 );
+                                            },
+                                            _ => {}
+                                        }
                                     }
                                 }
+                            },
+                            Err(_) => {
+                                out_op.id = -1;
+                                out_op.size = -1;
+                                out_op.type_ = _RAnalOpType::R_ANAL_OP_TYPE_ILL.uint_value();
                             }
-                        },
-                        Err(_) => {
-                            out_op.id = -1;
-                            out_op.size = -1;
-                            out_op.type_ = _RAnalOpType::R_ANAL_OP_TYPE_ILL.uint_value();
                         }
-                    }
+                    },
+                    _ => {}
                 }
             } else {
                 // Not enough room in da buffer
