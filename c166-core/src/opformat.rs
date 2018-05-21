@@ -701,9 +701,9 @@ impl OpFormat {
                     decode: |op, values, pc| {
                         let bitoff0 : u8 = values.bitoff0.unwrap();
                         let bit0 : u8 = values.bit0.unwrap();
-                        let relative : u8 = values.relative.unwrap();
+                        let relative : u32 = values.relative.unwrap() as u32;
 
-                        format!("{} {}.{}, {:04X}h", op.mnemonic, format_bitoff(bitoff0, false), bit0, pc + (( 2 * relative ) as u32))
+                        format!("{} {}.{}, {:04X}h", op.mnemonic, format_bitoff(bitoff0, false), bit0, pc + ( 2 * relative ) )
                     },
                     esil: |_op, _values| {String::from("")},
                     src_param: InstructionParameter::None,
@@ -785,9 +785,9 @@ impl OpFormat {
                     name: "cc__rel",
                     decode: |op, values, pc| {
                         let condition : u8 = values.condition.unwrap();
-                        let relative : u8 = values.relative.unwrap();
+                        let relative : u32 = values.relative.unwrap() as u32;
 
-                        format!("{} {}, {:04X}h", op.mnemonic, get_condition(condition), pc + (( 2 * relative ) as u32))
+                        format!("{} {}, {:04X}h", op.mnemonic, get_condition(condition), pc + ( 2 * relative ))
                     },
                     esil: |_op, _values| {String::from("")},
                     src_param: InstructionParameter::None,
@@ -911,9 +911,9 @@ impl OpFormat {
                 Ok(OpFormat{
                     name: "rel",
                     decode: |op, values, pc| {
-                        let relative : u8 = values.relative.unwrap();
+                        let relative : u32 = values.relative.unwrap() as u32;
 
-                        format!("{} {:04X}h", op.mnemonic, pc + (( 2 * relative ) as u32))
+                        format!("{} {:04X}h", op.mnemonic, pc + ( 2 * relative ) )
                     },
                     esil: |_op, _values| {String::from("")},
                     src_param: InstructionParameter::None,
