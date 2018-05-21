@@ -31,6 +31,12 @@ macro_rules! cstr_mut {
   );
 }
 
+macro_rules! cstr {
+  ($s:expr) => (
+    concat!($s, "\0") as *const str as *const [c_char] as *const c_char
+  );
+}
+
 fn condition_to_r2(condition: u8) -> _RAnalCond {
     if condition > 15 {
         panic!("Condition shouldn't be over 15, but is actually {}", condition);
@@ -55,6 +61,49 @@ fn condition_to_r2(condition: u8) -> _RAnalCond {
         0xF => _RAnalCond::R_ANAL_COND_LS, // cc_ULE
         _   => unreachable!()
     }
+}
+
+extern "C" fn c166_set_reg_profile(a: *mut RAnal) -> i32 {
+    let anal : &mut RAnal;
+    let ret : i32;
+
+    let profile = cstr!("\
+        =SP    sp\n\
+        gpr    r0    .16    0    0\n\
+        gpr    rl0   .8     0    0\n\
+        gpr    rh0   .8     1    0\n\
+        gpr    r1    .16    2    0\n\
+        gpr    rl1   .8     2    0\n\
+        gpr    rh1   .8     3    0\n\
+        gpr    r2    .16    4    0\n\
+        gpr    rl2   .8     4    0\n\
+        gpr    rh2   .8     5    0\n\
+        gpr    r3    .16    6    0\n\
+        gpr    rl3   .8     6    0\n\
+        gpr    rh3   .8     7    0\n\
+        gpr    r4    .16    8    0\n\
+        gpr    rl4   .8     8    0\n\
+        gpr    rh4   .8     9    0\n\
+        gpr    r5    .16    10   0\n\
+        gpr    r6    .16    12   0\n\
+        gpr    r7    .16    14   0\n\
+        gpr    r8    .16    16   0\n\
+        gpr    r9    .16    18   0\n\
+        gpr    r10   .16    20   0\n\
+        gpr    r11   .16    22   0\n\
+        gpr    r12   .16    24   0\n\
+        gpr    r13   .16    26   0\n\
+        gpr    r14   .16    28   0\n\
+        gpr    r15   .16    30   0\n\
+        gpr    sp    .16    32   0\n\
+        gpr    pc    .16    34   0\n");
+
+    unsafe {
+        anal = &mut (*a);
+        ret = r_reg_set_profile_string(anal.reg, profile);
+    }
+
+    ret
 }
 
 extern "C" fn c166_archinfo(_anal: *mut RAnal, query: i32) -> i32 {
@@ -180,7 +229,7 @@ const C166_ANALYSIS_PLUGIN: RAnalPlugin = RAnalPlugin {
     post_anal:          None,
     revisit_bb_anal:    None,
     cmd_ext:            None,
-    set_reg_profile:    None,
+    set_reg_profile:    Some(c166_set_reg_profile),
     get_reg_profile:    None,
     fingerprint_bb:     None,
     fingerprint_fcn:    None,
