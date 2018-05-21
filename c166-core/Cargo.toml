@@ -1,7 +1,7 @@
 [package]
 name = "c166-core"
 version = "0.1.0"
-authors = ["alex"]
+authors = ["Alex Zepeda <c166@inferiorhumanorgans.com>"]
 
 [build-dependencies]
 bindgen = "~ 0.37"

@@ -1,7 +1,7 @@
 [package]
 name = "c166-asm"
 version = "0.1.0"
-authors = ["alex"]
+authors = ["Alex Zepeda <c166@inferiorhumanorgans.com>"]
 
 [dependencies]
 c166-core = { path = "../c166-core" }
