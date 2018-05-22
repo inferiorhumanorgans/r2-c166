@@ -22,24 +22,24 @@ use c166_core::instruction::*;
 use c166_core::encoding::*;
 use c166_core::register::*;
 
-fn format_esil_param(param: &InstructionParameter, param_type: &InstructionParameterType, values: &InstructionArguments) -> String {
-    if param_type.intersects(InstructionParameterType::GENERAL_REGISTER) {
-        if *param == InstructionParameter::Register0 {
-            return get_gpr_mnem(values.register0.unwrap(), param_type.intersects(InstructionParameterType::BYTE_REGISTER));
-        } else {
-            return get_gpr_mnem(values.register1.unwrap(), param_type.intersects(InstructionParameterType::BYTE_REGISTER));
-        }
-    } else if param_type.intersects(InstructionParameterType::SPECIAL_REGISTER) {
-        if *param == InstructionParameter::Register0 {
-            return get_register_mnem(values.register0.unwrap(), param_type.intersects(InstructionParameterType::BYTE_REGISTER));
-        } else {
-            return get_register_mnem(values.register1.unwrap(), param_type.intersects(InstructionParameterType::BYTE_REGISTER));
-        }
-    } else if param_type.intersects(InstructionParameterType::IMMEDIATE) && !param_type.intersects(InstructionParameterType::INDIRECT) {
-        return format!("{}", values.data.unwrap());
-    }
 
-    String::from("")
+pub fn register_to_esil(some_reg: Option<u8>, reg_type: &InstructionParameterType) -> String {
+    let register : u8 = some_reg.unwrap();
+
+    if reg_type.intersects(InstructionParameterType::GENERAL_REGISTER) {
+        get_gpr_mnem(register, reg_type.intersects(InstructionParameterType::BYTE_REGISTER))
+    } else if reg_type.intersects(InstructionParameterType::SPECIAL_REGISTER) {
+        get_register_mnem(register, reg_type.intersects(InstructionParameterType::BYTE_REGISTER))
+    } else {
+        format!("")
+    }
+}
+
+pub fn immediate_to_esil(data: Option<u16>) -> String {
+    match data {
+        Some(value) => format!("{}", value),
+        None => format!("")
+    }
 }
 
 pub fn process_esil(op: &Instruction, values: &InstructionArguments, raw_op: *mut RAnalOp)  {
@@ -48,12 +48,29 @@ pub fn process_esil(op: &Instruction, values: &InstructionArguments, raw_op: *mu
     }
 
     let out_op : &mut RAnalOp = unsafe {&mut (*raw_op)};
-    let encoding = Encoding::from_encoding_type(&op.encoding).unwrap();
 
-    let mut dest : String = format_esil_param(&op.dst_param, &op.dst_type, &values);
-    let mut src : String = format_esil_param(&op.src_param, &op.src_type, &values);
+    let reg0 : String;
+    let reg1 : String;
 
-    match rt_format!(op.esil, src=src, dest=dest) {
+    if op.src_param == InstructionParameter::Register0 {
+        reg0 = register_to_esil(values.register0, &op.src_type);
+    } else if op.dst_param == InstructionParameter::Register0 {
+        reg0 = register_to_esil(values.register0, &op.dst_type);
+    } else {
+        reg0 = format!("");
+    }
+
+    if op.src_param == InstructionParameter::Register1 {
+        reg1 = register_to_esil(values.register1, &op.src_type);
+    } else if op.dst_param == InstructionParameter::Register1 {
+        reg1 = register_to_esil(values.register1, &op.dst_type);
+    } else {
+        reg1 = format!("");
+    }
+
+    let immed : String = immediate_to_esil(values.data);
+
+    match rt_format!(op.esil, reg0=reg0, reg1=reg1, immed=immed) {
         Ok(esil_string) => {
             match CString::new(esil_string) {
                 Ok(esil_cstring) => {
@@ -66,6 +83,8 @@ pub fn process_esil(op: &Instruction, values: &InstructionArguments, raw_op: *mu
                 Err(_) => {}
             }
         },
-        Err(_) => {}
+        Err(error) => {
+            eprintln!("Couldn't format ESIL: {}.  ESIL was: {}", error, op.esil);
+        }
     }
 }
