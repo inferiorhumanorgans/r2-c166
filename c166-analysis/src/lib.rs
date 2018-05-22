@@ -15,6 +15,9 @@
     along with r2-c166.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#[macro_use]
+extern crate runtime_fmt;
+
 extern crate c166_core;
 
 use std::os::raw::c_void;
@@ -22,7 +25,10 @@ use std::os::raw::c_char;
 
 use c166_core::r2::*;
 use c166_core::instruction::*;
-use c166_core::encoding::Encoding;
+use c166_core::encoding::*;
+
+mod esil;
+use esil::*;
 
 // https://github.com/rust-lang/rfcs/issues/400
 macro_rules! cstr_mut {
@@ -178,6 +184,8 @@ extern "C" fn c166_op(an: *mut RAnal, raw_op: *mut RAnalOp, pc: u64, buf: *const
                 },
                 _ => {}
             }
+
+            process_esil(&op, &bytes, raw_op);
         },
         Err(_) => {
             out_op.id = -1;

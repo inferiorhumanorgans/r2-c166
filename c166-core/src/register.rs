@@ -336,30 +336,11 @@ pub fn get_register_mnem(register: u8, is_byte: bool) -> String {
     }
 }
 
-pub fn get_byte_register_mnem(register: u8) -> String {
-    match get_sfr_register_mnem(register) {
-        Some(mnem) => mnem,
-        None => {
-            match register {
-                0xF0 => String::from("rl0"),
-                0xF1 => String::from("rh0"),
-                0xF2 => String::from("rl1"),
-                0xF3 => String::from("rh1"),
-                0xF4 => String::from("rl2"),
-                0xF5 => String::from("rh2"),
-                0xF6 => String::from("rl3"),
-                0xF7 => String::from("rh3"),
-                0xF8 => String::from("rl4"),
-                0xF9 => String::from("rh5"),
-                0xFA => String::from("rl5"),
-                0xFB => String::from("rh5"),
-                0xFC => String::from("rl6"),
-                0xFD => String::from("rh6"),
-                0xFE => String::from("rl7"),
-                0xFF => String::from("rh7"),
-                _    => format!("{:02X}h (reg)", register)
-            }
-        }
+pub fn get_gpr_mnem(register: u8, is_byte: bool) -> String {
+    if is_byte == true {
+        get_byte_gpr_mnem(register)
+    } else {
+        get_word_gpr_mnem(register)
     }
 }
 
