@@ -119,7 +119,7 @@ extern "C" fn c166_archinfo(_anal: *mut RAnal, query: i32) -> i32 {
 
 extern "C" fn c166_op(an: *mut RAnal, raw_op: *mut RAnalOp, pc: u64, buf: *const u8, _len: i32) -> i32 {
     let out_op : &mut RAnalOp;
-    let bytes;
+    let bytes : &[u8];
 
     unsafe {
         out_op = &mut (*raw_op);
