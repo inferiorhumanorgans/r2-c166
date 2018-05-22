@@ -264,7 +264,6 @@ fn annotate_sfr_immed(an: *mut RAnal, pc: u64, values: &InstructionArguments) {
             strings.push(format!("Assume {} = {:04X}h", sfr.to_string(), value as u32 * 0x4000));
         },
         SpecialFunctionRegister::S0BG => {
-            eprintln!("Trying to annotate S0BG at {:X}", pc);
             strings.push(format_s0bg(value))
         },
         SpecialFunctionRegister::S0CON => {
