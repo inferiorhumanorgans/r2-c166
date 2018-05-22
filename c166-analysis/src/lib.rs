@@ -21,7 +21,7 @@ use std::os::raw::c_void;
 use std::os::raw::c_char;
 
 use c166_core::r2::*;
-use c166_core::instruction::Instruction;
+use c166_core::instruction::*;
 use c166_core::encoding::Encoding;
 
 // https://github.com/rust-lang/rfcs/issues/400
@@ -137,25 +137,26 @@ extern "C" fn c166_op(_a: *mut RAnal, raw_op: *mut RAnalOp, pc: u64, buf: *const
                 out_op.type_ = op.r2_op_type.uint_value();
                 out_op.size = encoding.length;
 
-                let op_type = c166_core::r2::_RAnalOpType(0x000000FF & out_op.type_);
+                let op_type = _RAnalOpType(0x000000FF & out_op.type_);
 
                 match op_type {
                     _RAnalOpType::R_ANAL_OP_TYPE_JMP | _RAnalOpType::R_ANAL_OP_TYPE_CALL => {
+                        // Always go to the next instruction on failure
                         out_op.fail = pc + (out_op.size as u64);
+
                         match (encoding.decode)(bytes) {
                             Ok(values) => {
-                                let condition = match values.condition {
-                                    Some(condition) => condition,
+                                out_op.cond = match values.condition {
+                                    Some(condition) => condition_to_r2(condition).uint_value() as i32,
                                     _ => 0
                                 };
-                                out_op.cond = condition_to_r2(condition).uint_value() as i32;
                                 out_op.addr = pc;
 
                                 match values.memory {
                                     Some(address) => {
-                                        match values.segment {
-                                            Some(seg) => out_op.jump = (0x10000 * seg as u64) + (address as u64),
-                                            _ => out_op.jump = address as u64
+                                        out_op.jump = match values.segment {
+                                            Some(seg) => (0x10000 * seg as u64) + (address as u64),
+                                            _ =>  address as u64
                                         }
                                     },
                                     _ => {
