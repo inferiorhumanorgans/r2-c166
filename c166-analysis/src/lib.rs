@@ -77,36 +77,81 @@ extern "C" fn c166_set_reg_profile(a: *mut RAnal) -> i32 {
     let ret : i32;
 
     let profile = cstr!("\
-        =SP    sp\n\
-        =PC    pc\n\
-        gpr    r0    .16    0    0\n\
-        gpr    rl0   .8     0    0\n\
-        gpr    rh0   .8     1    0\n\
-        gpr    r1    .16    2    0\n\
-        gpr    rl1   .8     2    0\n\
-        gpr    rh1   .8     3    0\n\
-        gpr    r2    .16    4    0\n\
-        gpr    rl2   .8     4    0\n\
-        gpr    rh2   .8     5    0\n\
-        gpr    r3    .16    6    0\n\
-        gpr    rl3   .8     6    0\n\
-        gpr    rh3   .8     7    0\n\
-        gpr    r4    .16    8    0\n\
-        gpr    rl4   .8     8    0\n\
-        gpr    rh4   .8     9    0\n\
-        gpr    r5    .16    10   0\n\
-        gpr    r6    .16    12   0\n\
-        gpr    r7    .16    14   0\n\
-        gpr    r8    .16    16   0\n\
-        gpr    r9    .16    18   0\n\
-        gpr    r10   .16    20   0\n\
-        gpr    r11   .16    22   0\n\
-        gpr    r12   .16    24   0\n\
-        gpr    r13   .16    26   0\n\
-        gpr    r14   .16    28   0\n\
-        gpr    r15   .16    30   0\n\
-        gpr    sp    .16    32   0\n\
-        gpr    pc    .16    34   0\n");
+        =SP     sp\n\
+        =PC     pc\n\
+        gpr     r0          .16     0       0\n\
+        gpr     rl0         .8      0       0\n\
+        gpr     rh0         .8      1       0\n\
+        gpr     r1          .16     2       0\n\
+        gpr     rl1         .8      2       0\n\
+        gpr     rh1         .8      3       0\n\
+        gpr     r2          .16     4       0\n\
+        gpr     rl2         .8      4       0\n\
+        gpr     rh2         .8      5       0\n\
+        gpr     r3          .16     6       0\n\
+        gpr     rl3         .8      6       0\n\
+        gpr     rh3         .8      7       0\n\
+        gpr     r4          .16     8       0\n\
+        gpr     rl4         .8      8       0\n\
+        gpr     rh4         .8      9       0\n\
+        gpr     r5          .16     10      0\n\
+        gpr     r6          .16     12      0\n\
+        gpr     r7          .16     14      0\n\
+        gpr     r8          .16     16      0\n\
+        gpr     r9          .16     18      0\n\
+        gpr     r10         .16     20      0\n\
+        gpr     r11         .16     22      0\n\
+        gpr     r12         .16     24      0\n\
+        gpr     r13         .16     26      0\n\
+        gpr     r14         .16     28      0\n\
+        gpr     r15         .16     30      0\n\
+
+        gpr     sp          .16     32      0\n\
+
+        gpr     pc          .16     34      0\n\
+
+        gpr     addrsel1    .16     36      0\n\
+        gpr     addrsel2    .16     38      0\n\
+        gpr     addrsel3    .16     40      0\n\
+        gpr     addrsel4    .16     42      0\n\
+
+        gpr     buscon0     .16     44      0\n\
+        gpr     buscon1     .16     46      0\n\
+        gpr     buscon2     .16     48      0\n\
+        gpr     buscon3     .16     50      0\n\
+        gpr     buscon4     .16     52      0\n\
+
+        gpr     cp          .16     54      0\n\
+
+        seg     csp         .16     56      0\n\
+
+        seg     dpp0        .16     58      0\n\
+        seg     dpp1        .16     60      0\n\
+        seg     dpp2        .16     62      0\n\
+        seg     dpp3        .16     64      0\n\
+
+        gpr     mdc         .16     66      0\n\
+        gpr     mdh         .8      68      0\n\
+        gpr     mdl         .8      69      0\n\
+
+        gpr     psw         .16     70      0\n\
+        flg     e           .1      70.4    0\n\
+        flg     z           .1      70.3    0\n\
+        flg     v           .1      70.2    0\n\
+        flg     c           .1      70.1    0\n\
+        flg     n           .1      70.0    0\n\
+
+        gpr     s0bg        .16     72      0\n\
+        gpr     s0con       .16     74      0\n\
+        gpr     s0eic       .16     76      0\n\
+        gpr     s0rbuf      .16     78      0\n\
+        gpr     s0ric       .16     80      0\n\
+        gpr     s0tbic      .16     82      0\n\
+        gpr     s0tbuf      .16     84      0\n\
+        gpr     s0tic       .16     86      0\n\
+
+        gpr     syscon      .16     88      0\n\
+    ");
 
     unsafe {
         anal = &mut (*a);
