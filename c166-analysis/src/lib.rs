@@ -27,6 +27,9 @@ use c166_core::r2::*;
 use c166_core::instruction::*;
 use c166_core::encoding::*;
 
+mod annotations;
+use annotations::*;
+
 mod esil;
 use esil::*;
 
@@ -185,7 +188,13 @@ extern "C" fn c166_op(an: *mut RAnal, raw_op: *mut RAnalOp, pc: u64, buf: *const
                 _ => {}
             }
 
-            process_esil(&op, &bytes, raw_op);
+            match (encoding.decode)(bytes) {
+                Ok(values) => {
+                    annotate_sfr_ops(&op, &values, an, pc);
+                    process_esil(&op, &values, raw_op);
+                },
+                _ => {}
+            }
         },
         Err(_) => {
             out_op.id = -1;

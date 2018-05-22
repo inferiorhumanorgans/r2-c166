@@ -42,7 +42,7 @@ fn format_esil_param(param: &InstructionParameter, param_type: &InstructionParam
     String::from("")
 }
 
-pub fn process_esil(op: &Instruction, bytes: &[u8], raw_op: *mut RAnalOp)  {
+pub fn process_esil(op: &Instruction, values: &InstructionArguments, raw_op: *mut RAnalOp)  {
     if op.esil.is_empty() {
         return
     }
@@ -50,28 +50,22 @@ pub fn process_esil(op: &Instruction, bytes: &[u8], raw_op: *mut RAnalOp)  {
     let out_op : &mut RAnalOp = unsafe {&mut (*raw_op)};
     let encoding = Encoding::from_encoding_type(&op.encoding).unwrap();
 
-    match (encoding.decode)(bytes) {
-        Ok(values) => {
+    let mut dest : String = format_esil_param(&op.dst_param, &op.dst_type, &values);
+    let mut src : String = format_esil_param(&op.src_param, &op.src_type, &values);
 
-            let mut dest : String = format_esil_param(&op.dst_param, &op.dst_type, &values);
-            let mut src : String = format_esil_param(&op.src_param, &op.src_type, &values);
-
-            match rt_format!(op.esil, src=src, dest=dest) {
-                Ok(esil_string) => {
-                    match CString::new(esil_string) {
-                        Ok(esil_cstring) => {
-                            unsafe {
-                                let esil_buf = &mut out_op.esil;
-                                r_strbuf_init(esil_buf);
-                                r_strbuf_append(esil_buf, esil_cstring.as_ptr());
-                            }
-                        },
-                        Err(_) => {}
+    match rt_format!(op.esil, src=src, dest=dest) {
+        Ok(esil_string) => {
+            match CString::new(esil_string) {
+                Ok(esil_cstring) => {
+                    unsafe {
+                        let esil_buf = &mut out_op.esil;
+                        r_strbuf_init(esil_buf);
+                        r_strbuf_append(esil_buf, esil_cstring.as_ptr());
                     }
                 },
                 Err(_) => {}
             }
         },
-        Err(_) => {} // Op not found
+        Err(_) => {}
     }
 }
