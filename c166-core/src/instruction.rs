@@ -2496,6 +2496,8 @@ impl<'a> Instruction<'a> {
 
             0x0B => {
                 Ok(Instruction {
+                    // Rwn, Rwm
+                    // Signed multiply direct GPR by direct GPR (16-bit × 16-bit)
                     id: 0x0B,
                     mnemonic: "mul",
                     encoding: EncodingType::nm,
@@ -2510,6 +2512,8 @@ impl<'a> Instruction<'a> {
 
             0x1B => {
                 Ok(Instruction {
+                    // Rwn, Rwm
+                    // Unsigned multiply direct GPR by direct GPR (16-bit × 16-bit)
                     id: 0x1B,
                     mnemonic: "mulu",
                     encoding: EncodingType::nm,
