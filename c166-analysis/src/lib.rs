@@ -116,73 +116,66 @@ extern "C" fn c166_archinfo(_anal: *mut RAnal, query: i32) -> i32 {
     }
 }
 
-extern "C" fn c166_op(_a: *mut RAnal, raw_op: *mut RAnalOp, pc: u64, buf: *const u8, len: i32) -> i32 {
+extern "C" fn c166_op(an: *mut RAnal, raw_op: *mut RAnalOp, pc: u64, buf: *const u8, _len: i32) -> i32 {
     let out_op : &mut RAnalOp;
     let bytes;
 
     unsafe {
         out_op = &mut (*raw_op);
-        bytes = std::slice::from_raw_parts(buf as *const u8, len as usize);
+        // Gross.
+        bytes = std::slice::from_raw_parts(buf as *const u8, 4 as usize);
     }
 
     match Instruction::from_addr_array(bytes) {
         Ok(op) => {
             let encoding = Encoding::from_encoding_type(&op.encoding).unwrap();
-            // let format = OpFormat::from_format_type(&op.format).unwrap();
 
-            if encoding.length <= len {
-                out_op.id = bytes[0] as i32;
-                out_op.nopcode = 1;
-                out_op.family = R_ANAL_OP_FAMILY_CPU; // TODO: set privileged as appropriate
-                out_op.type_ = op.r2_op_type.uint_value();
-                out_op.size = encoding.length;
+            out_op.id = bytes[0] as i32;
+            out_op.nopcode = 1;
+            out_op.family = R_ANAL_OP_FAMILY_CPU; // TODO: set privileged as appropriate
+            out_op.type_ = op.r2_op_type.uint_value();
+            out_op.size = encoding.length;
+            out_op.addr = pc;
 
-                let op_type = _RAnalOpType(0x000000FF & out_op.type_);
+            let op_type = _RAnalOpType(0x000000FF & out_op.type_);
 
-                match op_type {
-                    _RAnalOpType::R_ANAL_OP_TYPE_JMP | _RAnalOpType::R_ANAL_OP_TYPE_CALL => {
-                        // Always go to the next instruction on failure
-                        out_op.fail = pc + (out_op.size as u64);
+            match op_type {
+                _RAnalOpType::R_ANAL_OP_TYPE_JMP | _RAnalOpType::R_ANAL_OP_TYPE_CALL => {
+                    // Always go to the next instruction on failure
+                    out_op.fail = pc + (out_op.size as u64);
 
-                        match (encoding.decode)(bytes) {
-                            Ok(values) => {
-                                out_op.cond = match values.condition {
-                                    Some(condition) => condition_to_r2(condition).uint_value() as i32,
-                                    _ => 0
-                                };
-                                out_op.addr = pc;
+                    match (encoding.decode)(bytes) {
+                        Ok(values) => {
+                            out_op.cond = match values.condition {
+                                Some(condition) => condition_to_r2(condition).uint_value() as i32,
+                                _ => 0
+                            };
 
-                                match values.memory {
-                                    Some(address) => {
-                                        out_op.jump = match values.segment {
-                                            Some(seg) => (0x10000 * seg as u64) + (address as u64),
-                                            _ =>  address as u64
-                                        }
-                                    },
-                                    _ => {
-                                        match values.relative {
-                                            Some(relative) => {
-                                                out_op.jump = pc + ( (relative as u64) * 2 );
-                                            },
-                                            _ => {}
-                                        }
+                            match values.memory {
+                                Some(address) => {
+                                    out_op.jump = match values.segment {
+                                        Some(seg) => (0x10000 * seg as u64) + (address as u64),
+                                        _ =>  address as u64
+                                    }
+                                },
+                                _ => {
+                                    match values.relative {
+                                        Some(relative) => {
+                                            out_op.jump = pc + ( (relative as u64) * 2 );
+                                        },
+                                        _ => {}
                                     }
                                 }
-                            },
-                            Err(_) => {
-                                out_op.id = -1;
-                                out_op.size = -1;
-                                out_op.type_ = _RAnalOpType::R_ANAL_OP_TYPE_ILL.uint_value();
                             }
+                        },
+                        Err(_) => {
+                            out_op.id = -1;
+                                out_op.size = -1;
+                            out_op.type_ = _RAnalOpType::R_ANAL_OP_TYPE_ILL.uint_value();
                         }
-                    },
-                    _ => {}
-                }
-            } else {
-                // Not enough room in da buffer
-                out_op.id = -1;
-                out_op.size = -1;
-                out_op.type_ = _RAnalOpType::R_ANAL_OP_TYPE_ILL.uint_value();
+                    }
+                },
+                _ => {}
             }
         },
         Err(_) => {

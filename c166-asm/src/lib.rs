@@ -34,7 +34,7 @@ macro_rules! cstr {
 }
 const EMPTY_STRING : *const c_char = b"\0" as *const [u8] as *const c_char;
 
-extern "C" fn c166_disassemble(raw_asm: *mut RAsm, raw_op: *mut RAsmOp, buf: *const u8, len: i32) -> i32 {
+extern "C" fn c166_disassemble(raw_asm: *mut RAsm, raw_op: *mut RAsmOp, buf: *const u8, _len: i32) -> i32 {
     let asm : &RAsm;
     let out_op : &mut RAsmOp;
     let bytes;
@@ -42,45 +42,40 @@ extern "C" fn c166_disassemble(raw_asm: *mut RAsm, raw_op: *mut RAsmOp, buf: *co
     unsafe {
         asm = &(*raw_asm);
         out_op = &mut (*raw_op);
-        bytes = std::slice::from_raw_parts(buf as *const u8, len as usize);
-    }
 
+        bytes = std::slice::from_raw_parts(buf as *const u8, 4 as usize);
+    }
 
     match Instruction::from_addr_array(bytes) {
         Ok(op) => {
             let encoding = Encoding::from_encoding_type(&op.encoding).unwrap();
 
-            if encoding.length <= len {
-                // https://github.com/rust-lang/rust/issues/18343
-                match (encoding.decode)(bytes) {
-                    Ok(values) => {
-                        if asm.pc > <u32>::max_value() as u64 {
-                            out_op.size = -1;
-                            out_op.payload = 0;
-                            out_op.buf_asm[0] = 0;
-                        } else {
-                            let desc = format_op(&op, &values, asm.pc as u32);
-
-                            out_op.size = encoding.length;
-                            out_op.payload = 0;
-                            out_op.buf_asm[desc.len()] = 0;
-
-                            unsafe {
-                                std::ptr::copy(desc.as_bytes() as *const [u8] as *const c_char, &mut out_op.buf_asm as *mut [c_char] as *mut c_char, desc.len());
-                            }
-                        }
-                    },
-                    Err(_) => {
+            // https://github.com/rust-lang/rust/issues/18343
+            match (encoding.decode)(bytes) {
+                Ok(values) => {
+                    if asm.pc > <u32>::max_value() as u64 {
                         out_op.size = -1;
                         out_op.payload = 0;
                         out_op.buf_asm[0] = 0;
+                    } else {
+                        let desc = format_op(&op, &values, asm.pc as u32);
+
+                        out_op.size = encoding.length;
+                        out_op.payload = 0;
+                        out_op.buf_asm[desc.len()] = 0;
+
+                        unsafe {
+                            std::ptr::copy(desc.as_bytes() as *const [u8] as *const c_char, &mut out_op.buf_asm as *mut [c_char] as *mut c_char, desc.len());
+                        }
                     }
+                },
+                Err(_) => {
+                    out_op.size = -1;
+                    out_op.payload = 0;
+                    out_op.buf_asm[0] = 0;
                 }
-            } else {
-                out_op.size = -1;
-                out_op.payload = 0;
-                out_op.buf_asm[0] = 0;
             }
+            return encoding.length;
         },
         Err(_) => {
             out_op.size = -1;
@@ -89,7 +84,7 @@ extern "C" fn c166_disassemble(raw_asm: *mut RAsm, raw_op: *mut RAsmOp, buf: *co
         }
     }
 
-    return out_op.size;
+    out_op.size
 }
 
 #[allow(non_upper_case_globals)]
