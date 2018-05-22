@@ -1,6 +1,6 @@
 [package]
 name = "c166-asm"
-version = "0.1.5"
+version = "0.1.6"
 authors = ["Alex Zepeda <c166@inferiorhumanorgans.com>"]
 
 [dependencies]
