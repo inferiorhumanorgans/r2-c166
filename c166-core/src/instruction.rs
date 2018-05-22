@@ -2144,6 +2144,8 @@ impl<'a> Instruction<'a> {
 
             0xF1 => {
                 Ok(Instruction {
+                    // Rbn, Rbm
+                    // Move direct byte GPR to direct GPR
                     id: 0xF1,
                     mnemonic: "movb",
                     encoding: EncodingType::nm,
@@ -2158,6 +2160,8 @@ impl<'a> Instruction<'a> {
 
             0xE1 => {
                 Ok(Instruction {
+                    // Rbn, #data4
+                    // Move immediate byte data to direct GPR
                     id: 0xE1,
                     mnemonic: "movb",
                     encoding: EncodingType::In,
@@ -2172,6 +2176,8 @@ impl<'a> Instruction<'a> {
 
             0xE7 => {
                 Ok(Instruction {
+                    // reg, #data8
+                    // Move immediate byte data to direct register
                     id: 0xE7,
                     mnemonic: "movb",
                     encoding: EncodingType::RR_II_xx,
@@ -2186,6 +2192,8 @@ impl<'a> Instruction<'a> {
 
             0xA9 => {
                 Ok(Instruction {
+                    // Rbn, [Rwm]
+                    // Move indirect byte memory to direct GPR
                     id: 0xA9,
                     mnemonic: "movb",
                     encoding: EncodingType::nm,
@@ -2200,6 +2208,8 @@ impl<'a> Instruction<'a> {
 
             0x99 => {
                 Ok(Instruction {
+                    // Rbn, [Rwm+]
+                    // Move indirect byte memory to direct GPR and post-increment source pointer by 1
                     id: 0x99,
                     mnemonic: "movb",
                     encoding: EncodingType::nm,
@@ -2214,6 +2224,8 @@ impl<'a> Instruction<'a> {
 
             0xB9 => {
                 Ok(Instruction {
+                    // [Rwm], Rbn
+                    // Move direct byte GPR to indirect memory
                     id: 0xB9,
                     mnemonic: "movb",
                     encoding: EncodingType::nm,
@@ -2228,6 +2240,8 @@ impl<'a> Instruction<'a> {
 
             0x89 => {
                 Ok(Instruction {
+                    // [-Rwm], Rbn
+                    // Pre-decrement destination pointer by 1 and move direct byte GPR to indirect memory
                     id: 0x89,
                     mnemonic: "movb",
                     encoding: EncodingType::nm,
@@ -2242,6 +2256,8 @@ impl<'a> Instruction<'a> {
 
             0xC9 => {
                 Ok(Instruction {
+                    // [Rwn], [Rwm]
+                    // Move indirect byte memory to indirect memory
                     id: 0xC9,
                     mnemonic: "movb",
                     encoding: EncodingType::nm,
@@ -2256,6 +2272,8 @@ impl<'a> Instruction<'a> {
 
             0xD9 => {
                 Ok(Instruction {
+                    // [Rwn+], [Rwm]
+                    // Move indirect byte memory to indirect memory and post-increment destination pointer by 1
                     id: 0xD9,
                     mnemonic: "movb",
                     encoding: EncodingType::nm,
@@ -2270,6 +2288,8 @@ impl<'a> Instruction<'a> {
 
             0xE9 => {
                 Ok(Instruction {
+                    // [Rwn], [Rwm+]
+                    // Move indirect byte memory to indirect memory and post-increment source pointer by 1
                     id: 0xE9,
                     mnemonic: "movb",
                     encoding: EncodingType::nm,
@@ -2284,6 +2304,8 @@ impl<'a> Instruction<'a> {
 
             0xF4 => {
                 Ok(Instruction {
+                    // Rbn, [Rwm+#data16]
+                    // Move indirect byte memory by base plus constant to direct byte GPR
                     id: 0xF4,
                     mnemonic: "movb",
                     encoding: EncodingType::nm_II_II,
@@ -2298,6 +2320,8 @@ impl<'a> Instruction<'a> {
 
             0xE4 => {
                 Ok(Instruction {
+                    // [Rwm+#data16], Rbn
+                    // Move direct byte GPR to indirect memory by base plus constant
                     id: 0xE4,
                     mnemonic: "movb",
                     encoding: EncodingType::nm_II_II,
@@ -2312,6 +2336,8 @@ impl<'a> Instruction<'a> {
 
             0xA4 => {
                 Ok(Instruction {
+                    // [Rwn], mem
+                    // Move direct byte memory to indirect memory
                     id: 0xA4,
                     mnemonic: "movb",
                     encoding: EncodingType::_0n_MM_MM,
@@ -2326,6 +2352,8 @@ impl<'a> Instruction<'a> {
 
             0xB4 => {
                 Ok(Instruction {
+                    // mem, [Rwn]
+                    // Move indirect byte memory to direct memory
                     id: 0xB4,
                     mnemonic: "movb",
                     encoding: EncodingType::_0n_MM_MM,
@@ -2340,6 +2368,8 @@ impl<'a> Instruction<'a> {
 
             0xF3 => {
                 Ok(Instruction {
+                    // reg, mem
+                    // Move direct byte memory to direct register
                     id: 0xF3,
                     mnemonic: "movb",
                     encoding: EncodingType::RR_MM_MM,
@@ -2354,6 +2384,8 @@ impl<'a> Instruction<'a> {
 
             0xF7 => {
                 Ok(Instruction {
+                    // mem, reg
+                    // Move direct byte register to direct memory
                     id: 0xF7,
                     mnemonic: "movb",
                     encoding: EncodingType::RR_MM_MM,
