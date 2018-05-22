@@ -69,6 +69,7 @@ extern "C" fn c166_set_reg_profile(a: *mut RAnal) -> i32 {
 
     let profile = cstr!("\
         =SP    sp\n\
+        =PC    pc\n\
         gpr    r0    .16    0    0\n\
         gpr    rl0   .8     0    0\n\
         gpr    rh0   .8     1    0\n\
