@@ -2448,6 +2448,8 @@ impl<'a> Instruction<'a> {
 
             0xC0 => {
                 Ok(Instruction {
+                    // Rwn, Rbm
+                    // Move direct byte GPR with zero extension to direct word GPR
                     id: 0xC0,
                     mnemonic: "movbz",
                     encoding: EncodingType::mn,
@@ -2462,6 +2464,8 @@ impl<'a> Instruction<'a> {
 
             0xC2 => {
                 Ok(Instruction {
+                    // reg, mem
+                    // Move direct byte memory with zero extension to direct word register
                     id: 0xC2,
                     mnemonic: "movbz",
                     encoding: EncodingType::RR_MM_MM,
@@ -2476,6 +2480,8 @@ impl<'a> Instruction<'a> {
 
             0xC5 => {
                 Ok(Instruction {
+                    // mem, reg
+                    // Move direct byte register with zero extension to direct word memory
                     id: 0xC5,
                     mnemonic: "movbz",
                     encoding: EncodingType::RR_MM_MM,
