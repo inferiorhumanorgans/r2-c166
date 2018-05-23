@@ -15,4 +15,16 @@ toolchain.
 ## Notes
 
 * `rasm2` currently does not look in the user's plugin path so you may have to symlink or copy the installed library into a different location.
-* This is known to not work on older versions of OSX.  Probably due to something like: <https://github.com/rustwasm/wasm-bindgen/issues/186>
+
+### Building on OSX
+
+`r2-c166` is known to not build on older versions of OSX.  This is due to an old version of clang being installed.  Similar to: <https://github.com/rustwasm/wasm-bindgen/issues/186>.  Newer versions of OSX require that you tell clang to allow undefined symbols in libraries via a `~/.cargo/config` stanza like so:
+
+```
+[target.x86_64-apple-darwin]
+rustflags = [
+  "-C", "link-arg=-undefined",
+  "-C", "link-arg=dynamic_lookup"
+]
+```
+Additionally if you install `radare2` via `brew` you'll need to edit build.rs to search for the `radare2` and `openssl` headers in the appropriate directory.  TODO: update the build script to take additional include search paths in via an environment variable.
