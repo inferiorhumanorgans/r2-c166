@@ -710,6 +710,11 @@ impl<'a> Instruction<'a> {
 
             0xD1 => {
                 Ok(Instruction {
+                    // #irang2
+                    // Begin ATOMIC sequence
+
+                    // #irang2
+                    // Begin EXTended Register sequence
                     id: 0xD1,
                     mnemonic: "atomic_extr",
                     encoding: EncodingType::atomic_extr,
