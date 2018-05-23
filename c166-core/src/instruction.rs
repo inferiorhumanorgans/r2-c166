@@ -1059,6 +1059,8 @@ impl<'a> Instruction<'a> {
 
             0x1A => {
                 Ok(Instruction {
+                    // bitoffQ, #mask8, #data8
+                    // Bitwise modify masked high byte of bit-addressable direct word memory with immediate data
                     id: 0x1A,
                     mnemonic: "bfldh",
                     encoding: EncodingType::QQ_AA_II,
@@ -1088,6 +1090,8 @@ impl<'a> Instruction<'a> {
 
             0x0A => {
                 Ok(Instruction {
+                    // bitoffQ,#mask8,#data8
+                    // Bitwise modify masked low byte of bit-addressable direct word memory with immediate data
                     id: 0x0A,
                     mnemonic: "bfldl",
                     encoding: EncodingType::QQ_AA_II,
