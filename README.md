@@ -7,6 +7,7 @@ toolchain.
 
 ## Installation and Usage
 
+* If you don't have clang installed already, install it.  On FreeBSD `pkg install llvm60` is sufficient.
 * Install `rustfmt-nightly` globally via cargo before building.
 * Run `make` to build and install the library.  Optionally, take a look at the travis.yml file to see how to build (but not install) using just cargo.
 * Run `make test-asm` to validate the instruction decoding or `make test` / `cargo test` to run all the tests.  One of the bindgen generated tests is known to fail.
