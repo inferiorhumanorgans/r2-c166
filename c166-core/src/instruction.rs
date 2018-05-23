@@ -1165,6 +1165,8 @@ impl<'a> Instruction<'a> {
 
             0x5A => {
                 Ok(Instruction {
+                    // bitaddrZ.z, bitaddrQ.q
+                    // OR direct bit with direct bit
                     id: 0x5A,
                     mnemonic: "bor",
                     encoding: EncodingType::QQ_ZZ_qz,
