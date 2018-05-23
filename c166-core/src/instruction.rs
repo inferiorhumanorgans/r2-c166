@@ -1115,6 +1115,8 @@ impl<'a> Instruction<'a> {
 
             0x4A => {
                 Ok(Instruction {
+                    // bitaddrZ.z, bitaddrQ.q
+                    // Move direct bit to direct bit
                     id: 0x4A,
                     mnemonic: "bmov",
                     encoding: EncodingType::QQ_ZZ_qz,
@@ -1138,6 +1140,8 @@ impl<'a> Instruction<'a> {
 
             0x3A => {
                 Ok(Instruction {
+                    // bitaddrZ.z, bitaddrQ.q
+                    // Move negated direct bit to direct bit
                     id: 0x3A,
                     mnemonic: "bmovn",
                     encoding: EncodingType::QQ_ZZ_qz,
