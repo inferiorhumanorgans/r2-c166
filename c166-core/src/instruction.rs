@@ -738,6 +738,8 @@ impl<'a> Instruction<'a> {
 
             0x6A => {
                 Ok(Instruction {
+                    // bitaddrZ.z, bitaddrQ.q
+                    // AND direct bit with direct bit
                     id: 0x6A,
                     mnemonic: "band",
                     encoding: EncodingType::QQ_ZZ_qz,
