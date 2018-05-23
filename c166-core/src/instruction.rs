@@ -86,6 +86,8 @@ impl<'a> Instruction<'a> {
         match raw_opcode {
             0x00 => {
                 Ok(Instruction {
+                    // Rwn, Rwm
+                    // Add direct word GPR to direct GPR
                     id: 0x00,
                     mnemonic: "add",
                     encoding: EncodingType::nm,
@@ -100,6 +102,8 @@ impl<'a> Instruction<'a> {
 
             0x02 => {
                 Ok(Instruction {
+                    // reg, mem
+                    // Add direct word memory to direct register
                     id: 0x02,
                     mnemonic: "add",
                     encoding: EncodingType::RR_MM_MM,
@@ -114,6 +118,8 @@ impl<'a> Instruction<'a> {
 
             0x04 => {
                 Ok(Instruction {
+                    // mem, reg
+                    // Add direct word register to direct memory
                     id: 0x04,
                     mnemonic: "add",
                     encoding: EncodingType::RR_MM_MM,
@@ -128,6 +134,8 @@ impl<'a> Instruction<'a> {
 
             0x06 => {
                 Ok(Instruction {
+                    // reg, #data16
+                    // Add immediate word data to direct register
                     id: 0x06,
                     mnemonic: "add",
                     encoding: EncodingType::RR_II_II,
@@ -142,6 +150,12 @@ impl<'a> Instruction<'a> {
 
             0x08 => {
                 Ok(Instruction {
+                    // Rwn, [Rwi]
+                    // Add indirect word memory to direct GPR
+                    // Rwn, [Rwi+]
+                    // Add indirect word memory to direct GPR and post-increment source pointer by 2
+                    // Rwn, #data3
+                    // Add immediate word data to direct GPR
                     id: 0x08,
                     mnemonic: "add",
                     encoding: EncodingType::data3_or_reg,
@@ -156,6 +170,8 @@ impl<'a> Instruction<'a> {
 
             0x01 => {
                 Ok(Instruction {
+                    // Rbn, Rbm
+                    // Add direct byte GPR to direct GPR
                     id: 0x01,
                     mnemonic: "addb",
                     encoding: EncodingType::nm,
@@ -170,6 +186,8 @@ impl<'a> Instruction<'a> {
 
             0x03 => {
                 Ok(Instruction {
+                    // reg, mem
+                    // Add direct byte memory to direct register
                     id: 0x03,
                     mnemonic: "addb",
                     encoding: EncodingType::RR_MM_MM,
@@ -184,6 +202,8 @@ impl<'a> Instruction<'a> {
 
             0x05 => {
                 Ok(Instruction {
+                    // mem, reg
+                    // Add direct byte register to direct memory
                     id: 0x05,
                     mnemonic: "addb",
                     encoding: EncodingType::RR_MM_MM,
@@ -198,6 +218,8 @@ impl<'a> Instruction<'a> {
 
             0x07 => {
                 Ok(Instruction {
+                    // reg, #data8
+                    // Add immediate byte data to direct register
                     id: 0x07,
                     mnemonic: "addb",
                     encoding: EncodingType::RR_II_xx,
@@ -212,6 +234,12 @@ impl<'a> Instruction<'a> {
 
             0x09 => {
                 Ok(Instruction {
+                    // Rbn, [Rwi]
+                    // Add indirect byte memory to direct GPR
+                    // Rbn, [Rwi+]
+                    // Add indirect byte memory to direct GPR and post-increment source pointer by 1
+                    // Rbn, #data3
+                    // Add immediate byte data to direct GPR
                     id: 0x09,
                     mnemonic: "addb",
                     encoding: EncodingType::data3_or_reg,
@@ -226,6 +254,8 @@ impl<'a> Instruction<'a> {
 
             0x10 => {
                 Ok(Instruction {
+                    // Rwn, Rwm
+                    // Add direct word GPR to direct GPR with Carry
                     id: 0x10,
                     mnemonic: "addc",
                     encoding: EncodingType::nm,
@@ -240,6 +270,12 @@ impl<'a> Instruction<'a> {
 
             0x18 => {
                 Ok(Instruction {
+                    // Rwn, [Rwi]
+                    // Add indirect word memory to direct GPR with Carry
+                    // Rwn, [Rwi+]
+                    // Add indirect word memory to direct GPR with Carry and post-increment source pointer by 2
+                    // Rwn, #data3
+                    // Add immediate word data to direct GPR with Carry
                     id: 0x18,
                     mnemonic: "addc",
                     encoding: EncodingType::data3_or_reg,
@@ -254,6 +290,8 @@ impl<'a> Instruction<'a> {
 
             0x16 => {
                 Ok(Instruction {
+                    // reg, #data16
+                    // Add immediate word data to direct register with Carry
                     id: 0x16,
                     mnemonic: "addc",
                     encoding: EncodingType::RR_II_II,
@@ -268,6 +306,8 @@ impl<'a> Instruction<'a> {
 
             0x12 => {
                 Ok(Instruction {
+                    // reg, mem
+                    // Add direct word memory to direct register with Carry
                     id: 0x12,
                     mnemonic: "addc",
                     encoding: EncodingType::RR_MM_MM,
@@ -282,6 +322,8 @@ impl<'a> Instruction<'a> {
 
             0x14 => {
                 Ok(Instruction {
+                    // mem, reg
+                    // Add direct word register to direct memory with Carry
                     id: 0x14,
                     mnemonic: "addc",
                     encoding: EncodingType::RR_MM_MM,
@@ -296,6 +338,8 @@ impl<'a> Instruction<'a> {
 
             0x11 => {
                 Ok(Instruction {
+                    // Rbn, Rbm
+                    // Add direct byte GPR to direct GPR with Carry
                     id: 0x11,
                     mnemonic: "addcb",
                     encoding: EncodingType::nm,
@@ -310,6 +354,12 @@ impl<'a> Instruction<'a> {
 
             0x19 => {
                 Ok(Instruction {
+                    // Rbn, [Rwi]
+                    // Add indirect byte memory to direct GPR with Carry
+                    // Rbn, [Rwi+]
+                    // Add indirect byte memory to direct GPR with Carry and post-increment source pointer by 1
+                    // Rbn, #data3
+                    // Add immediate byte data to direct GPR with Carry
                     id: 0x19,
                     mnemonic: "addcb",
                     encoding: EncodingType::data3_or_reg,
@@ -324,6 +374,8 @@ impl<'a> Instruction<'a> {
 
             0x17 => {
                 Ok(Instruction {
+                    // reg, #data8
+                    // Add immediate byte data to direct register with Carry
                     id: 0x17,
                     mnemonic: "addcb",
                     encoding: EncodingType::RR_II_xx,
@@ -338,6 +390,8 @@ impl<'a> Instruction<'a> {
 
             0x13 => {
                 Ok(Instruction {
+                    // reg, mem
+                    // Add direct byte memory to direct register with Carry
                     id: 0x13,
                     mnemonic: "addcb",
                     encoding: EncodingType::RR_MM_MM,
@@ -352,6 +406,8 @@ impl<'a> Instruction<'a> {
 
             0x15 => {
                 Ok(Instruction {
+                    // mem, reg
+                    // Add direct byte register to direct memory with Carry
                     id: 0x15,
                     mnemonic: "addcb",
                     encoding: EncodingType::RR_MM_MM,
