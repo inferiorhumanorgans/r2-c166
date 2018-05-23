@@ -84,6 +84,15 @@ impl<'a> Instruction<'a> {
         let raw_opcode = bytes[0];
 
         match raw_opcode {
+            // ADD: Integer Addition
+            // Performs a 2's complement binary addition of the source operand specified by op2 and the
+            // destination operand specified by op1. The sum is then stored in op1.
+            // E: Set if the value of op2 represents the lowest possible negative number. Cleared otherwise. Used to signal the end of a table.
+            // Z: Set if result equals zero. Cleared otherwise.
+            // V: Set if an arithmetic overflow occurred, i.e. the result cannot be represented in the specified data type. Cleared otherwise.
+            // C: Set if a carry is generated from the most significant bit of the specified data type. Cleared otherwise.
+            // N: Set if the most significant bit of the result is set. Cleared otherwise.
+
             0x00 => {
                 Ok(Instruction {
                     // Rwn, Rwm
@@ -167,6 +176,15 @@ impl<'a> Instruction<'a> {
                     dst_type: InstructionParameterType::NONE
                 })
             },
+
+            // ADDB: Integer Addition
+            // Performs a 2's complement binary addition of the source operand specified by op2 and the destination
+            // operand specified by op1. The sum is then stored in op1.
+            // E: Set if the value of op2 represents the lowest possible negative number. Cleared otherwise. Used to signal the end of a table.
+            // Z: Set if result equals zero. Cleared otherwise.
+            // V: Set if an arithmetic overflow occurred, i.e. the result cannot be represented in the specified data type. Cleared otherwise.
+            // C: Set if a carry is generated from the most significant bit of the specified data type. Cleared otherwise.
+            // N: Set if the most significant bit of the result is set. Cleared otherwise.
 
             0x01 => {
                 Ok(Instruction {
@@ -252,6 +270,16 @@ impl<'a> Instruction<'a> {
                 })
             },
 
+            // ADDC: Integer Addition with Carry
+            // Performs a 2's complement binary addition of the source operand specified by op2, the destination
+            // operand specified by op1 and the previously generated carry bit. The sum is then stored in op1.
+            // This instruction can be used to perform multiple precision arithmetic.
+            // E: Set if the value of op2 represents the lowest possible negative number. Cleared otherwise. Used to signal the end of a table.
+            // Z: Set if result equals zero and the previous Z flag was set. Cleared otherwise.
+            // V: Set if an arithmetic overflow occurred, i.e. the result cannot be represented in the specified data type. Cleared otherwise.
+            // C: Set if a carry is generated from the most significant bit of the specified data type. Cleared otherwise.
+            // N: Set if the most significant bit of the result is set. Cleared otherwise.
+
             0x10 => {
                 Ok(Instruction {
                     // Rwn, Rwm
@@ -335,6 +363,16 @@ impl<'a> Instruction<'a> {
                     dst_type: InstructionParameterType::DIRECT_MEMORY
                 })
             },
+
+            // ADDCB: Integer Addition with Carry
+            // Performs a 2's complement binary addition of the source operand specified by op2, the destination
+            // operand specified by op1 and the previously generated carry bit. The sum is then stored in op1. This
+            // instruction can be used to perform multiple precision arithmetic.
+            // E: Set if the value of op2 represents the lowest possible negative number. Cleared otherwise. Used to signal the end of a table.
+            // Z: Set if result equals zero and the previous Z flag was set. Cleared otherwise.
+            // V: Set if an arithmetic overflow occurred, i.e. the result cannot be represented in the specified data type. Cleared otherwise.
+            // C: Set if a carry is generated from the most significant bit of the specified data type. Cleared otherwise.
+            // N: Set if the most significant bit of the result is set. Cleared otherwise.
 
             0x11 => {
                 Ok(Instruction {
@@ -420,6 +458,16 @@ impl<'a> Instruction<'a> {
                 })
             },
 
+            // AND: Logical AND
+            // (op1) ← (op1) ∧ (op2)
+            // Performs a bitwise logical AND of the source operand specified by op2 and the destination operand
+            // specified by op1. The result is then stored in op1.
+            // E: Set if the value of op2 represents the lowest possible negative number. Cleared otherwise. Used to signal the end of a table.
+            // Z: Set if result equals zero. Cleared otherwise.
+            // V: Always cleared.
+            // C: Always cleared.
+            // N: Set if the most significant bit of the result is set. Cleared otherwise.
+
             0x60 => {
                 Ok(Instruction {
                     id: 0x60,
@@ -489,6 +537,15 @@ impl<'a> Instruction<'a> {
                     dst_type: InstructionParameterType::DIRECT_MEMORY
                 })
             },
+
+            // ANDB: Logical AND
+            // Performs a bitwise logical AND of the source operand specified by op2 and the destination operand specified by op1.
+            // The result is then stored in op1.
+            // E: Set if the value of op2 represents the lowest possible negative number. Cleared otherwise. Used to signal the end of a table.
+            // Z: Set if result equals zero. Cleared otherwise.
+            // V: Always cleared.
+            // C: Always cleared.
+            // N: Set if the most significant bit of the result is set. Cleared otherwise.
 
             0x61 => {
                 Ok(Instruction {
@@ -560,6 +617,18 @@ impl<'a> Instruction<'a> {
                 })
             },
 
+            // ASHR: Arithmetic Shift Right
+            // Arithmetically shifts the destination word operand op1 right by as many times as specified in the source
+            // operand op2. To preserve the sign of the original operand op1, the most significant bits of the result are
+            // filled with zeros if the original MSB was a 0 or with ones if the original MSB was a 1. The Overflow flag is
+            // used as a Rounding flag. The LSB is shifted into the Carry. Only shift values between 0 and 15 are allowed.
+            // When using a GPR as the count control, only the least significant 4 bits are used.
+            // E: Always cleared.
+            // Z: Set if result equals zero. Cleared otherwise.
+            // V: Set if in any cycle of the shift operation a 1 is shifted out of the carry flag. Cleared for a shift count of zero.
+            // C: The carry flag is set according to the last LSB shifted out of op1. Cleared for a shift count of zero.
+            // N: Set if the most significant bit of the result is set. Cleared otherwise.
+
             0xAC => {
                 Ok(Instruction {
                     id: 0xAC,
@@ -588,6 +657,25 @@ impl<'a> Instruction<'a> {
                 })
             },
 
+            // ATOMIC: Begin ATOMIC Sequence
+            // Causes standard and PEC interrupts and class A hardware traps to be disabled for a specified number of
+            // instructions. The ATOMIC instruction becomes immediately active such that no additional NOPs are required.
+            // Depending on the value of op1, the period of validity of the ATOMIC sequence extends over the sequence of the
+            // next 1 to 4 instructions being executed after the ATOMIC instruction. All instructions requiring multiple
+            // cycles or hold states to be executed are regarded as one instruction in this sense. Any instruction type can
+            // be used with the ATOMIC instruction.
+            // 
+            // NOTE: The ATOMIC instruction is not available in the SAB 8XC166(W)
+            // NOTE: Condition flags not affected
+
+            // EXTR: Begin EXTended Register Sequence
+            // Causes all SFR or SFR bit accesses via the 'reg', 'bitoff' or 'bitaddr' addressing modes being made to the
+            // Extended SFR space for a specified number of instructions. During their execution both standard/PEC interrupts
+            // and class A hardware traps are locked. The value of op1 defines the length of the effected instruction sequence.
+            // 
+            // NOTE: The EXTR instruction is not available in the SAB 8XC166(W)
+            // NOTE: Condition flags not affected            
+
             0xD1 => {
                 Ok(Instruction {
                     id: 0xD1,
@@ -602,6 +690,15 @@ impl<'a> Instruction<'a> {
                 })
             },
 
+            // BAND: Bit Logical AND
+            // Performs a single bit logical AND of the source bit specified by op2 and the destination
+            // bit specified by op1. The result is then stored in op1.
+            // E: Always cleared.
+            // Z: Contains the logical NOR of the two specified bits.
+            // V: Contains the logical OR of the two specified bits.
+            // C: Contains the logical AND of the two specified bits.
+            // N: Contains the logical XOR of the two specified bits.
+
             0x6A => {
                 Ok(Instruction {
                     id: 0x6A,
@@ -615,6 +712,14 @@ impl<'a> Instruction<'a> {
                     dst_type: InstructionParameterType::BIT_OFFSET | InstructionParameterType::BIT_OFFSET_BIT
                 })
             },
+
+            // BCLR: Bit Clear
+            // Clears the bit specified by op1. This instruction is primarily used for peripheral and system control.
+            // E: Always cleared.
+            // Z: Contains the logical negation of the previous state of the specified bit.
+            // V: Always cleared.
+            // C: Always cleared.
+            // N: Contains the previous state of the specified bit.
 
             0x0E => {
                 Ok(Instruction {
@@ -840,6 +945,16 @@ impl<'a> Instruction<'a> {
                 })
             },
 
+            // BCMP: Bit to Bit Compare
+            // Performs a single bit comparison of the source bit specified by operand op1 to the source bit
+            // specified by operand op2. No result is written by this instruction. Only the condition codes
+            // are updated.
+            // E: Always cleared.
+            // Z: Contains the logical NOR of the two specified bits.
+            // V: Contains the logical OR of the two specified bits.
+            // C: Contains the logical AND of the two specified bits.
+            // N: Contains the logical XOR of the two specified bits.
+
             0x2A => {
                 Ok(Instruction {
                     id: 0x2A,
@@ -853,6 +968,21 @@ impl<'a> Instruction<'a> {
                     dst_type: InstructionParameterType::BIT_OFFSET | InstructionParameterType::BIT_OFFSET_BIT
                 })
             },
+
+            // BFLDH: Bit Field High Byte
+            // Replaces those bits in the high byte of the destination word operand op1 which are selected by
+            // a '1' in the AND mask op2 with the bits at the corresponding positions in the OR mask specified
+            // by op3.
+            // 
+            // NOTE: op1 bits which shall remain unchanged must have a '0' in the respective bit of both the AND
+            // mask op2 and the OR mask op3.  Otherwise a '1' in op3 will set the corresponding op1 bit
+            // (see "Operation"). If the target operand (op1) features bit-protection only the bits marked by a
+            // '1' in the mask operand (op2) will be updated.
+            // E: Always cleared.
+            // Z: Set if the word result equals zero. Cleared otherwise.
+            // V: Always cleared.
+            // C: Always cleared.
+            // N: Set if the most significant bit of the word result is set. Cleared otherwise.
 
             0x1A => {
                 Ok(Instruction {
@@ -868,6 +998,21 @@ impl<'a> Instruction<'a> {
                 })
             },
 
+            // BFLDL: Bit Field Low Byte
+            // Replaces those bits in the low byte of the destination word operand op1 which are selected by
+            // a '1' in the AND mask op2 with the bits at the corresponding positions in the OR mask specified
+            // by op3.
+            // 
+            // NOTE: op1 bits which shall remain unchanged must have a '0' in the respective bit of both the AND
+            // mask op2 and the OR mask op3.  Otherwise a '1' in op3 will set the corresponding op1 bit
+            // (see "Operation"). If the target operand (op1) features bit-protection only the bits marked by a
+            // '1' in the mask operand (op2) will be updated.
+            // E: Always cleared.
+            // Z: Set if the word result equals zero. Cleared otherwise.
+            // V: Always cleared.
+            // C: Always cleared.
+            // N: Set if the most significant bit of the word result is set. Cleared otherwise.
+
             0x0A => {
                 Ok(Instruction {
                     id: 0x0A,
@@ -881,6 +1026,15 @@ impl<'a> Instruction<'a> {
                     dst_type: InstructionParameterType::BIT_OFFSET | InstructionParameterType::BIT_OFFSET_MASK
                 })
             },
+
+            // BMOV: Bit to Bit Move
+            // Moves a single bit from the source operand specified by op2 into the destination operand specified
+            // by op1. The source bit is examined and the flags are updated accordingly.
+            // E: Always cleared.
+            // Z: Contains the logical negation of the previous state of the source bit.
+            // V: Always cleared.
+            // C: Always cleared.
+            // N: Contains the previous state of the source bit.
 
             0x4A => {
                 Ok(Instruction {
@@ -896,6 +1050,15 @@ impl<'a> Instruction<'a> {
                 })
             },
 
+            // BMOVN: Bit to Bit Move and Negate
+            // Moves the complement of a single bit from the source operand specified by op2 into the destination
+            // operand specified by op1. The source bit is examined and the flags are updated accordingly.
+            // E: Always cleared.
+            // Z: Contains the logical negation of the previous state of the source bit.
+            // V: Always cleared.
+            // C: Always cleared.
+            // N: Contains the previous state of the source bit.
+
             0x3A => {
                 Ok(Instruction {
                     id: 0x3A,
@@ -910,6 +1073,15 @@ impl<'a> Instruction<'a> {
                 })
             },
 
+            // BOR: Bit Logical OR
+            // Performs a single bit logical OR of the source bit specified by operand op2 with the destination
+            // bit specified by operand op1. The ORed result is then stored in op1.
+            // E: Always cleared.
+            // Z: Contains the logical NOR of the two specified bits.
+            // V: Contains the logical OR of the two specified bits.
+            // C: Contains the logical AND of the two specified bits.
+            // N: Contains the logical XOR of the two specified bits.
+
             0x5A => {
                 Ok(Instruction {
                     id: 0x5A,
@@ -923,6 +1095,14 @@ impl<'a> Instruction<'a> {
                     dst_type: InstructionParameterType::BIT_OFFSET | InstructionParameterType::BIT_OFFSET_BIT
                 })
             },
+
+            // BSET: Bit Set
+            // Sets the bit specified by op1. This instruction is primarily used for peripheral and system control.
+            // E: Always cleared.
+            // Z: Contains the logical negation of the previous state of the specified bit
+            // V: Always cleared.
+            // C: Always cleared.
+            // N: Contains the previous state of the specified bit.
 
             0x0F => {
                 Ok(Instruction {
@@ -1148,6 +1328,15 @@ impl<'a> Instruction<'a> {
                 })
             },
 
+            // BXOR: Bit Logical XOR
+            // Performs a single bit logical EXCLUSIVE OR of the source bit specified by operand op2 with the
+            // destination bit specified by operand op1. The XORed result is then stored in op1.
+            // E: Always cleared.
+            // Z: Contains the logical NOR of the two specified bits.
+            // V: Contains the logical OR of the two specified bits.
+            // C: Contains the logical AND of the two specified bits.
+            // N: Contains the logical XOR of the two specified bits.
+
             0x7A => {
                 Ok(Instruction {
                     id: 0x7A,
@@ -1161,6 +1350,15 @@ impl<'a> Instruction<'a> {
                     dst_type: InstructionParameterType::BIT_OFFSET | InstructionParameterType::BIT_OFFSET_BIT
                 })
             },
+
+            // CALLA: Call Subroutine Absolute
+            // If the condition specified by op1 is met, a branch to the absolute memory location specified by
+            // the second operand op2 is taken.  The value of the instruction pointer, IP, is placed onto the
+            // system stack. Because the IP always points to the instruction following the branch instruction,
+            // the value stored on the system stack represents the return address of the calling routine. If the
+            // condition is not met, no action is taken and the next instruction is executed normally.
+            // 
+            // NOTE: Condition flags not affected
 
             0xCA => {
                 Ok(Instruction {
@@ -1176,6 +1374,15 @@ impl<'a> Instruction<'a> {
                 })
             },
 
+            // CALLI: Call Subroutine Indirect
+            // If the condition specified by op1 is met, a branch to the location specified indirectly by the second
+            // operand op2 is taken. The value of the instruction pointer, IP, is placed onto the system stack. Because
+            // the IP always points to the instruction following the branch instruction, the value stored on the system
+            // stack represents the return address of the calling routine. If the condition is not met, no action is
+            // taken and the next instruction is executed normally.
+            // 
+            // NOTE: Condition flags not affected
+
             0xAB => {
                 Ok(Instruction {
                     id: 0xAB,
@@ -1189,6 +1396,16 @@ impl<'a> Instruction<'a> {
                     dst_type: InstructionParameterType::CONDITION
                 })
             },
+
+            // CALLR: Call Subroutine Relative
+            // A branch is taken to the location specified by the instruction pointer, IP, plus the relative displacement, op1.
+            // The displacement is a two's complement number which is sign extended and counts the relative distance in words.
+            // The value of the instruction pointer (IP) is placed onto the system stack. Because the IP always points to the
+            // instruction following the branch instruction, the value stored on the system stack represents the return address
+            // of the calling routine. The value of the IP used in the target address calculation is the address of the
+            // instruction following the CALLR instruction.
+            // 
+            // NOTE: Condition flags not affected
 
             0xBB => {
                 Ok(Instruction {
@@ -1204,6 +1421,14 @@ impl<'a> Instruction<'a> {
                 })
             },
 
+            // CALLS: Call Inter-Segment Subroutine
+            // A branch is taken to the absolute location specified by op2 within the segment specified by op1. The value of the
+            // instruction pointer (IP) is placed onto the system stack. Because the IP always points to the instruction following
+            // the branch instruction, the value stored on the system stack represents the return address to the calling routine.
+            // The previous value of the CSP is also placed on the system stack to insure correct return to the calling segment.
+            // 
+            // NOTE: Condition flags not affected
+
             0xDA => {
                 Ok(Instruction {
                     id: 0xDA,
@@ -1217,6 +1442,16 @@ impl<'a> Instruction<'a> {
                     dst_type: InstructionParameterType::SEGMENT
                 })
             },
+
+            // CMP: Integer Compare
+            // The source operand specified by op1 is compared to the source operand specified by op2 by performing a 2's
+            // complement binary subtraction of op2 from op1. The flags are set according to the rules of subtraction. The
+            // operands remain unchanged.
+            // E: Set if the value of op2 represents the lowest possible negative number. Cleared otherwise. Used to signal the end of a table.
+            // Z: Set if result equals zero. Cleared otherwise.
+            // V: Set if an arithmetic underflow occurred, i.e. the result cannot be represented in the specified data type. Cleared otherwise.
+            // C: Set if a borrow is generated. Cleared otherwise.
+            // N: Set if the most significant bit of the result is set. Cleared otherwise.
 
             0x40 => {
                 Ok(Instruction {
@@ -1274,6 +1509,16 @@ impl<'a> Instruction<'a> {
                 })
             },
 
+            // CMPB: Integer Compare
+            // The source operand specified by op1 is compared to the source operand specified by op2 by performing a 2's
+            // complement binary subtraction of op2 from op1. The flags are set according to the rules of subtraction. The
+            // operands remain unchanged.
+            // E: Set if the value of op2 represents the lowest possible negative number. Cleared otherwise. Used to signal the end of a table.
+            // Z: Set if result equals zero. Cleared otherwise.
+            // V: Set if an arithmetic underflow occurred, i.e. the result cannot be represented in the specified data type. Cleared otherwise.
+            // C: Set if a borrow is generated. Cleared otherwise.
+            // N: Set if the most significant bit of the result is set. Cleared otherwise.
+
             0x41 => {
                 Ok(Instruction {
                     id: 0x41,
@@ -1330,6 +1575,19 @@ impl<'a> Instruction<'a> {
                 })
             },
 
+            // CMPD1: Integer Compare and Decrement by 1
+            // This instruction is used to enhance the performance and flexibility of loops. The source operand
+            // specified by op1 is compared to the source operand specified by op2 by performing a 2's complement
+            // binary subtraction of op2 from op1. Operand op1 may specify ONLY GPR registers. Once the subtraction
+            // has completed, the operand op1 is decremented by one. Using the set flags, a branch instruction can
+            // then be used in conjunction with this instruction to form common high level language FOR loops of
+            // any range.
+            // E: Set if the value of op2 represents the lowest possible negative number. Cleared otherwise. Used to signal the end of a table.
+            // Z: Set if result equals zero. Cleared otherwise.
+            // V: Set if an arithmetic underflow occurred, i.e. the result cannot be represented in the specified data type. Cleared otherwise.
+            // C: Set if a borrow is generated. Cleared otherwise.
+            // N: Set if the most significant bit of the result is set. Cleared otherwise.
+
             0xA0 => {
                 Ok(Instruction {
                     id: 0xA0,
@@ -1371,6 +1629,18 @@ impl<'a> Instruction<'a> {
                     dst_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER
                 })
             },
+
+            // CMPD2: Integer Compare and Decrement by 2
+            // This instruction is used to enhance the performance and flexibility of loops. The source operand specified
+            // by op1 is compared to the source operand specified by op2 by performing a 2's complement binary subtraction
+            // of op2 from op1. Operand op1 may specify ONLY GPR registers. Once the subtraction has completed, the operand
+            // op1 is decremented by two. Using the set flags, a branch instruction can then be used in conjunction with
+            // this instruction to form common high level language FOR loops of any range.
+            // E: Set if the value of op2 represents the lowest possible negative number. Cleared otherwise. Used to signal the end of a table.
+            // Z: Set if result equals zero. Cleared otherwise.
+            // V: Set if an arithmetic underflow occurred, i.e. the result cannot be represented in the specified data type. Cleared otherwise.
+            // C: Set if a borrow is generated. Cleared otherwise.
+            // N: Set if the most significant bit of the result is set. Cleared otherwise.
 
             0xB0 => {
                 Ok(Instruction {
@@ -1414,6 +1684,18 @@ impl<'a> Instruction<'a> {
                 })
             },
 
+            // CMPI1: Integer Compare and Increment by 1
+            // This instruction is used to enhance the performance and flexibility of loops. The source operand specified
+            // by op1 is compared to the source operand specified by op2 by performing a 2's complement binary subtraction
+            // of op2 from op1. Operand op1 may specify ONLY GPR registers. Once the subtraction has completed, the operand
+            // op1 is incremented by one. Using the set flags, a branch instruction can then be used in conjunction with
+            // this instruction to form common high level language FOR loops of any range.
+            // E: Set if the value of op2 represents the lowest possible negative number. Cleared otherwise. Used to signal the end of a table.
+            // Z: Set if result equals zero. Cleared otherwise.
+            // V: Set if an arithmetic underflow occurred, i.e. the result cannotbe represented in the specified data type. Cleared otherwise.
+            // C: Set if a borrow is generated. Cleared otherwise.
+            // N: Set if the most significant bit of the result is set. Cleared otherwise.
+
             0x80 => {
                 Ok(Instruction {
                     id: 0x80,
@@ -1455,6 +1737,18 @@ impl<'a> Instruction<'a> {
                     dst_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER
                 })
             },
+
+            // CMPI2: Integer Compare and Increment by 2
+            // This instruction is used to enhance the performance and flexibility of loops. The source operand specified
+            // by op1 is compared to the source operand specified by op2 by performing a 2's complement binary subtraction
+            // of op2 from op1. Operand op1 may specify ONLY GPR registers. Once the subtraction has completed, the operand
+            // op1 is incremented by two. Using the set flags, a branch instruction can then be used in conjunction with
+            // this instruction to form common high level language FOR loops of any range.
+            // E: Set if the value of op2 represents the lowest possible negative number. Cleared otherwise. Used to signal the end of a table.
+            // Z: Set if result equals zero. Cleared otherwise.
+            // V: Set if an arithmetic underflow occurred, i.e. the result cannot be represented in the specified data type. Cleared otherwise.
+            // C: Set if a borrow is generated. Cleared otherwise.
+            // N: Set if the most significant bit of the result is set. Cleared otherwise.
 
             0x90 => {
                 Ok(Instruction {
@@ -1498,6 +1792,14 @@ impl<'a> Instruction<'a> {
                 })
             },
 
+            // CPL: Integer One's Complement
+            // Performs a 1's complement of the source operand specified by op1. The result is stored back into op1.
+            // E: Set if the value of op1 represents the lowest possible negative number. Cleared otherwise. Used to signal the end of a table.
+            // Z: Set if result equals zero. Cleared otherwise.
+            // V: Always cleared.
+            // C: Always cleared.
+            // N: Set if the most significant bit of the result is set. Cleared otherwise.
+
             0x91 => {
                 Ok(Instruction {
                     id: 0x91,
@@ -1511,6 +1813,14 @@ impl<'a> Instruction<'a> {
                     dst_type: InstructionParameterType::NONE
                 })
             },
+
+            // CPLB: Integer One's Complement
+            // Performs a 1's complement of the source operand specified by op1. The result is stored back into op1.
+            // E: Set if the value of op1 represents the lowest possible negative number. Cleared otherwise. Used to signal the end of a table.
+            // Z: Set if result equals zero. Cleared otherwise.
+            // V: Always cleared.
+            // C: Always cleared.
+            // N: Set if the most significant bit of the result is set. Cleared otherwise.
 
             0xB1 => {
                 Ok(Instruction {
@@ -1526,6 +1836,16 @@ impl<'a> Instruction<'a> {
                 })
             },
 
+            // DISWDT: Disable Watchdog Timer
+            // This instruction disables the watchdog timer. The watchdog timer is enabled by a reset. The DISWDT
+            // instruction allows the watchdog timer to be disabled for applications which do not require a watchdog
+            // function. Following a reset, this instruction can be executed at any time until either a Service Watchdog
+            // Timer instruction (SRVWDT) or an End of Initialization instruction (EINIT) are executed. Once one of these
+            // instructions has been executed, the DISWDT instruction will have no effect.
+            // 
+            // NOTE: To insure that this instruction is not accidentally executed, it is implemented as a protected instruction.
+            // NOTE: Condition flags not affected
+
             0xA5 => {
                 Ok(Instruction {
                     id: 0xA5,
@@ -1539,6 +1859,18 @@ impl<'a> Instruction<'a> {
                     dst_type: InstructionParameterType::NONE
                 })
             },
+
+            // DIV: 16-by-16 Signed Division
+            // Performs a signed 16-bit by 16-bit division of the low order word stored in the MD register by the source
+            // word operand op1. The signed quotient is then stored in the low order word of the MD register (MDL) and the
+            // remainder is stored in the high order word of the MD register (MDH).
+            // 
+            // NOTE: DIV is interruptable.
+            // E: Always cleared.
+            // Z: Set if result equals zero. Cleared otherwise.
+            // V: Set if an arithmetic overflow occurred, i.e. if the divisor (op1) was zero (the result in MDH and MDL is not valid in this case). Cleared otherwise.
+            // C: Always cleared.
+            // N: Set if the most significant bit of the result is set. Cleared otherwise.
 
             0x4B => {
                 Ok(Instruction {
@@ -1554,6 +1886,18 @@ impl<'a> Instruction<'a> {
                 })
             },
 
+            // DIVL: 32-by-16 Signed Division
+            // Performs an extended signed 32-bit by 16-bit division of the two words stored in the MD register by the source
+            // word operand op1. The signed quotient is then stored in the low order word of the MD register (MDL) and the
+            // remainder is stored in the high order word of the MD register (MDH).
+            // 
+            // NOTE: DIVL is interruptable.
+            // E: Always cleared.
+            // Z: Set if result equals zero. Cleared otherwise.
+            // V: Set if an arithmetic overflow occurred, i.e. the quotient cannot be represented in a word data type, or if the divisor (op1) was zero (the result in MDH and MDL is not valid in this case). Cleared otherwise.
+            // C: Always cleared.
+            // N: Set if the most significant bit of the result is set. Cleared otherwise.
+
             0x6B => {
                 Ok(Instruction {
                     id: 0x6B,
@@ -1567,6 +1911,18 @@ impl<'a> Instruction<'a> {
                     dst_type: InstructionParameterType::NONE
                 })
             },
+
+            // DIVLU: 32-by-16 Unsigned Division
+            // Performs an extended unsigned 32-bit by 16-bit division of the two words stored in the MD register by the source
+            // word operand op1. The unsigned quotient is then stored in the low order word of the MD register (MDL) and the
+            // remainder is stored in the high order word of the MD register (MDH).
+            // 
+            // NOTE: DIVLU is interruptable.
+            // E: Always cleared.
+            // Z: Set if result equals zero. Cleared otherwise.
+            // V: Set if an arithmetic overflow occurred, i.e. the quotient cannot be represented in a word data type, or if the divisor (op1) was zero (the result in MDH and MDL is not valid in this case). Cleared otherwise.
+            // C: Always cleared.
+            // N: Set if the most significant bit of the result is set. Cleared otherwise.
 
             0x7B => {
                 Ok(Instruction {
@@ -1582,6 +1938,18 @@ impl<'a> Instruction<'a> {
                 })
             },
 
+            // DIVU: 16-by-16 Unsigned Division
+            // Performs an unsigned 16-bit by 16-bit division of the low order word stored in the MD register by the source
+            // word operand op1. The signed quotient is then stored in the low order word of the MD register (MDL) and the
+            // remainder is stored in the high order word of the MD register (MDH).
+            // 
+            // NOTE: DIVU is interruptable.
+            // E: Always cleared.
+            // Z: Set if result equals zero. Cleared otherwise.
+            // V: Set if an arithmetic overflow occurred, i.e. if the divisor (op1) was zero (the result in MDH and MDL is not valid in this case). Cleared otherwise.
+            // C: Always cleared.
+            // N: Set if the most significant bit of the result is set. Cleared otherwise.
+
             0x5B => {
                 Ok(Instruction {
                     id: 0x5B,
@@ -1596,6 +1964,15 @@ impl<'a> Instruction<'a> {
                 })
             },
 
+            // EINIT: End of Initialization
+            // This instruction is used to signal the end of the initialization portion of a program. After a reset, the reset
+            // output pin RSTOUT is pulled low. It remains low until the EINIT instruction has been executed at which time it
+            // goes high. This enables the program to signal the external circuitry that it has successfully initialized the
+            // microcontroller. After the EINIT instruction has been executed, execution of the Disable Watchdog Timer instruction
+            // (DISWDT) has no effect.
+            // 
+            // NOTE: To insure that this instruction is not accidentally executed, it is implemented as a protected instruction.
+            // NOTE: Condition flags not affected
             0xB5 => {
                 Ok(Instruction {
                     id: 0xB5,
@@ -1609,6 +1986,53 @@ impl<'a> Instruction<'a> {
                     dst_type: InstructionParameterType::NONE
                 })
             },
+
+            // EXTP: Begin EXTended Page Sequence
+            // Overrides the standard DPP addressing scheme of the long and indirect addressing modes for a specified number of
+            // instructions. During their execution both standard/PEC interrupts and class A hardware traps are locked. The EXTP
+            // instruction becomes immediately active such that no additional NOPs are required. For any long ('mem') or indirect
+            // ([...]) address in the EXTP instruction sequence, the 10-bit page number (address bits A23 - A14) is not determined
+            // by the contents of a DPP register but by the value of op1 itself. The 14-bit page offset (address bits A13 - A0) is
+            // derived from the long or indirect address as usual. The value of op2 defines the length of the effected instruction
+            // sequence.
+            // 
+            // NOTE: The EXTP instruction is not available in the SAB 8XC166(W) devices.
+            // NOTE: Condition flags not affected
+
+            // EXTPR: Begin EXTended Page and Register Sequence
+            // Overrides the standard DPP addressing scheme of the long and indirect addressing modes and causes all SFR or SFR bit
+            // accesses via the 'reg', 'bitoff' or 'bitaddr' addressing modes being made to the Extended SFR space for a specified
+            // number of instructions. During their execution both standard/PEC interrupts and class A hardware traps are locked.
+            // For any long ('mem') or indirect ([...]) address in the EXTP instruction sequence, the 10-bit page number (address
+            // bits A23 - A14) is not determined by the contents of a DPP register but by the value of op1 itself. The 14-bit page
+            // offset (address bits A13 - A0) is derived from the long or indirect address as usual.  The value of op2 defines the
+            // length of the effected instruction sequence.
+            // 
+            // NOTE: The EXTP instruction is not available in the SAB 8XC166(W) devices.
+            // NOTE: Condition flags not affected
+
+            // EXTS: Begin EXTended Segment Sequence
+            // Overrides the standard DPP addressing scheme of the long and indirect addressing modes for a specified number of
+            // instructions. During their execution both standard/PEC interrupts and class A hardware traps are locked. The EXTS
+            // instruction becomes immediately active such that no additional NOPs are required. For any long ('mem') or indirect
+            // ([...]) address in an EXTS instruction sequence, the value of op1 determines the 8-bit segment (address bits A23 -
+            // A16) valid for the corresponding data access. The long or indirect address itself represents the 16-bit segment
+            // offset (address bits A15 - A0).  The value of op2 defines the length of the effected instruction sequence.
+            // 
+            // NOTE: The EXTP instruction is not available in the SAB 8XC166(W) devices.
+            // NOTE: Condition flags not affected
+
+            // EXTSR: Begin EXTended Segment and Register Sequence
+            // Overrides the standard DPP addressing scheme of the long and indirect addressing modes and causes all SFR or SFR bit
+            // accesses via the 'reg', 'bitoff' or 'bitaddr' addressing modes being made to the Extended SFR space for a specified
+            // number of instructions. During their execution both standard/PEC interrupts and class A hardware traps are locked.
+            // The EXTSR instruction becomes immediately active such that no additional NOPs are required. For any long ('mem') or
+            // indirect ([...]) address in an EXTSR instruction sequence, the value of op1 determines the 8-bit segment (address
+            // bits A23 - A16) valid for the corresponding data access. The long or indirect address itself represents the 16-bit
+            // segment offset (address bits A15 - A0). The value of op2 defines the length of the effected instruction sequence.
+            // 
+            // NOTE: The EXTP instruction is not available in the SAB 8XC166(W) devices.
+            // NOTE: Condition flags not affected
 
             0xD7 => {
                 Ok(Instruction {
@@ -1638,6 +2062,16 @@ impl<'a> Instruction<'a> {
                 })
             },
 
+            // IDLE: Enter Idle Mode
+            // This instruction causes the device to enter idle mode or sleep mode (if provided by the device). In both modes the
+            // CPU is powered down. In idle mode the peripherals remain running, while in sleep mode also the peripherals are powered
+            // down. The device remains powered down until a peripheral interrupt (only possible in Idle mode) or an external
+            // interrupt occurs.
+            // 
+            // NOTE: Sleep mode must be selected before executing the IDLE instruction.
+            // NOTE: To insure that this instruction is not accidentally executed, it is implemented as a protected instruction.
+            // NOTE: Condition flags not affected
+
             0x87 => {
                 Ok(Instruction {
                     id: 0x87,
@@ -1651,6 +2085,14 @@ impl<'a> Instruction<'a> {
                     dst_type: InstructionParameterType::NONE
                 })
             },
+
+            // JB: Relative Jump if Bit Set
+            // If the bit specified by op1 is set, program execution continues at the location of the instruction pointer, IP, plus
+            // the specified displacement, op2. The displacement is a two's complement number which is sign extended and counts the
+            // relative distance in words. The value of the IP used in the target address calculation is the address of the instruction
+            // following the JB instruction. If the specified bit is clear, the instruction following the JB instruction is executed.
+            // 
+            // NOTE: Condition flags not affected
 
             0x8A => {
                 Ok(Instruction {
@@ -1666,6 +2108,18 @@ impl<'a> Instruction<'a> {
                 })
             },
 
+            // JBC: Relative Jump if Bit Set and Clear Bit
+            // If the bit specified by op1 is set, program execution continues at the location of the instruction pointer, IP, plus
+            // the specified displacement, op2. The bit specified by op1 is cleared, allowing implementation of semaphore operations.
+            // The displacement is a two's complement number which is sign extended and counts the relative distance in words. The value
+            // of the IP used in the target address calculation is the address of the instruction following the JBC instruction. If the
+            // specified bit was clear, the instruction following the JBC instruction is executed.
+            // E: Always cleared.
+            // Z: Contains logical negation of the previous state of the specified bit.
+            // V: Always cleared.
+            // C: Always cleared.
+            // N: Contains the previous state of the specified bit.
+
             0xAA => {
                 Ok(Instruction {
                     id: 0xAA,
@@ -1679,6 +2133,12 @@ impl<'a> Instruction<'a> {
                     dst_type: InstructionParameterType::BIT_OFFSET | InstructionParameterType::BIT_OFFSET_BIT
                 })
             },
+
+            // JMPA: Absolute Conditional Jump
+            // If the condition specified by op1 is met, a branch to the absolute address specified by op2 is taken. If the condition
+            // is not met, no action is taken, and the instruction following the JMPA instruction is executed normally.
+            // 
+            // NOTE: Condition flags not affected
 
             0xEA => {
                 Ok(Instruction {
@@ -1694,6 +2154,12 @@ impl<'a> Instruction<'a> {
                 })
             },
 
+            // JMPI: Indirect Conditional Jump
+            // If the condition specified by op1 is met, a branch to the absolute address specified by op2 is taken. If the condition
+            // is not met, no action is taken, and the instruction following the JMPI instruction is executed normally.
+            // 
+            // NOTE: Condition flags not affected
+
             0x9C => {
                 Ok(Instruction {
                     id: 0x9C,
@@ -1707,6 +2173,15 @@ impl<'a> Instruction<'a> {
                     dst_type: InstructionParameterType::CONDITION
                 })
             },
+
+            // JMPR: Relative Conditional Jump
+            // If the condition specified by op1 is met, program execution continues at the location of the instruction pointer, IP, plus
+            // the specified displacement, op2. The displacement is a two's complement number which is sign extended and counts the relative
+            // distance in words. The value of the IP used in the target address calculation is the address of the instruction following the
+            // JMPR instruction. If the specified condition is not met, program execution continues normally with the instruction following
+            // the JMPR instruction.
+            // 
+            // NOTE: Condition flags not affected
 
             0x0D => {
                 Ok(Instruction {
@@ -1932,6 +2407,11 @@ impl<'a> Instruction<'a> {
                 })
             },
 
+            // JMPS: Absolute Inter-Segment Jump
+            // Branches unconditionally to the absolute address specified by op2 within the segment specified by op1.
+            // 
+            // NOTE: Condition flags not affected
+
             0xFA => {
                 Ok(Instruction {
                     id: 0xFA,
@@ -1945,6 +2425,15 @@ impl<'a> Instruction<'a> {
                     dst_type: InstructionParameterType::SEGMENT
                 })
             },
+
+            // JNB: Relative Jump if Bit Clear
+            // If the bit specified by op1 is clear, program execution continues at the location of the instruction pointer,
+            // IP, plus the specified displacement, op2. The displacement is a two's complement number which is sign extended
+            // and counts the relative distance in words. The value of the IP used in the target address calculation is the
+            // address of the instruction following the JNB instruction. If the specified bit is set, the instruction following
+            // the JNB instruction is executed.
+            // 
+            // NOTE: Condition flags not affected
 
             0x9A => {
                 Ok(Instruction {
@@ -1960,6 +2449,19 @@ impl<'a> Instruction<'a> {
                 })
             },
 
+            // JNBS: Relative Jump if Bit Clear and Set Bit
+            // If the bit specified by op1 is clear, program execution continues at the location of the instruction
+            // pointer, IP, plus the specified displacement, op2. The bit specified by op1 is set, allowing implementation
+            // of semaphore operations. The displacement is a two's complement number which is sign extended and counts the
+            // relative distance in words. The value of the IP used in the target address calculation is the address of the
+            // instruction following the JNBS instruction. If the specified bit was set, the instruction following the JNBS
+            // instruction is executed.
+            // E: Always cleared.
+            // Z: Contains logical negation of the previous state of the specified bit.
+            // V: Always cleared.
+            // C: Always cleared.
+            // N: Contains the previous state of the specified bit.
+
             0xBA => {
                 Ok(Instruction {
                     id: 0xBA,
@@ -1973,6 +2475,15 @@ impl<'a> Instruction<'a> {
                     dst_type: InstructionParameterType::BIT_OFFSET | InstructionParameterType::BIT_OFFSET_BIT
                 })
             },
+
+            // MOV: Move Data
+            // Moves the contents of the source operand specified by op2 to the location specified by the destination operand op1.
+            // The contents of the moved data is examined, and the condition codes are updated accordingly.
+            // E: Set if the value of op2 represents the lowest possible negative number. Cleared otherwise. Used to signal the end of a table.
+            // Z: Set if the value of the source operand op2 equals zero. Cleared otherwise.
+            // V: Not affected.
+            // C: Not affected.
+            // N: Set if the most significant bit of the source operand op2 is set. Cleared otherwise.
 
             0xF0 => {
                 Ok(Instruction {
@@ -2197,6 +2708,15 @@ impl<'a> Instruction<'a> {
                     dst_type: InstructionParameterType::DIRECT_MEMORY
                 })
             },
+
+            // MOVB: Move Data
+            // Moves the contents of the source operand specified by op2 to the location specified by the destination operand
+            // op1. The contents of the moved data is examined, and the condition codes are updated accordingly.
+            // E: Set if the value of op2 represents the lowest possible negative number. Cleared otherwise. Used to signal the end of a table.
+            // Z: Set if the value of the source operand op2 equals zero. Cleared otherwise.
+            // V: Not affected.
+            // C: Not affected.
+            // N: Set if the most significant bit of the source operand op2 is set. Cleared otherwise.
 
             0xF1 => {
                 Ok(Instruction {
@@ -2454,6 +2974,16 @@ impl<'a> Instruction<'a> {
                 })
             },
 
+            // MOVBS: Move Byte Sign Extend
+            // Moves and sign extends the contents of the source byte specified by op2 to the word location specified
+            // by the destination operand op1. The contents of the moved data is examined, and the condition codes are
+            // updated accordingly.
+            // E: Always cleared.
+            // Z: Set if the value of the source operand op2 equals zero. Cleared otherwise.
+            // V: Not affected.
+            // C: Not affected.
+            // N: Set if the most significant bit of the source operand op2 is set. Cleared otherwise.
+
             0xD0 => {
                 Ok(Instruction {
                     // Rwn, Rbm
@@ -2501,6 +3031,16 @@ impl<'a> Instruction<'a> {
                     dst_type: InstructionParameterType::DIRECT_MEMORY
                 })
             },
+
+            // MOVBZ: Move Byte Zero Extend
+            // Moves and zero extends the contents of the source byte specified by op2 to the word location specified
+            // by the destination operand op1. The contents of the moved data is examined, and the condition codes are
+            // updated accordingly.
+            // E: Always cleared.
+            // Z: Set if the value of the source operand op2 equals zero. Cleared otherwise.
+            // V: Not affected.
+            // C: Not affected.
+            // N: Always cleared.
 
             0xC0 => {
                 Ok(Instruction {
@@ -2550,6 +3090,17 @@ impl<'a> Instruction<'a> {
                 })
             },
 
+            // MUL: Signed Multiplication
+            // Performs a 16-bit by 16-bit signed multiplication using the two words specified by operands op1 and op2
+            // respectively. The signed 32-bit result is placed in the MD register.
+            // 
+            // NOTE: MUL is interruptable.
+            // E: Always cleared.
+            // Z: Set if the result equals zero. Cleared otherwise.
+            // V: This bit is set if the result cannot be represented in a word data type. Cleared otherwise.
+            // C: Always cleared.
+            // N: Set if the most significant bit of the result is set. Cleared otherwise.
+
             0x0B => {
                 Ok(Instruction {
                     // Rwn, Rwm
@@ -2565,6 +3116,17 @@ impl<'a> Instruction<'a> {
                     dst_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER
                 })
             },
+
+            // MULU: Unsigned Multiplication
+            // Performs a 16-bit by 16-bit unsigned multiplication using the two words specified by operands op1 and
+            // op2 respectively. The unsigned 32-bit result is placed in the MD register.
+            // 
+            // NOTE: MULU is interruptable.
+            // E: Always cleared.
+            // Z: Set if the result equals zero. Cleared otherwise.
+            // V: This bit is set if the result cannot be represented in a word data type. Cleared otherwise.
+            // C: Always cleared.
+            // N: Set if the most significant bit of the result is set. Cleared otherwise.
 
             0x1B => {
                 Ok(Instruction {
@@ -2582,6 +3144,14 @@ impl<'a> Instruction<'a> {
                 })
             },
 
+            // NEG: Integer Two's Complement
+            // Performs a binary 2's complement of the source operand specified by op1. The result is then stored in op1.
+            // E: Set if the value of op1 represents the lowest possible negative number. Cleared otherwise. Used to signal the end of a table.
+            // Z: Set if result equals zero. Cleared otherwise.
+            // V: Set if an arithmetic underflow occurred, i.e. the result cannot be represented in the specified data type. Cleared otherwise.
+            // C: Set if a borrow is generated. Cleared otherwise.
+            // N: Set if the most significant bit of the result is set. Cleared otherwise.
+
             0x81 => {
                 Ok(Instruction {
                     id: 0x81,
@@ -2595,6 +3165,14 @@ impl<'a> Instruction<'a> {
                     dst_type: InstructionParameterType::NONE
                 })
             },
+
+            // NEGB: Integer Two's Complement
+            // Performs a binary 2's complement of the source operand specified by op1. The result is then stored in op1.
+            // E: Set if the value of op1 represents the lowest possible negative number. Cleared otherwise. Used to signal the end of a table.
+            // Z: Set if result equals zero. Cleared otherwise.
+            // V: Set if an arithmetic underflow occurred, i.e. the result cannot be represented in the specified data type. Cleared otherwise.
+            // C: Set if a borrow is generated. Cleared otherwise.
+            // N: Set if the most significant bit of the result is set. Cleared otherwise.
 
             0xA1 => {
                 Ok(Instruction {
@@ -2610,6 +3188,10 @@ impl<'a> Instruction<'a> {
                 })
             },
 
+            // NOP: No Operation
+            // This instruction causes a null operation to be performed. A null operation causes no change in the status
+            // of the flags.
+
             0xCC => {
                 Ok(Instruction {
                     id: 0xCC,
@@ -2623,6 +3205,15 @@ impl<'a> Instruction<'a> {
                     dst_type: InstructionParameterType::NONE
                 })
             },
+
+            // OR: Logical OR
+            // Performs a bitwise logical OR of the source operand specified by op2 and the destination operand specified by
+            // op1. The result is then stored in op1.
+            // E: Set if the value of op2 represents the lowest possible negative number. Cleared otherwise. Used to signal the end of a table.
+            // Z: Set if result equals zero. Cleared otherwise.
+            // V: Always cleared.
+            // C: Always cleared.
+            // N: Set if the most significant bit of the result is set. Cleared otherwise.
 
             0x70 => {
                 Ok(Instruction {
@@ -2694,6 +3285,15 @@ impl<'a> Instruction<'a> {
                 })
             },
 
+            // ORB: Logical OR
+            // Performs a bitwise logical OR of the source operand specified by op2 and the destination operand specified by
+            // op1. The result is then stored in op1.
+            // E: Set if the value of op2 represents the lowest possible negative number. Cleared otherwise. Used to signal the end of a table.
+            // Z: Set if result equals zero. Cleared otherwise.
+            // V: Always cleared.
+            // C: Always cleared.
+            // N: Set if the most significant bit of the result is set. Cleared otherwise.
+
             0x71 => {
                 Ok(Instruction {
                     id: 0x71,
@@ -2764,6 +3364,17 @@ impl<'a> Instruction<'a> {
                 })
             },
 
+            // PCALL: Push Word and Call Subroutine Absolute
+            // Pushes the word specified by operand op1 and the value of the instruction pointer, IP, onto the system
+            // stack, and branches to the absolute memory location specified by the second operand op2. Because IP always
+            // points to the instruction following the branch instruction, the value stored on the system stack represents
+            // the return address of the calling routine.
+            // E: Set if the value of the pushed operand op1 represents the lowest possible negative number. Cleared otherwise. Used to signal the end of a table.
+            // Z: Set if the value of the pushed operand op1 equals zero. Cleared otherwise.
+            // V: Not affected.
+            // C: Not affected.
+            // N: Set if the most significant bit of the pushed operand op1 is set. Cleared otherwise.
+
             0xE2 => {
                 Ok(Instruction {
                     id: 0xE2,
@@ -2777,6 +3388,15 @@ impl<'a> Instruction<'a> {
                     dst_type: InstructionParameterType::SPECIAL_REGISTER | InstructionParameterType::WORD_REGISTER
                 })
             },
+
+            // POP: Pop Word from System Stack
+            // Pops one word from the system stack specified by the Stack Pointer into the operand specified by op1. The Stack
+            // Pointer is then incremented by two.
+            // E: Set if the value of the popped word represents the lowest possible negative number. Cleared otherwise. Used to signal the end of a table.
+            // Z: Set if the value of the popped word equals zero. Cleared otherwise.
+            // V: Not affected.
+            // C: Not affected.
+            // N: Set if the most significant bit of the popped word is set. Cleared otherwise.
 
             0xFC => {
                 Ok(Instruction {
@@ -2792,6 +3412,16 @@ impl<'a> Instruction<'a> {
                 })
             },
 
+            // PRIOR: Prioritize Register
+            // This instruction stores a count value in the word operand specified by op1 indicating the number of single bit
+            // shifts required to normalize the operand op2 so that its MSB is equal to one. If the source operand op2 equals
+            // zero, a zero is written to operand op1 and the zero flag is set. Otherwise the zero flag is cleared.
+            // E: Always cleared.
+            // Z: Set if the source operand op2 equals zero. Cleared otherwise.
+            // V: Always cleared.
+            // C: Always cleared.
+            // N: Always cleared.
+
             0x2B => {
                 Ok(Instruction {
                     id: 0x2B,
@@ -2805,6 +3435,15 @@ impl<'a> Instruction<'a> {
                     dst_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER
                 })
             },
+
+            // PUSH: Push Word on System Stack
+            // Moves the word specified by operand op1 to the location in the internal system stack specified by the Stack Pointer,
+            // after the Stack Pointer has been decremented by two.
+            // E: Set if the value of the pushed word represents the lowest possible negative number. Cleared otherwise. Used to signal the end of a table.
+            // Z: Set if the value of the pushed word equals zero. Cleared otherwise.
+            // V: Not affected.
+            // C: Not affected.
+            // N: Set if the most significant bit of the pushed word is set. Cleared otherwise.
 
             0xEC => {
                 Ok(Instruction {
@@ -2820,6 +3459,15 @@ impl<'a> Instruction<'a> {
                 })
             },
 
+            // PWRDN: Enter Power Down Mode
+            // This instruction causes the part to enter the power down mode. In this mode, all peripherals and the CPU are
+            // powered down until the part is externally reset. To further control the action of this instruction, the PWRDN
+            // instruction is only enabled when the non-maskable interrupt pin (NMI) is in the low state. Otherwise, this
+            // instruction has no effect.
+            //
+            // NOTE: To insure that this instruction is not accidentally executed, it is implemented as a protected instruction.
+            // NOTE: Condition flags not affected
+
             0x97 => {
                 Ok(Instruction {
                     id: 0x97,
@@ -2833,6 +3481,12 @@ impl<'a> Instruction<'a> {
                     dst_type: InstructionParameterType::NONE
                 })
             },
+
+            // RET: Return from Subroutine
+            // Returns from a subroutine. The IP is popped from the system stack. Execution resumes at the instruction following
+            // the CALL instruction in the calling routine.
+            // 
+            // NOTE: Condition flags not affected
 
             0xCB => {
                 Ok(Instruction {
@@ -2848,6 +3502,16 @@ impl<'a> Instruction<'a> {
                 })
             },
 
+            // RETI: Return from Interrupt Routine
+            // Returns from an interrupt routine. The PSW, IP, and CSP are popped off the system stack. Execution resumes at the
+            // instruction which had been interrupted. The previous system state is restored after the PSW has been popped. The
+            // CSP is only popped if segmentation is enabled. This is indicated by the SGTDIS bit in the SYSCON register.
+            // E: Restored from the PSW popped from stack.
+            // Z: Restored from the PSW popped from stack.
+            // V: Restored from the PSW popped from stack.
+            // C: Restored from the PSW popped from stack.
+            // N: Restored from the PSW popped from stack.
+
             0xFB => {
                 Ok(Instruction {
                     id: 0xFB,
@@ -2861,6 +3525,16 @@ impl<'a> Instruction<'a> {
                     dst_type: InstructionParameterType::NONE
                 })
             },
+
+            // RETP: Return from Subroutine and Pop Word
+            // Returns from a subroutine. The IP is first popped from the system stack and then the next word is popped from the
+            // system stack into the operand specified by op1. Execution resumes at the instruction following the CALL instruction
+            // in the calling routine.
+            // E: Set if the value of the word popped into operand op1 represents the lowest possible negative number. Cleared otherwise. Used to signal the end of a table.
+            // Z: Set if the value of the word popped into operand op1 equals zero. Cleared otherwise.
+            // V: Not affected.
+            // C: Not affected.
+            // N: Set if the most significant bit of the word popped into operand op1 is set. Cleared otherwise.
 
             0xEB => {
                 Ok(Instruction {
@@ -2876,6 +3550,12 @@ impl<'a> Instruction<'a> {
                 })
             },
 
+            // RETS: Return from Inter-Segment Subroutine
+            // Returns from an inter-segment subroutine. The IP and CSP are popped from the system stack. Execution resumes at the
+            // instruction following the CALLS instruction in the calling routine.
+            // 
+            // NOTE: Condition flags not affected
+
             0xDB => {
                 Ok(Instruction {
                     id: 0xDB,
@@ -2889,6 +3569,16 @@ impl<'a> Instruction<'a> {
                     dst_type: InstructionParameterType::NONE
                 })
             },
+
+            // ROL: Rotate Left
+            // Rotates the destination word operand op1 left by as many times as specified by the source operand op2. Bit 15 is rotated
+            // into Bit 0 and into the Carry. Only shift values between 0 and 15 are allowed. When using a GPR as the count control,
+            // only the least significant 4 bits are used.
+            // E: Always cleared.
+            // Z: Set if result equals zero. Cleared otherwise.
+            // V: Always cleared.
+            // C: The carry flag is set according to the last MSB shifted out of op1. Cleared for a rotate count of zero.
+            // N: Set if the most significant bit of the result is set. Cleared otherwise.
 
             0x0C => {
                 Ok(Instruction {
@@ -2918,6 +3608,16 @@ impl<'a> Instruction<'a> {
                 })
             },
 
+            // ROR: Rotate Right
+            // Rotates the destination word operand op1 right by as many times as specified by the source operand op2.
+            // Bit 0 is rotated into Bit 15 and into the Carry. Only shift values between 0 and 15 are allowed. When
+            // using a GPR as the count control, only the least significant 4 bits are used.
+            // E: Always cleared.
+            // Z: Set if result equals zero. Cleared otherwise.
+            // V: Set if in any cycle of the rotate operation a '1' is shifted out of the carry flag. Cleared for a rotate count of zero.
+            // C: The carry flag is set according to the last LSB shifted out of op1. Cleared for a rotate count of zero.
+            // N: Set if the most significant bit of the result is set. Cleared otherwise.
+
             0x2C => {
                 Ok(Instruction {
                     id: 0x2C,
@@ -2945,6 +3645,13 @@ impl<'a> Instruction<'a> {
                     dst_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER
                 })
             },
+
+            // SCXT: Switch Context
+            // Used to switch contexts for any register. Switching context is a push and load operation. The contents of
+            // the register specified by the first operand, op1, are pushed onto the stack. That register is then loaded
+            // with the value specified by the second operand, op2.
+            // 
+            // NOTE: Condition flags not affected
 
             0xC6 => {
                 Ok(Instruction {
@@ -2974,6 +3681,17 @@ impl<'a> Instruction<'a> {
                 })
             },
 
+            // SHL: Shift Left
+            // Shifts the destination word operand op1 left by as many times as specified by the source operand op2. The
+            // least significant bits of the result are filled with zeros accordingly. The MSB is shifted into the Carry.
+            // Only shift values between 0 and 15 are allowed. When using a GPR as the count control, only the least significant
+            // 4 bits are used.
+            // E: Always cleared.
+            // Z: Set if result equals zero. Cleared otherwise.
+            // V: Always cleared.
+            // C: The carry flag is set according to the last MSB shifted out of op1. Cleared for a shift count of zero.
+            // N: Set if the most significant bit of the result is set. Cleared otherwise.
+
             0x4C => {
                 Ok(Instruction {
                     id: 0x4C,
@@ -3001,6 +3719,18 @@ impl<'a> Instruction<'a> {
                     dst_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER
                 })
             },
+
+            // SHR: Shift Right
+            // Shifts the destination word operand op1 right by as many times as specified by the source operand op2. The most significant
+            // bits of the result are filled with zeros accordingly. Since the bits shifted out effectively represent the remainder, the
+            // Overflow flag is used instead as a Rounding flag. This flag together with the Carry flag helps the user to determine whether
+            // the remainder bits lost were greater than, less than or equal to one half an LSB. Only shift values between 0 and 15 are allowed.
+            // When using a GPR as the count control, only the least significant 4 bits are used.
+            // E: Always cleared.
+            // Z: Set if result equals zero. Cleared otherwise.
+            // V: Set if in any cycle of the shift operation a '1' is shifted out of the carry flag. Cleared for a shift count of zero.
+            // C: The carry flag is set according to the last LSB shifted out of op1. Cleared for a shift count of zero.
+            // N: Set if the most significant bit of the result is set. Cleared otherwise.
 
             0x6C => {
                 Ok(Instruction {
@@ -3030,6 +3760,13 @@ impl<'a> Instruction<'a> {
                 })
             },
 
+            // SRST: Software Reset
+            // This instruction is used to perform a software reset. A software reset has a similar effect on the microcontroller as an
+            // externally applied hardware reset.
+            // 
+            // NOTE: To insure that this instruction is not accidentally executed, it is implemented as a protected instruction.
+            // NOTE: Condition flags not affected
+
             0xB7 => {
                 Ok(Instruction {
                     id: 0xB7,
@@ -3044,6 +3781,13 @@ impl<'a> Instruction<'a> {
                 })
             },
 
+            // SRVWDT: Service Watchdog Timer
+            // This instruction services the Watchdog Timer. It reloads the high order byte of the Watchdog Timer with a preset value
+            // and clears the low byte on every occurrence. Once this instruction has been executed, the watchdog timer cannot be disabled.
+            // 
+            // NOTE: To insure that this instruction is not accidentally executed, it is implemented as a protected instruction.
+            // NOTE: Condition flags not affected
+
             0xA7 => {
                 Ok(Instruction {
                     id: 0xA7,
@@ -3057,6 +3801,15 @@ impl<'a> Instruction<'a> {
                     dst_type: InstructionParameterType::NONE
                 })
             },
+
+            // SUB: Integer Subtraction
+            // Performs a 2's complement binary subtraction of the source operand specified by op2 from the destination operand specified
+            // by op1. The result is then stored in op1.
+            // E: Set if the value of op2 represents the lowest possible negative number. Cleared otherwise. Used to signal the end of a table.
+            // Z: Set if result equals zero. Cleared otherwise.
+            // V: Set if an arithmetic underflow occurred, i.e. the result cannot be represented in the specified data type. Cleared otherwise.
+            // C: Set if a borrow is generated. Cleared otherwise.
+            // N: Set if the most significant bit of the result is set. Cleared otherwise.
 
             0x20 => {
                 Ok(Instruction {
@@ -3128,6 +3881,15 @@ impl<'a> Instruction<'a> {
                 })
             },
 
+            // SUBB: Integer Subtraction
+            // Performs a 2's complement binary subtraction of the source operand specified by op2 from the destination operand specified
+            // by op1. The result is then stored in op1.
+            // E: Set if the value of op2 represents the lowest possible negative number. Cleared otherwise. Used to signal the end of a table.
+            // Z: Set if result equals zero. Cleared otherwise.
+            // V: Set if an arithmetic underflow occurred, i.e. the result cannot be represented in the specified data type. Cleared otherwise.
+            // C: Set if a borrow is generated. Cleared otherwise.
+            // N: Set if the most significant bit of the result is set. Cleared otherwise.
+
             0x21 => {
                 Ok(Instruction {
                     id: 0x21,
@@ -3197,6 +3959,16 @@ impl<'a> Instruction<'a> {
                     dst_type: InstructionParameterType::DIRECT_MEMORY
                 })
             },
+
+            // SUBC: Integer Subtraction with Carry
+            // Performs a 2's complement binary subtraction of the source operand specified by op2 and the previously generated carry
+            // bit from the destination operand specified by op1. The result is then stored in op1. This instruction can be used to
+            // perform multiple precision arithmetic.
+            // E: Set if the value of op2 represents the lowest possible negative number. Cleared otherwise. Used to signal the end of a table.
+            // Z: Set if result equals zero and the previous Z flag was set. Cleared otherwise.
+            // V: Set if an arithmetic underflow occurred, i.e. the result cannot be represented in the specified data type. Cleared otherwise.
+            // C: Set if a borrow is generated. Cleared otherwise.
+            // N: Set if the most significant bit of the result is set. Cleared otherwise.
 
             0x30 => {
                 Ok(Instruction {
@@ -3268,6 +4040,16 @@ impl<'a> Instruction<'a> {
                 })
             },
 
+            // SUBCB: Integer Subtraction with Carry
+            // Performs a 2's complement binary subtraction of the source operand specified by op2 and the previously generated
+            // carry bit from the destination operand specified by op1. The result is then stored in op1. This instruction can
+            // be used to perform multiple precision arithmetic.
+            // E: Set if the value of op2 represents the lowest possible negative number. Cleared otherwise. Used to signal the end of a table.
+            // Z: Set if result equals zero and the previous Z flag was set. Cleared otherwise.
+            // V: Set if an arithmetic underflow occurred, i.e. the result cannot be represented in the specified data type. Cleared otherwise.
+            // C: Set if a borrow is generated. Cleared otherwise.
+            // N: Set if the most significant bit of the result is set. Cleared otherwise.
+
             0x31 => {
                 Ok(Instruction {
                     id: 0x31,
@@ -3338,6 +4120,15 @@ impl<'a> Instruction<'a> {
                 })
             },
 
+            // TRAP: Software Trap
+            // Invokes a trap or interrupt routine based on the specified operand, op1. The invoked routine is determined by branching
+            // to the specified vector table entry point. This routine has no indication of whether it was called by software or hardware.
+            // System state is preserved identically to hardware interrupt entry except that the CPU priority level is not affected. The
+            // RETI, return from interrupt, instruction is used to resume execution after the trap or interrupt routine has completed. The
+            // CSP is pushed if segmentation is enabled. This is indicated by the SGTDIS bit in the SYSCON register.
+            // 
+            // NOTE: Condition flags not affected
+
             0x9B => {
                 Ok(Instruction {
                     id: 0x9B,
@@ -3351,6 +4142,15 @@ impl<'a> Instruction<'a> {
                     dst_type: InstructionParameterType::NONE
                 })
             },
+
+            // XOR: Logical Exclusive OR
+            // Performs a bitwise logical EXCLUSIVE OR of the source operand specified by op2 and the destination operand specified by op1. The
+            // result is then stored in op1.
+            // E: Set if the value of op2 represents the lowest possible negative number. Cleared otherwise. Used to signal the end of a table.
+            // Z: Set if result equals zero. Cleared otherwise.
+            // V: Always cleared.
+            // C: Always cleared.
+            // N: Set if the most significant bit of the result is set. Cleared otherwise.
 
             0x50 => {
                 Ok(Instruction {
@@ -3421,6 +4221,15 @@ impl<'a> Instruction<'a> {
                     dst_type: InstructionParameterType::DIRECT_MEMORY
                 })
             },
+
+            // XORB: Logical Exclusive OR
+            // Performs a bitwise logical EXCLUSIVE OR of the source operand specified by op2 and the destination operand specified by
+            // op1. The result is then stored in op1.
+            // E: Set if the value of op2 represents the lowest possible negative number. Cleared otherwise. Used to signal the end of a table.
+            // Z: Set if result equals zero. Cleared otherwise.
+            // V: Always cleared.
+            // C: Always cleared.
+            // N: Set if the most significant bit of the result is set. Cleared otherwise.
 
             0x51 => {
                 Ok(Instruction {
