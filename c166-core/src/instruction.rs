@@ -1479,6 +1479,8 @@ impl<'a> Instruction<'a> {
 
             0xCA => {
                 Ok(Instruction {
+                    // cc, caddr
+                    // Call absolute subroutine if condition is met
                     id: 0xCA,
                     mnemonic: "calla",
                     encoding: EncodingType::c0_MM_MM,
@@ -1502,6 +1504,8 @@ impl<'a> Instruction<'a> {
 
             0xAB => {
                 Ok(Instruction {
+                    // cc, [Rwn]
+                    // Call indirect subroutine if condition is met
                     id: 0xAB,
                     mnemonic: "calli",
                     encoding: EncodingType::cn,
@@ -1526,6 +1530,8 @@ impl<'a> Instruction<'a> {
 
             0xBB => {
                 Ok(Instruction {
+                    // rel
+                    // Call relative subroutine
                     id: 0xBB,
                     mnemonic: "callr",
                     encoding: EncodingType::rr,
@@ -1548,6 +1554,8 @@ impl<'a> Instruction<'a> {
 
             0xDA => {
                 Ok(Instruction {
+                    // seg, caddr
+                    // Call absolute subroutine in any code segment
                     id: 0xDA,
                     mnemonic: "calls",
                     encoding: EncodingType::SS_MM_MM,
