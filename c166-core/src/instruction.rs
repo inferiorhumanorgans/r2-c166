@@ -1580,6 +1580,8 @@ impl<'a> Instruction<'a> {
 
             0x40 => {
                 Ok(Instruction {
+                    // Rwn, Rwm
+                    // Compare direct word GPR to direct GPR
                     id: 0x40,
                     mnemonic: "cmp",
                     encoding: EncodingType::nm,
@@ -1594,6 +1596,12 @@ impl<'a> Instruction<'a> {
 
             0x48 => {
                 Ok(Instruction {
+                    // Rwn, [Rwi]
+                    // Compare indirect word memory to direct GPR
+                    // Rwn, [Rwi+]
+                    // Compare indirect word memory to direct GPR and post-increment source pointer by 2
+                    // Rwn, #data3
+                    // Compare immediate word data to direct GPR
                     id: 0x48,
                     mnemonic: "cmp",
                     encoding: EncodingType::data3_or_reg,
@@ -1608,6 +1616,8 @@ impl<'a> Instruction<'a> {
 
             0x46 => {
                 Ok(Instruction {
+                    // reg, #data16
+                    // Compare immediate word data to direct register
                     id: 0x46,
                     mnemonic: "cmp",
                     encoding: EncodingType::RR_II_II,
@@ -1622,6 +1632,8 @@ impl<'a> Instruction<'a> {
 
             0x42 => {
                 Ok(Instruction {
+                    // reg, mem
+                    // Compare direct word memory to direct register
                     id: 0x42,
                     mnemonic: "cmp",
                     encoding: EncodingType::RR_MM_MM,
