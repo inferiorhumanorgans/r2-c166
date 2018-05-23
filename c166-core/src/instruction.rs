@@ -1028,6 +1028,8 @@ impl<'a> Instruction<'a> {
 
             0x2A => {
                 Ok(Instruction {
+                    // bitaddrZ.z, bitaddrQ.q
+                    // Compare direct bit to direct bit
                     id: 0x2A,
                     mnemonic: "bcmp",
                     encoding: EncodingType::QQ_ZZ_qz,
