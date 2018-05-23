@@ -1454,6 +1454,8 @@ impl<'a> Instruction<'a> {
 
             0x7A => {
                 Ok(Instruction {
+                    // bitaddrZ.z, bitaddrQ.q
+                    // XOR direct bit with direct bit
                     id: 0x7A,
                     mnemonic: "bxor",
                     encoding: EncodingType::QQ_ZZ_qz,
