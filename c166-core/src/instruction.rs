@@ -659,6 +659,8 @@ impl<'a> Instruction<'a> {
 
             0xAC => {
                 Ok(Instruction {
+                    // Rwn, Rwm
+                    // Arithmetic (sign bit) shift right direct word GPR; number of shift cycles specified by direct GPR
                     id: 0xAC,
                     mnemonic: "ashr",
                     encoding: EncodingType::nm,
@@ -673,6 +675,8 @@ impl<'a> Instruction<'a> {
 
             0xBC => {
                 Ok(Instruction {
+                    // Rwn, #data4
+                    // Arithmetic (sign bit) shift right direct word GPR; number of shift cycles specified by immediate data
                     id: 0xBC,
                     mnemonic: "ashr",
                     encoding: EncodingType::In,
