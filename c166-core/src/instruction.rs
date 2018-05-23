@@ -1189,6 +1189,8 @@ impl<'a> Instruction<'a> {
 
             0x0F => {
                 Ok(Instruction {
+                    // bitaddrQ.q
+                    // Set direct bit
                     id: 0x0F,
                     mnemonic: "bset",
                     encoding: EncodingType::q_QQ,
@@ -1203,6 +1205,8 @@ impl<'a> Instruction<'a> {
 
             0x1F => {
                 Ok(Instruction {
+                    // bitaddrQ.q
+                    // Set direct bit
                     id: 0x1F,
                     mnemonic: "bset",
                     encoding: EncodingType::q_QQ,
@@ -1217,6 +1221,8 @@ impl<'a> Instruction<'a> {
 
             0x2F => {
                 Ok(Instruction {
+                    // bitaddrQ.q
+                    // Set direct bit
                     id: 0x2F,
                     mnemonic: "bset",
                     encoding: EncodingType::q_QQ,
@@ -1231,6 +1237,8 @@ impl<'a> Instruction<'a> {
 
             0x3F => {
                 Ok(Instruction {
+                    // bitaddrQ.q
+                    // Set direct bit
                     id: 0x3F,
                     mnemonic: "bset",
                     encoding: EncodingType::q_QQ,
@@ -1245,6 +1253,8 @@ impl<'a> Instruction<'a> {
 
             0x4F => {
                 Ok(Instruction {
+                    // bitaddrQ.q
+                    // Set direct bit
                     id: 0x4F,
                     mnemonic: "bset",
                     encoding: EncodingType::q_QQ,
@@ -1259,6 +1269,8 @@ impl<'a> Instruction<'a> {
 
             0x5F => {
                 Ok(Instruction {
+                    // bitaddrQ.q
+                    // Set direct bit
                     id: 0x5F,
                     mnemonic: "bset",
                     encoding: EncodingType::q_QQ,
@@ -1273,6 +1285,8 @@ impl<'a> Instruction<'a> {
 
             0x6F => {
                 Ok(Instruction {
+                    // bitaddrQ.q
+                    // Set direct bit
                     id: 0x6F,
                     mnemonic: "bset",
                     encoding: EncodingType::q_QQ,
@@ -1287,6 +1301,8 @@ impl<'a> Instruction<'a> {
 
             0x7F => {
                 Ok(Instruction {
+                    // bitaddrQ.q
+                    // Set direct bit
                     id: 0x7F,
                     mnemonic: "bset",
                     encoding: EncodingType::q_QQ,
@@ -1301,6 +1317,8 @@ impl<'a> Instruction<'a> {
 
             0x8F => {
                 Ok(Instruction {
+                    // bitaddrQ.q
+                    // Set direct bit
                     id: 0x8F,
                     mnemonic: "bset",
                     encoding: EncodingType::q_QQ,
@@ -1315,6 +1333,8 @@ impl<'a> Instruction<'a> {
 
             0x9F => {
                 Ok(Instruction {
+                    // bitaddrQ.q
+                    // Set direct bit
                     id: 0x9F,
                     mnemonic: "bset",
                     encoding: EncodingType::q_QQ,
@@ -1329,6 +1349,8 @@ impl<'a> Instruction<'a> {
 
             0xAF => {
                 Ok(Instruction {
+                    // bitaddrQ.q
+                    // Set direct bit
                     id: 0xAF,
                     mnemonic: "bset",
                     encoding: EncodingType::q_QQ,
@@ -1343,6 +1365,8 @@ impl<'a> Instruction<'a> {
 
             0xBF => {
                 Ok(Instruction {
+                    // bitaddrQ.q
+                    // Set direct bit
                     id: 0xBF,
                     mnemonic: "bset",
                     encoding: EncodingType::q_QQ,
@@ -1357,6 +1381,8 @@ impl<'a> Instruction<'a> {
 
             0xCF => {
                 Ok(Instruction {
+                    // bitaddrQ.q
+                    // Set direct bit
                     id: 0xCF,
                     mnemonic: "bset",
                     encoding: EncodingType::q_QQ,
@@ -1371,6 +1397,8 @@ impl<'a> Instruction<'a> {
 
             0xDF => {
                 Ok(Instruction {
+                    // bitaddrQ.q
+                    // Set direct bit
                     id: 0xDF,
                     mnemonic: "bset",
                     encoding: EncodingType::q_QQ,
@@ -1385,6 +1413,8 @@ impl<'a> Instruction<'a> {
 
             0xEF => {
                 Ok(Instruction {
+                    // bitaddrQ.q
+                    // Set direct bit
                     id: 0xEF,
                     mnemonic: "bset",
                     encoding: EncodingType::q_QQ,
@@ -1399,6 +1429,8 @@ impl<'a> Instruction<'a> {
 
             0xFF => {
                 Ok(Instruction {
+                    // bitaddrQ.q
+                    // Set direct bit
                     id: 0xFF,
                     mnemonic: "bset",
                     encoding: EncodingType::q_QQ,
