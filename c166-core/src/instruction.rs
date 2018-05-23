@@ -762,6 +762,8 @@ impl<'a> Instruction<'a> {
 
             0x0E => {
                 Ok(Instruction {
+                    // bitaddrQ.q
+                    // Clear direct bit
                     id: 0x0E,
                     mnemonic: "bclr",
                     encoding: EncodingType::q_QQ,
@@ -776,6 +778,8 @@ impl<'a> Instruction<'a> {
 
             0x1E => {
                 Ok(Instruction {
+                    // bitaddrQ.q
+                    // Clear direct bit
                     id: 0x1E,
                     mnemonic: "bclr",
                     encoding: EncodingType::q_QQ,
@@ -790,6 +794,8 @@ impl<'a> Instruction<'a> {
 
             0x2E => {
                 Ok(Instruction {
+                    // bitaddrQ.q
+                    // Clear direct bit
                     id: 0x2E,
                     mnemonic: "bclr",
                     encoding: EncodingType::q_QQ,
@@ -804,6 +810,8 @@ impl<'a> Instruction<'a> {
 
             0x3E => {
                 Ok(Instruction {
+                    // bitaddrQ.q
+                    // Clear direct bit
                     id: 0x3E,
                     mnemonic: "bclr",
                     encoding: EncodingType::q_QQ,
@@ -818,6 +826,8 @@ impl<'a> Instruction<'a> {
 
             0x4E => {
                 Ok(Instruction {
+                    // bitaddrQ.q
+                    // Clear direct bit
                     id: 0x4E,
                     mnemonic: "bclr",
                     encoding: EncodingType::q_QQ,
@@ -832,6 +842,8 @@ impl<'a> Instruction<'a> {
 
             0x5E => {
                 Ok(Instruction {
+                    // bitaddrQ.q
+                    // Clear direct bit
                     id: 0x5E,
                     mnemonic: "bclr",
                     encoding: EncodingType::q_QQ,
@@ -846,6 +858,8 @@ impl<'a> Instruction<'a> {
 
             0x6E => {
                 Ok(Instruction {
+                    // bitaddrQ.q
+                    // Clear direct bit
                     id: 0x6E,
                     mnemonic: "bclr",
                     encoding: EncodingType::q_QQ,
@@ -860,6 +874,8 @@ impl<'a> Instruction<'a> {
 
             0x7E => {
                 Ok(Instruction {
+                    // bitaddrQ.q
+                    // Clear direct bit
                     id: 0x7E,
                     mnemonic: "bclr",
                     encoding: EncodingType::q_QQ,
@@ -874,6 +890,8 @@ impl<'a> Instruction<'a> {
 
             0x8E => {
                 Ok(Instruction {
+                    // bitaddrQ.q
+                    // Clear direct bit
                     id: 0x8E,
                     mnemonic: "bclr",
                     encoding: EncodingType::q_QQ,
@@ -888,6 +906,8 @@ impl<'a> Instruction<'a> {
 
             0x9E => {
                 Ok(Instruction {
+                    // bitaddrQ.q
+                    // Clear direct bit
                     id: 0x9E,
                     mnemonic: "bclr",
                     encoding: EncodingType::q_QQ,
@@ -902,6 +922,8 @@ impl<'a> Instruction<'a> {
 
             0xAE => {
                 Ok(Instruction {
+                    // bitaddrQ.q
+                    // Clear direct bit
                     id: 0xAE,
                     mnemonic: "bclr",
                     encoding: EncodingType::q_QQ,
@@ -916,6 +938,8 @@ impl<'a> Instruction<'a> {
 
             0xBE => {
                 Ok(Instruction {
+                    // bitaddrQ.q
+                    // Clear direct bit
                     id: 0xBE,
                     mnemonic: "bclr",
                     encoding: EncodingType::q_QQ,
@@ -930,6 +954,8 @@ impl<'a> Instruction<'a> {
 
             0xCE => {
                 Ok(Instruction {
+                    // bitaddrQ.q
+                    // Clear direct bit
                     id: 0xCE,
                     mnemonic: "bclr",
                     encoding: EncodingType::q_QQ,
@@ -944,6 +970,8 @@ impl<'a> Instruction<'a> {
 
             0xDE => {
                 Ok(Instruction {
+                    // bitaddrQ.q
+                    // Clear direct bit
                     id: 0xDE,
                     mnemonic: "bclr",
                     encoding: EncodingType::q_QQ,
@@ -958,6 +986,8 @@ impl<'a> Instruction<'a> {
 
             0xEE => {
                 Ok(Instruction {
+                    // bitaddrQ.q
+                    // Clear direct bit
                     id: 0xEE,
                     mnemonic: "bclr",
                     encoding: EncodingType::q_QQ,
@@ -972,6 +1002,8 @@ impl<'a> Instruction<'a> {
 
             0xFE => {
                 Ok(Instruction {
+                    // bitaddrQ.q
+                    // Clear direct bit
                     id: 0xFE,
                     mnemonic: "bclr",
                     encoding: EncodingType::q_QQ,
