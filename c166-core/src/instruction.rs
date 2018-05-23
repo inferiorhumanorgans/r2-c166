@@ -470,6 +470,8 @@ impl<'a> Instruction<'a> {
 
             0x60 => {
                 Ok(Instruction {
+                    // Rwn, Rwm
+                    // Bitwise AND direct word GPR with direct GPR
                     id: 0x60,
                     mnemonic: "and",
                     encoding: EncodingType::nm,
@@ -484,6 +486,12 @@ impl<'a> Instruction<'a> {
 
             0x68 => {
                 Ok(Instruction {
+                    // Rwn, [Rwi]
+                    // Bitwise AND indirect word memory with direct GPR
+                    // Rwn, [Rwi+]
+                    // Bitwise AND indirect word memory with direct GPR and post-increment source pointer by 2
+                    // Rwn, #data3
+                    // Bitwise AND immediate word data with direct GPR
                     id: 0x68,
                     mnemonic: "and",
                     encoding: EncodingType::data3_or_reg,
@@ -498,6 +506,8 @@ impl<'a> Instruction<'a> {
 
             0x66 => {
                 Ok(Instruction {
+                    // reg, #data16
+                    // Bitwise AND immediate word data with direct register
                     id: 0x66,
                     mnemonic: "and",
                     encoding: EncodingType::RR_II_II,
@@ -512,6 +522,8 @@ impl<'a> Instruction<'a> {
 
             0x62 => {
                 Ok(Instruction {
+                    // reg, mem
+                    // Bitwise AND direct word memory with direct register
                     id: 0x62,
                     mnemonic: "and",
                     encoding: EncodingType::RR_MM_MM,
@@ -526,6 +538,8 @@ impl<'a> Instruction<'a> {
 
             0x64 => {
                 Ok(Instruction {
+                    // mem, reg
+                    // Bitwise AND direct word register with direct memory
                     id: 0x64,
                     mnemonic: "and",
                     encoding: EncodingType::RR_MM_MM,
@@ -549,6 +563,8 @@ impl<'a> Instruction<'a> {
 
             0x61 => {
                 Ok(Instruction {
+                    // Rbn, Rbm
+                    // Bitwise AND direct byte GPR with direct byte GPR
                     id: 0x61,
                     mnemonic: "andb",
                     encoding: EncodingType::nm,
@@ -563,6 +579,12 @@ impl<'a> Instruction<'a> {
 
             0x69 => {
                 Ok(Instruction {
+                    // Rbn, [Rwi]
+                    // Bitwise AND indirect byte memory with direct GPR
+                    // Rbn, [Rwi+]
+                    // Bitwise AND indirect byte memory with direct GPR and post-increment source pointer by 1
+                    // Rbn, #data3
+                    // Bitwise AND immediate byte data with direct GPR
                     id: 0x69,
                     mnemonic: "andb",
                     encoding: EncodingType::data3_or_reg,
@@ -577,6 +599,8 @@ impl<'a> Instruction<'a> {
 
             0x67 => {
                 Ok(Instruction {
+                    // reg, #data8
+                    // Bitwise AND immediate byte data with direct register
                     id: 0x67,
                     mnemonic: "andb",
                     encoding: EncodingType::RR_II_xx,
@@ -591,6 +615,8 @@ impl<'a> Instruction<'a> {
 
             0x63 => {
                 Ok(Instruction {
+                    // reg, mem
+                    // Bitwise AND direct byte memory with direct register
                     id: 0x63,
                     mnemonic: "andb",
                     encoding: EncodingType::RR_MM_MM,
@@ -605,6 +631,8 @@ impl<'a> Instruction<'a> {
 
             0x65 => {
                 Ok(Instruction {
+                    // mem, reg
+                    // Bitwise AND direct byte register with direct memory
                     id: 0x65,
                     mnemonic: "andb",
                     encoding: EncodingType::RR_MM_MM,
