@@ -1658,6 +1658,8 @@ impl<'a> Instruction<'a> {
 
             0x41 => {
                 Ok(Instruction {
+                    // Rbn, Rbm
+                    // Compare direct byte GPR to direct GPR
                     id: 0x41,
                     mnemonic: "cmpb",
                     encoding: EncodingType::nm,
@@ -1672,6 +1674,12 @@ impl<'a> Instruction<'a> {
 
             0x49 => {
                 Ok(Instruction {
+                    // Rbn, [Rwi]
+                    // Compare indirect byte memory to direct GPR
+                    // Rbn, [Rwi+]
+                    // Compare indirect byte memory to direct GPR and post-increment source pointer by 1
+                    // Rbn, #data3
+                    // Compare immediate byte data to direct GPR
                     id: 0x49,
                     mnemonic: "cmpb",
                     encoding: EncodingType::data3_or_reg,
@@ -1686,6 +1694,8 @@ impl<'a> Instruction<'a> {
 
             0x47 => {
                 Ok(Instruction {
+                    // reg, #data8
+                    // Compare immediate byte data to direct register
                     id: 0x47,
                     mnemonic: "cmpb",
                     encoding: EncodingType::RR_II_xx,
@@ -1700,6 +1710,8 @@ impl<'a> Instruction<'a> {
 
             0x43 => {
                 Ok(Instruction {
+                    // reg, mem
+                    // Compare direct byte memory to direct register
                     id: 0x43,
                     mnemonic: "cmpb",
                     encoding: EncodingType::RR_MM_MM,
@@ -1727,6 +1739,8 @@ impl<'a> Instruction<'a> {
 
             0xA0 => {
                 Ok(Instruction {
+                    // Rwn, #data4
+                    // Compare immediate word data to direct GPR and decrement GPR by 1
                     id: 0xA0,
                     mnemonic: "cmpd1",
                     encoding: EncodingType::In,
@@ -1741,6 +1755,8 @@ impl<'a> Instruction<'a> {
 
             0xA6 => {
                 Ok(Instruction {
+                    // Rwn, #data16
+                    // Compare immediate word data to direct GPR and decrement GPR by 1
                     id: 0xA6,
                     mnemonic: "cmpd1",
                     encoding: EncodingType::Fn_II_II,
@@ -1755,6 +1771,8 @@ impl<'a> Instruction<'a> {
 
             0xA2 => {
                 Ok(Instruction {
+                    // Rwn, mem
+                    // Compare direct word memory to direct GPR and decrement GPR by 1
                     id: 0xA2,
                     mnemonic: "cmpd1",
                     encoding: EncodingType::Fn_MM_MM,
@@ -1781,6 +1799,8 @@ impl<'a> Instruction<'a> {
 
             0xB0 => {
                 Ok(Instruction {
+                    // Rwn, #data4
+                    // Compare immediate word data to direct GPR and decrement GPR by 2
                     id: 0xB0,
                     mnemonic: "cmpd2",
                     encoding: EncodingType::In,
@@ -1795,6 +1815,8 @@ impl<'a> Instruction<'a> {
 
             0xB6 => {
                 Ok(Instruction {
+                    // Rwn, #data16
+                    // Compare immediate word data to direct GPR and decrement GPR by 2
                     id: 0xB6,
                     mnemonic: "cmpd2",
                     encoding: EncodingType::Fn_II_II,
@@ -1809,6 +1831,8 @@ impl<'a> Instruction<'a> {
 
             0xB2 => {
                 Ok(Instruction {
+                    // Rwn, mem
+                    // Compare direct word memory to direct GPR and decrement GPR by 2
                     id: 0xB2,
                     mnemonic: "cmpd2",
                     encoding: EncodingType::Fn_MM_MM,
@@ -1835,6 +1859,8 @@ impl<'a> Instruction<'a> {
 
             0x80 => {
                 Ok(Instruction {
+                    // Rwn, #data4
+                    // Compare immediate word data to direct GPR and increment GPR by 1
                     id: 0x80,
                     mnemonic: "cmpi1",
                     encoding: EncodingType::In,
@@ -1849,6 +1875,8 @@ impl<'a> Instruction<'a> {
 
             0x86 => {
                 Ok(Instruction {
+                    // Rwn, #data16
+                    // Compare immediate word data to direct GPR and increment GPR by 1
                     id: 0x86,
                     mnemonic: "cmpi1",
                     encoding: EncodingType::Fn_II_II,
@@ -1863,6 +1891,8 @@ impl<'a> Instruction<'a> {
 
             0x82 => {
                 Ok(Instruction {
+                    // Rwn, mem
+                    // Compare direct word memory to direct GPR and increment GPR by 1
                     id: 0x82,
                     mnemonic: "cmpi1",
                     encoding: EncodingType::Fn_MM_MM,
@@ -1889,6 +1919,8 @@ impl<'a> Instruction<'a> {
 
             0x90 => {
                 Ok(Instruction {
+                    // Rwn, #data4
+                    // Compare immediate word data to direct GPR and increment GPR by 2
                     id: 0x90,
                     mnemonic: "cmpi2",
                     encoding: EncodingType::In,
@@ -1903,6 +1935,8 @@ impl<'a> Instruction<'a> {
 
             0x96 => {
                 Ok(Instruction {
+                    // Rwn, #data16
+                    // Compare immediate word data to direct GPR and increment GPR by 2
                     id: 0x96,
                     mnemonic: "cmpi2",
                     encoding: EncodingType::Fn_II_II,
@@ -1917,6 +1951,8 @@ impl<'a> Instruction<'a> {
 
             0x92 => {
                 Ok(Instruction {
+                    // Rwn, mem
+                    // Compare direct word memory to direct GPR and increment GPR by 2
                     id: 0x92,
                     mnemonic: "cmpi2",
                     encoding: EncodingType::Fn_MM_MM,
@@ -1939,6 +1975,8 @@ impl<'a> Instruction<'a> {
 
             0x91 => {
                 Ok(Instruction {
+                    // Rwn
+                    // Complement direct word GPR
                     id: 0x91,
                     mnemonic: "cpl",
                     encoding: EncodingType::n0,
@@ -1961,6 +1999,8 @@ impl<'a> Instruction<'a> {
 
             0xB1 => {
                 Ok(Instruction {
+                    // Rbn
+                    // Complement direct byte GPR
                     id: 0xB1,
                     mnemonic: "cplb",
                     encoding: EncodingType::n0,
@@ -1985,6 +2025,8 @@ impl<'a> Instruction<'a> {
 
             0xA5 => {
                 Ok(Instruction {
+                    // ---
+                    // Disable Watchdog Timer
                     id: 0xA5,
                     mnemonic: "diswdt",
                     encoding: EncodingType::NO_ARGS4,
@@ -2011,6 +2053,8 @@ impl<'a> Instruction<'a> {
 
             0x4B => {
                 Ok(Instruction {
+                    // Rwn
+                    // Signed divide register MDL by direct GPR (16-bit ÷ 16-bit)
                     id: 0x4B,
                     mnemonic: "div",
                     encoding: EncodingType::nn,
@@ -2037,6 +2081,8 @@ impl<'a> Instruction<'a> {
 
             0x6B => {
                 Ok(Instruction {
+                    // Rwn
+                    // Signed long divide register MD by direct GPR (32-bit ÷ 16-bit)
                     id: 0x6B,
                     mnemonic: "divl",
                     encoding: EncodingType::nn,
@@ -2063,6 +2109,8 @@ impl<'a> Instruction<'a> {
 
             0x7B => {
                 Ok(Instruction {
+                    // Rwn
+                    // Unsigned long divide register MD by direct GPR (32-bit ÷ 16-bit)
                     id: 0x7B,
                     mnemonic: "divlu",
                     encoding: EncodingType::nn,
@@ -2089,6 +2137,8 @@ impl<'a> Instruction<'a> {
 
             0x5B => {
                 Ok(Instruction {
+                    // Rwn
+                    // Unsigned divide register MDL by direct GPR (16-bit ÷ 16-bit)
                     id: 0x5B,
                     mnemonic: "divu",
                     encoding: EncodingType::nn,
@@ -2112,6 +2162,8 @@ impl<'a> Instruction<'a> {
             // NOTE: Condition flags not affected
             0xB5 => {
                 Ok(Instruction {
+                    // ---
+                    // Signify End-of-Initialization on RSTOUT-pin
                     id: 0xB5,
                     mnemonic: "einit",
                     encoding: EncodingType::NO_ARGS4,
@@ -2173,6 +2225,18 @@ impl<'a> Instruction<'a> {
 
             0xD7 => {
                 Ok(Instruction {
+                    // EXTP
+                    // #pag, #irang2
+                    // Begin EXTended Page sequence
+                    // EXTPR
+                    // #pag, #irang2
+                    // Begin EXTended Page and Register sequence
+                    // EXTS
+                    // #seg, #irang2
+                    // Begin EXTended Segment sequence
+                    // EXTSR
+                    // #seg, #irang2
+                    // Begin EXTended Segment and Register sequence
                     id: 0xD7,
                     mnemonic: "ext_d7",
                     encoding: EncodingType::ext_d7,
@@ -2187,6 +2251,18 @@ impl<'a> Instruction<'a> {
 
             0xDC => {
                 Ok(Instruction {
+                    // EXTP
+                    // Rwm, #irang2
+                    // Begin EXTended Page sequence
+                    // EXTPR
+                    // Rwm, #irang2
+                    // Begin EXTended Page and Register sequence
+                    // EXTS
+                    // Rwm, #irang2
+                    // Begin EXTended Segment sequence
+                    // EXTSR
+                    // Rwm, #irang2
+                    // Begin EXTended Segment and Register sequence
                     id: 0xDC,
                     mnemonic: "ext_dc",
                     encoding: EncodingType::ext_dc,
@@ -2211,6 +2287,8 @@ impl<'a> Instruction<'a> {
 
             0x87 => {
                 Ok(Instruction {
+                    // --
+                    // Enter Idle Mode
                     id: 0x87,
                     mnemonic: "idle",
                     encoding: EncodingType::NO_ARGS4,
@@ -2233,6 +2311,8 @@ impl<'a> Instruction<'a> {
 
             0x8A => {
                 Ok(Instruction {
+                    // bitaddrQ.q, rel
+                    // Jump relative if direct bit is set
                     id: 0x8A,
                     mnemonic: "jb",
                     encoding: EncodingType::QQ_rr_q0,
@@ -2259,6 +2339,8 @@ impl<'a> Instruction<'a> {
 
             0xAA => {
                 Ok(Instruction {
+                    // bitaddrQ.q, rel
+                    // Jump relative and clear bit if direct bit is set
                     id: 0xAA,
                     mnemonic: "jbc",
                     encoding: EncodingType::QQ_rr_q0,
@@ -2279,6 +2361,8 @@ impl<'a> Instruction<'a> {
 
             0xEA => {
                 Ok(Instruction {
+                    // cc, caddr
+                    // Jump absolute if condition is met
                     id: 0xEA,
                     mnemonic: "jmpa",
                     encoding: EncodingType::c0_MM_MM,
@@ -2299,6 +2383,8 @@ impl<'a> Instruction<'a> {
 
             0x9C => {
                 Ok(Instruction {
+                    // cc, [Rwn]
+                    // Jump indirect if condition is met
                     id: 0x9C,
                     mnemonic: "jmpi",
                     encoding: EncodingType::cn,
@@ -2322,6 +2408,8 @@ impl<'a> Instruction<'a> {
 
             0x0D => {
                 Ok(Instruction {
+                    // cc, rel
+                    // Jump relative if condition is met
                     id: 0x0D,
                     mnemonic: "jmpr",
                     encoding: EncodingType::cc_rr,
@@ -2336,6 +2424,8 @@ impl<'a> Instruction<'a> {
 
             0x1D => {
                 Ok(Instruction {
+                    // cc, rel
+                    // Jump relative if condition is met
                     id: 0x1D,
                     mnemonic: "jmpr",
                     encoding: EncodingType::cc_rr,
@@ -2350,6 +2440,8 @@ impl<'a> Instruction<'a> {
 
             0x2D => {
                 Ok(Instruction {
+                    // cc, rel
+                    // Jump relative if condition is met
                     id: 0x2D,
                     mnemonic: "jmpr",
                     encoding: EncodingType::cc_rr,
@@ -2364,6 +2456,8 @@ impl<'a> Instruction<'a> {
 
             0x3D => {
                 Ok(Instruction {
+                    // cc, rel
+                    // Jump relative if condition is met
                     id: 0x3D,
                     mnemonic: "jmpr",
                     encoding: EncodingType::cc_rr,
@@ -2378,6 +2472,8 @@ impl<'a> Instruction<'a> {
 
             0x4D => {
                 Ok(Instruction {
+                    // cc, rel
+                    // Jump relative if condition is met
                     id: 0x4D,
                     mnemonic: "jmpr",
                     encoding: EncodingType::cc_rr,
@@ -2392,6 +2488,8 @@ impl<'a> Instruction<'a> {
 
             0x5D => {
                 Ok(Instruction {
+                    // cc, rel
+                    // Jump relative if condition is met
                     id: 0x5D,
                     mnemonic: "jmpr",
                     encoding: EncodingType::cc_rr,
@@ -2406,6 +2504,8 @@ impl<'a> Instruction<'a> {
 
             0x6D => {
                 Ok(Instruction {
+                    // cc, rel
+                    // Jump relative if condition is met
                     id: 0x6D,
                     mnemonic: "jmpr",
                     encoding: EncodingType::cc_rr,
@@ -2420,6 +2520,8 @@ impl<'a> Instruction<'a> {
 
             0x7D => {
                 Ok(Instruction {
+                    // cc, rel
+                    // Jump relative if condition is met
                     id: 0x7D,
                     mnemonic: "jmpr",
                     encoding: EncodingType::cc_rr,
@@ -2434,6 +2536,8 @@ impl<'a> Instruction<'a> {
 
             0x8D => {
                 Ok(Instruction {
+                    // cc, rel
+                    // Jump relative if condition is met
                     id: 0x8D,
                     mnemonic: "jmpr",
                     encoding: EncodingType::cc_rr,
@@ -2448,6 +2552,8 @@ impl<'a> Instruction<'a> {
 
             0x9D => {
                 Ok(Instruction {
+                    // cc, rel
+                    // Jump relative if condition is met
                     id: 0x9D,
                     mnemonic: "jmpr",
                     encoding: EncodingType::cc_rr,
@@ -2462,6 +2568,8 @@ impl<'a> Instruction<'a> {
 
             0xAD => {
                 Ok(Instruction {
+                    // cc, rel
+                    // Jump relative if condition is met
                     id: 0xAD,
                     mnemonic: "jmpr",
                     encoding: EncodingType::cc_rr,
@@ -2476,6 +2584,8 @@ impl<'a> Instruction<'a> {
 
             0xBD => {
                 Ok(Instruction {
+                    // cc, rel
+                    // Jump relative if condition is met
                     id: 0xBD,
                     mnemonic: "jmpr",
                     encoding: EncodingType::cc_rr,
@@ -2490,6 +2600,8 @@ impl<'a> Instruction<'a> {
 
             0xCD => {
                 Ok(Instruction {
+                    // cc, rel
+                    // Jump relative if condition is met
                     id: 0xCD,
                     mnemonic: "jmpr",
                     encoding: EncodingType::cc_rr,
@@ -2504,6 +2616,8 @@ impl<'a> Instruction<'a> {
 
             0xDD => {
                 Ok(Instruction {
+                    // cc, rel
+                    // Jump relative if condition is met
                     id: 0xDD,
                     mnemonic: "jmpr",
                     encoding: EncodingType::cc_rr,
@@ -2518,6 +2632,8 @@ impl<'a> Instruction<'a> {
 
             0xED => {
                 Ok(Instruction {
+                    // cc, rel
+                    // Jump relative if condition is met
                     id: 0xED,
                     mnemonic: "jmpr",
                     encoding: EncodingType::cc_rr,
@@ -2532,6 +2648,8 @@ impl<'a> Instruction<'a> {
 
             0xFD => {
                 Ok(Instruction {
+                    // cc, rel
+                    // Jump relative if condition is met
                     id: 0xFD,
                     mnemonic: "jmpr",
                     encoding: EncodingType::cc_rr,
@@ -2551,6 +2669,8 @@ impl<'a> Instruction<'a> {
 
             0xFA => {
                 Ok(Instruction {
+                    // seg, caddr
+                    // Jump absolute to a code segment
                     id: 0xFA,
                     mnemonic: "jmps",
                     encoding: EncodingType::SS_MM_MM,
@@ -2574,6 +2694,8 @@ impl<'a> Instruction<'a> {
 
             0x9A => {
                 Ok(Instruction {
+                    // bitaddrQ.q, rel
+                    // Jump relative if direct bit is not set
                     id: 0x9A,
                     mnemonic: "jnb",
                     encoding: EncodingType::QQ_rr_q0,
@@ -2601,6 +2723,8 @@ impl<'a> Instruction<'a> {
 
             0xBA => {
                 Ok(Instruction {
+                    // bitaddrQ.q, rel
+                    // Jump relative and set bit if direct bit is not set
                     id: 0xBA,
                     mnemonic: "jnbs",
                     encoding: EncodingType::QQ_rr_q0,
@@ -2624,6 +2748,8 @@ impl<'a> Instruction<'a> {
 
             0xF0 => {
                 Ok(Instruction {
+                    // Rwn, Rwm
+                    // Move direct word GPR to direct GPR
                     id: 0xF0,
                     mnemonic: "mov",
                     encoding: EncodingType::nm,
@@ -2638,6 +2764,8 @@ impl<'a> Instruction<'a> {
 
             0xE0 => {
                 Ok(Instruction {
+                    // Rwn, #data4
+                    // Move immediate word data to direct GPR
                     id: 0xE0,
                     mnemonic: "mov",
                     encoding: EncodingType::In,
@@ -2652,6 +2780,8 @@ impl<'a> Instruction<'a> {
 
             0xE6 => {
                 Ok(Instruction {
+                    // reg, #data16
+                    // Move immediate word data to direct register
                     id: 0xE6,
                     mnemonic: "mov",
                     encoding: EncodingType::RR_II_II,
@@ -2666,6 +2796,8 @@ impl<'a> Instruction<'a> {
 
             0xA8 => {
                 Ok(Instruction {
+                    // Rwn, [Rwm]
+                    // Move indirect word memory to direct GPR
                     id: 0xA8,
                     mnemonic: "mov",
                     encoding: EncodingType::nm,
@@ -2680,6 +2812,8 @@ impl<'a> Instruction<'a> {
 
             0x98 => {
                 Ok(Instruction {
+                    // Rwn, [Rwm+]
+                    // Move indirect word memory to direct GPR and post-increment source pointer by 2
                     id: 0x98,
                     mnemonic: "mov",
                     encoding: EncodingType::nm,
@@ -2694,6 +2828,8 @@ impl<'a> Instruction<'a> {
 
             0xB8 => {
                 Ok(Instruction {
+                    // [Rwm], Rwn
+                    // Move direct word GPR to indirect memory
                     id: 0xB8,
                     mnemonic: "mov",
                     encoding: EncodingType::nm,
@@ -2708,6 +2844,8 @@ impl<'a> Instruction<'a> {
 
             0x88 => {
                 Ok(Instruction {
+                    // [-Rwm], Rwn
+                    // Pre-decrement destination pointer by 2 and move direct word GPR to indirect memory
                     id: 0x88,
                     mnemonic: "mov",
                     encoding: EncodingType::nm,
@@ -2722,6 +2860,8 @@ impl<'a> Instruction<'a> {
 
             0xC8 => {
                 Ok(Instruction {
+                    // [Rwn], [Rwm]
+                    // Move indirect word memory to indirect memory
                     id: 0xC8,
                     mnemonic: "mov",
                     encoding: EncodingType::nm,
@@ -2736,6 +2876,8 @@ impl<'a> Instruction<'a> {
 
             0xD8 => {
                 Ok(Instruction {
+                    // [Rwn+], [Rwm]
+                    // Move indirect word memory to indirect memory and post-increment destination pointer by 2
                     id: 0xD8,
                     mnemonic: "mov",
                     encoding: EncodingType::nm,
@@ -2750,6 +2892,8 @@ impl<'a> Instruction<'a> {
 
             0xE8 => {
                 Ok(Instruction {
+                    // [Rwn], [Rwm+]
+                    // Move indirect word memory to indirect memory and post-increment source pointer by 2
                     id: 0xE8,
                     mnemonic: "mov",
                     encoding: EncodingType::nm,
@@ -2764,6 +2908,8 @@ impl<'a> Instruction<'a> {
 
             0xD4 => {
                 Ok(Instruction {
+                    // Rwn, [Rwm+#data16]
+                    // Move indirect word memory by base plus constant to direct word GPR
                     id: 0xD4,
                     mnemonic: "mov",
                     encoding: EncodingType::nm_II_II,
@@ -2778,6 +2924,8 @@ impl<'a> Instruction<'a> {
 
             0xC4 => {
                 Ok(Instruction {
+                    // [Rwm+#data16], Rwn
+                    // Move direct word GPR to indirect memory by base plus constant
                     id: 0xC4,
                     mnemonic: "mov",
                     encoding: EncodingType::nm_II_II,
@@ -2792,6 +2940,8 @@ impl<'a> Instruction<'a> {
 
             0x84 => {
                 Ok(Instruction {
+                    // [Rwn], mem
+                    // Move direct word memory to indirect memory
                     id: 0x84,
                     mnemonic: "mov",
                     encoding: EncodingType::_0n_MM_MM,
@@ -2806,6 +2956,8 @@ impl<'a> Instruction<'a> {
 
             0x94 => {
                 Ok(Instruction {
+                    // mem, [Rwn]
+                    // Move indirect word memory to direct memory
                     id: 0x94,
                     mnemonic: "mov",
                     encoding: EncodingType::_0n_MM_MM,
@@ -2820,6 +2972,8 @@ impl<'a> Instruction<'a> {
 
             0xF2 => {
                 Ok(Instruction {
+                    // reg, mem
+                    // Move direct word memory to direct register
                     id: 0xF2,
                     mnemonic: "mov",
                     encoding: EncodingType::RR_MM_MM,
@@ -2834,6 +2988,8 @@ impl<'a> Instruction<'a> {
 
             0xF6 => {
                 Ok(Instruction {
+                    // mem, reg
+                    // Move direct word register to direct memory
                     id: 0xF6,
                     mnemonic: "mov",
                     encoding: EncodingType::RR_MM_MM,
@@ -3291,6 +3447,8 @@ impl<'a> Instruction<'a> {
 
             0x81 => {
                 Ok(Instruction {
+                    // Rwn
+                    // Negate direct word GPR
                     id: 0x81,
                     mnemonic: "neg",
                     encoding: EncodingType::n0,
@@ -3313,6 +3471,8 @@ impl<'a> Instruction<'a> {
 
             0xA1 => {
                 Ok(Instruction {
+                    // Rbn
+                    // Negate direct byte GPR
                     id: 0xA1,
                     mnemonic: "negb",
                     encoding: EncodingType::n0,
@@ -3331,6 +3491,8 @@ impl<'a> Instruction<'a> {
 
             0xCC => {
                 Ok(Instruction {
+                    // ---
+                    // Null operation
                     id: 0xCC,
                     mnemonic: "nop",
                     encoding: EncodingType::NO_ARGS2,
@@ -3354,6 +3516,8 @@ impl<'a> Instruction<'a> {
 
             0x70 => {
                 Ok(Instruction {
+                    // Rwn, Rwm
+                    // Bitwise OR direct word GPR with direct GPR
                     id: 0x70,
                     mnemonic: "or",
                     encoding: EncodingType::nm,
@@ -3368,6 +3532,12 @@ impl<'a> Instruction<'a> {
 
             0x78 => {
                 Ok(Instruction {
+                    // Rwn, [Rwi]
+                    // Bitwise OR indirect word memory with direct GPR
+                    // Rwn, [Rwi+]
+                    // Bitwise OR indirect word memory with direct GPR and post-increment source pointer by 2
+                    // Rwn, #data3
+                    // Bitwise OR immediate word data with direct GPR
                     id: 0x78,
                     mnemonic: "or",
                     encoding: EncodingType::data3_or_reg,
@@ -3382,6 +3552,8 @@ impl<'a> Instruction<'a> {
 
             0x76 => {
                 Ok(Instruction {
+                    // reg, #data16
+                    // Bitwise OR immediate word data with direct register
                     id: 0x76,
                     mnemonic: "or",
                     encoding: EncodingType::RR_II_II,
@@ -3396,6 +3568,8 @@ impl<'a> Instruction<'a> {
 
             0x72 => {
                 Ok(Instruction {
+                    // reg, mem
+                    // Bitwise OR direct word memory with direct register
                     id: 0x72,
                     mnemonic: "or",
                     encoding: EncodingType::RR_MM_MM,
@@ -3410,6 +3584,8 @@ impl<'a> Instruction<'a> {
 
             0x74 => {
                 Ok(Instruction {
+                    // mem, reg
+                    // Bitwise OR direct word register with direct memory
                     id: 0x74,
                     mnemonic: "or",
                     encoding: EncodingType::RR_MM_MM,
@@ -3433,6 +3609,8 @@ impl<'a> Instruction<'a> {
 
             0x71 => {
                 Ok(Instruction {
+                    // Rbn, Rbm
+                    // Bitwise OR direct byte GPR with direct GPR
                     id: 0x71,
                     mnemonic: "orb",
                     encoding: EncodingType::nm,
@@ -3447,6 +3625,12 @@ impl<'a> Instruction<'a> {
 
             0x79 => {
                 Ok(Instruction {
+                    // Rbn, [Rwi]
+                    // Bitwise OR indirect byte memory with direct GPR
+                    // Rbn, [Rwi+]
+                    // Bitwise OR indirect byte memory with direct GPR and post-increment source pointer by 1
+                    // Rbn, #data3
+                    // Bitwise OR immediate byte data with direct GPR
                     id: 0x79,
                     mnemonic: "orb",
                     encoding: EncodingType::data3_or_reg,
@@ -3461,6 +3645,8 @@ impl<'a> Instruction<'a> {
 
             0x77 => {
                 Ok(Instruction {
+                    // reg, #data8
+                    // Bitwise OR immediate byte data with direct register
                     id: 0x77,
                     mnemonic: "orb",
                     encoding: EncodingType::RR_II_xx,
@@ -3475,6 +3661,8 @@ impl<'a> Instruction<'a> {
 
             0x73 => {
                 Ok(Instruction {
+                    // reg, mem
+                    // Bitwise OR direct byte memory with direct register
                     id: 0x73,
                     mnemonic: "orb",
                     encoding: EncodingType::RR_MM_MM,
@@ -3489,6 +3677,8 @@ impl<'a> Instruction<'a> {
 
             0x75 => {
                 Ok(Instruction {
+                    // mem, reg
+                    // Bitwise OR direct byte register with direct memory
                     id: 0x75,
                     mnemonic: "orb",
                     encoding: EncodingType::RR_MM_MM,
@@ -3514,6 +3704,8 @@ impl<'a> Instruction<'a> {
 
             0xE2 => {
                 Ok(Instruction {
+                    // reg, caddr
+                    // Push direct word register onto system stack and call absolute subroutine
                     id: 0xE2,
                     mnemonic: "pcall",
                     encoding: EncodingType::RR_MM_MM,
@@ -3537,6 +3729,8 @@ impl<'a> Instruction<'a> {
 
             0xFC => {
                 Ok(Instruction {
+                    // reg
+                    // Pop direct word register from system stack
                     id: 0xFC,
                     mnemonic: "pop",
                     encoding: EncodingType::RR,
@@ -3561,6 +3755,8 @@ impl<'a> Instruction<'a> {
 
             0x2B => {
                 Ok(Instruction {
+                    // Rwn, Rwm
+                    // Determine number of shift cycles to normalize direct word GPR and store result in direct word GPR
                     id: 0x2B,
                     mnemonic: "prior",
                     encoding: EncodingType::nm,
@@ -3584,6 +3780,8 @@ impl<'a> Instruction<'a> {
 
             0xEC => {
                 Ok(Instruction {
+                    // reg
+                    // Push direct word register onto system stack
                     id: 0xEC,
                     mnemonic: "push",
                     encoding: EncodingType::RR,
@@ -3607,6 +3805,8 @@ impl<'a> Instruction<'a> {
 
             0x97 => {
                 Ok(Instruction {
+                    // ---
+                    // Enter Power Down Mode (supposes NMI-pin being low)
                     id: 0x97,
                     mnemonic: "pwrdn",
                     encoding: EncodingType::NO_ARGS4,
@@ -3627,6 +3827,8 @@ impl<'a> Instruction<'a> {
 
             0xCB => {
                 Ok(Instruction {
+                    // ---
+                    // Return from intra-segment subroutine
                     id: 0xCB,
                     mnemonic: "ret",
                     encoding: EncodingType::NO_ARGS2,
@@ -3651,6 +3853,8 @@ impl<'a> Instruction<'a> {
 
             0xFB => {
                 Ok(Instruction {
+                    // ---
+                    // Return from interrupt service subroutine
                     id: 0xFB,
                     mnemonic: "reti",
                     encoding: EncodingType::NO_ARGS2,
@@ -3675,6 +3879,8 @@ impl<'a> Instruction<'a> {
 
             0xEB => {
                 Ok(Instruction {
+                    // reg
+                    // Return from intra-segment subroutine and pop direct word register from system stack
                     id: 0xEB,
                     mnemonic: "retp",
                     encoding: EncodingType::RR,
@@ -3695,6 +3901,8 @@ impl<'a> Instruction<'a> {
 
             0xDB => {
                 Ok(Instruction {
+                    // ---
+                    // Return from inter-segment subroutine
                     id: 0xDB,
                     mnemonic: "rets",
                     encoding: EncodingType::NO_ARGS2,
@@ -3719,6 +3927,8 @@ impl<'a> Instruction<'a> {
 
             0x0C => {
                 Ok(Instruction {
+                    // Rwn, Rwm
+                    // Rotate left direct word GPR; number of shift cycles specified by direct GPR
                     id: 0x0C,
                     mnemonic: "rol",
                     encoding: EncodingType::nm,
@@ -3733,6 +3943,8 @@ impl<'a> Instruction<'a> {
 
             0x1C => {
                 Ok(Instruction {
+                    // Rwn, #data4
+                    // Rotate left direct word GPR; number of shift cycles specified by immediate data
                     id: 0x1C,
                     mnemonic: "rol",
                     encoding: EncodingType::In,
@@ -3757,6 +3969,8 @@ impl<'a> Instruction<'a> {
 
             0x2C => {
                 Ok(Instruction {
+                    // Rwn, Rwm
+                    // Rotate right direct word GPR; number of shift cycles specified by direct GPR
                     id: 0x2C,
                     mnemonic: "ror",
                     encoding: EncodingType::nm,
@@ -3771,6 +3985,8 @@ impl<'a> Instruction<'a> {
 
             0x3C => {
                 Ok(Instruction {
+                    // Rwn, #data4
+                    // Rotate right direct word GPR; number of shift cycles specified by immediate data
                     id: 0x3C,
                     mnemonic: "ror",
                     encoding: EncodingType::In,
@@ -3792,6 +4008,8 @@ impl<'a> Instruction<'a> {
 
             0xC6 => {
                 Ok(Instruction {
+                    // reg, #data16
+                    // Push direct word register onto system stack and update register with immediate data
                     id: 0xC6,
                     mnemonic: "scxt",
                     encoding: EncodingType::RR_II_II,
@@ -3806,6 +4024,8 @@ impl<'a> Instruction<'a> {
 
             0xD6 => {
                 Ok(Instruction {
+                    // reg, mem
+                    // Push direct word register onto system stack and update register with direct memory
                     id: 0xD6,
                     mnemonic: "scxt",
                     encoding: EncodingType::RR_MM_MM,
@@ -3831,6 +4051,8 @@ impl<'a> Instruction<'a> {
 
             0x4C => {
                 Ok(Instruction {
+                    // Rwn, Rwm
+                    // Shift left direct word GPR; number of shift cycles specified by direct GPR
                     id: 0x4C,
                     mnemonic: "shl",
                     encoding: EncodingType::nm,
@@ -3845,6 +4067,8 @@ impl<'a> Instruction<'a> {
 
             0x5C => {
                 Ok(Instruction {
+                    // Rwn, #data4
+                    // Shift left direct word GPR; number of shift cycles specified by immediate data
                     id: 0x5C,
                     mnemonic: "shl",
                     encoding: EncodingType::In,
@@ -3871,6 +4095,8 @@ impl<'a> Instruction<'a> {
 
             0x6C => {
                 Ok(Instruction {
+                    // Rwn, Rwm
+                    // Shift right direct word GPR; number of shift cycles specified by direct GPR
                     id: 0x6C,
                     mnemonic: "shr",
                     encoding: EncodingType::nm,
@@ -3885,6 +4111,8 @@ impl<'a> Instruction<'a> {
 
             0x7C => {
                 Ok(Instruction {
+                    // Rwn, #data4
+                    // Shift right direct word GPR; number of shift cycles specified by immediate data
                     id: 0x7C,
                     mnemonic: "shr",
                     encoding: EncodingType::In,
@@ -3906,6 +4134,8 @@ impl<'a> Instruction<'a> {
 
             0xB7 => {
                 Ok(Instruction {
+                    // ---
+                    // Software Reset
                     id: 0xB7,
                     mnemonic: "srst",
                     encoding: EncodingType::NO_ARGS4,
@@ -3927,6 +4157,8 @@ impl<'a> Instruction<'a> {
 
             0xA7 => {
                 Ok(Instruction {
+                    // ---
+                    // Service Watchdog Timer
                     id: 0xA7,
                     mnemonic: "srvwdt",
                     encoding: EncodingType::NO_ARGS4,
@@ -3950,6 +4182,8 @@ impl<'a> Instruction<'a> {
 
             0x20 => {
                 Ok(Instruction {
+                    // Rwn, Rwm
+                    // Subtract direct word GPR from direct GPR
                     id: 0x20,
                     mnemonic: "sub",
                     encoding: EncodingType::nm,
@@ -3964,6 +4198,12 @@ impl<'a> Instruction<'a> {
 
             0x28 => {
                 Ok(Instruction {
+                    // Rwn, [Rwi]
+                    // Subtract indirect word memory from direct GPR
+                    // Rwn, [Rwi+]
+                    // Subtract indirect word memory from direct GPR and post-increment source pointer by 2
+                    // Rwn, #data3
+                    // Subtract immediate word data from direct GPR
                     id: 0x28,
                     mnemonic: "sub",
                     encoding: EncodingType::data3_or_reg,
@@ -3978,6 +4218,8 @@ impl<'a> Instruction<'a> {
 
             0x26 => {
                 Ok(Instruction {
+                    // reg, #data16
+                    // Subtract immediate word data from direct register
                     id: 0x26,
                     mnemonic: "sub",
                     encoding: EncodingType::RR_II_II,
@@ -3992,6 +4234,8 @@ impl<'a> Instruction<'a> {
 
             0x22 => {
                 Ok(Instruction {
+                    // reg, mem
+                    // Subtract direct word memory from direct register
                     id: 0x22,
                     mnemonic: "sub",
                     encoding: EncodingType::RR_MM_MM,
@@ -4006,6 +4250,8 @@ impl<'a> Instruction<'a> {
 
             0x24 => {
                 Ok(Instruction {
+                    // mem, reg
+                    // Subtract direct word register from direct memory
                     id: 0x24,
                     mnemonic: "sub",
                     encoding: EncodingType::RR_MM_MM,
@@ -4029,6 +4275,8 @@ impl<'a> Instruction<'a> {
 
             0x21 => {
                 Ok(Instruction {
+                    // Rbn, Rbm
+                    // Subtract direct byte GPR from direct GPR
                     id: 0x21,
                     mnemonic: "subb",
                     encoding: EncodingType::nm,
@@ -4043,6 +4291,12 @@ impl<'a> Instruction<'a> {
 
             0x29 => {
                 Ok(Instruction {
+                    // Rbn, [Rwi]
+                    // Subtract indirect byte memory from direct GPR
+                    // Rbn, [Rwi+]
+                    // Subtract indirect byte memory from direct GPR and post-increment source pointer by 1
+                    // Rbn, #data3
+                    // Subtract immediate byte data from direct GPR
                     id: 0x29,
                     mnemonic: "subb",
                     encoding: EncodingType::data3_or_reg,
@@ -4057,6 +4311,8 @@ impl<'a> Instruction<'a> {
 
             0x27 => {
                 Ok(Instruction {
+                    // reg, #data8
+                    // Subtract immediate byte data from direct register
                     id: 0x27,
                     mnemonic: "subb",
                     encoding: EncodingType::RR_II_xx,
@@ -4071,6 +4327,8 @@ impl<'a> Instruction<'a> {
 
             0x23 => {
                 Ok(Instruction {
+                    // reg, mem
+                    // Subtract direct byte memory from direct register
                     id: 0x23,
                     mnemonic: "subb",
                     encoding: EncodingType::RR_MM_MM,
@@ -4085,6 +4343,8 @@ impl<'a> Instruction<'a> {
 
             0x25 => {
                 Ok(Instruction {
+                    // mem, reg
+                    // Subtract direct byte register from direct memory
                     id: 0x25,
                     mnemonic: "subb",
                     encoding: EncodingType::RR_MM_MM,
@@ -4109,6 +4369,8 @@ impl<'a> Instruction<'a> {
 
             0x30 => {
                 Ok(Instruction {
+                    // Rwn, Rwm
+                    // Subtract direct word GPR from direct GPR with Carry
                     id: 0x30,
                     mnemonic: "subc",
                     encoding: EncodingType::nm,
@@ -4123,6 +4385,12 @@ impl<'a> Instruction<'a> {
 
             0x38 => {
                 Ok(Instruction {
+                    // Rwn, [Rwi]
+                    // Subtract indirect word memory from direct GPR with Carry
+                    // Rwn, [Rwi+]
+                    // Subtract indirect word memory from direct GPR with Carry and post-increment source pointer by 2
+                    // Rwn, #data3
+                    // Subtract immediate word data from direct GPR with Carry
                     id: 0x38,
                     mnemonic: "subc",
                     encoding: EncodingType::data3_or_reg,
@@ -4137,6 +4405,8 @@ impl<'a> Instruction<'a> {
 
             0x36 => {
                 Ok(Instruction {
+                    // reg, #data16
+                    // Subtract immediate word data from direct register with Carry
                     id: 0x36,
                     mnemonic: "subc",
                     encoding: EncodingType::RR_II_II,
@@ -4151,6 +4421,8 @@ impl<'a> Instruction<'a> {
 
             0x32 => {
                 Ok(Instruction {
+                    // reg, mem
+                    // Subtract direct word memory from direct register with Carry
                     id: 0x32,
                     mnemonic: "subc",
                     encoding: EncodingType::RR_MM_MM,
@@ -4165,6 +4437,8 @@ impl<'a> Instruction<'a> {
 
             0x34 => {
                 Ok(Instruction {
+                    // mem, reg
+                    // Subtract direct word register from direct memory with Carry
                     id: 0x34,
                     mnemonic: "subc",
                     encoding: EncodingType::RR_MM_MM,
@@ -4189,6 +4463,8 @@ impl<'a> Instruction<'a> {
 
             0x31 => {
                 Ok(Instruction {
+                    // Rbn, Rbm
+                    // Subtract direct byte GPR from direct GPR with Carry
                     id: 0x31,
                     mnemonic: "subcb",
                     encoding: EncodingType::nm,
@@ -4203,6 +4479,12 @@ impl<'a> Instruction<'a> {
 
             0x39 => {
                 Ok(Instruction {
+                    // Rbn, [Rwi]
+                    // Subtract indirect byte memory from direct GPR with Carry
+                    // Rbn, [Rwi+]
+                    // Subtract indirect byte memory from direct GPR with Carry and post-increment source pointer by 1
+                    // Rbn, #data3
+                    // Subtract immediate byte data from direct GPR with Carry
                     id: 0x39,
                     mnemonic: "subcb",
                     encoding: EncodingType::data3_or_reg,
@@ -4217,6 +4499,8 @@ impl<'a> Instruction<'a> {
 
             0x37 => {
                 Ok(Instruction {
+                    // reg, #data8
+                    // Subtract immediate byte data from direct register with Carry
                     id: 0x37,
                     mnemonic: "subcb",
                     encoding: EncodingType::RR_II_xx,
@@ -4231,6 +4515,8 @@ impl<'a> Instruction<'a> {
 
             0x33 => {
                 Ok(Instruction {
+                    // reg, mem
+                    // Subtract direct byte memory from direct register with Carry
                     id: 0x33,
                     mnemonic: "subcb",
                     encoding: EncodingType::RR_MM_MM,
@@ -4245,6 +4531,8 @@ impl<'a> Instruction<'a> {
 
             0x35 => {
                 Ok(Instruction {
+                    // mem, reg
+                    // Subtract direct byte register from direct memory with Carry
                     id: 0x35,
                     mnemonic: "subcb",
                     encoding: EncodingType::RR_MM_MM,
@@ -4268,6 +4556,8 @@ impl<'a> Instruction<'a> {
 
             0x9B => {
                 Ok(Instruction {
+                    // #trap7
+                    // Call interrupt service routine via immediate trap number
                     id: 0x9B,
                     mnemonic: "trap",
                     encoding: EncodingType::trap7,
@@ -4291,6 +4581,8 @@ impl<'a> Instruction<'a> {
 
             0x50 => {
                 Ok(Instruction {
+                    // Rwn, Rwm
+                    // Bitwise XOR direct word GPR with direct GPR
                     id: 0x50,
                     mnemonic: "xor",
                     encoding: EncodingType::nm,
@@ -4305,6 +4597,12 @@ impl<'a> Instruction<'a> {
 
             0x58 => {
                 Ok(Instruction {
+                    // Rwn, [Rwi]
+                    // Bitwise XOR indirect word memory with direct GPR
+                    // Rwn, [Rwi+]
+                    // Bitwise XOR indirect word memory with direct GPR and post-increment source pointer by 2
+                    // Rwn, #data3
+                    // Bitwise XOR immediate word data with direct GPR
                     id: 0x58,
                     mnemonic: "xor",
                     encoding: EncodingType::data3_or_reg,
@@ -4319,6 +4617,8 @@ impl<'a> Instruction<'a> {
 
             0x56 => {
                 Ok(Instruction {
+                    // reg, #data16
+                    // Bitwise XOR immediate word data with direct register
                     id: 0x56,
                     mnemonic: "xor",
                     encoding: EncodingType::RR_II_II,
@@ -4333,6 +4633,8 @@ impl<'a> Instruction<'a> {
 
             0x52 => {
                 Ok(Instruction {
+                    // reg, mem
+                    // Bitwise XOR direct word memory with direct register
                     id: 0x52,
                     mnemonic: "xor",
                     encoding: EncodingType::RR_MM_MM,
@@ -4347,6 +4649,8 @@ impl<'a> Instruction<'a> {
 
             0x54 => {
                 Ok(Instruction {
+                    // mem, reg
+                    // Bitwise XOR direct word register with direct memory
                     id: 0x54,
                     mnemonic: "xor",
                     encoding: EncodingType::RR_MM_MM,
@@ -4370,6 +4674,8 @@ impl<'a> Instruction<'a> {
 
             0x51 => {
                 Ok(Instruction {
+                    // Rbn, Rbm
+                    // Bitwise XOR direct byte GPR with direct GPR
                     id: 0x51,
                     mnemonic: "xorb",
                     encoding: EncodingType::nm,
@@ -4384,6 +4690,12 @@ impl<'a> Instruction<'a> {
 
             0x59 => {
                 Ok(Instruction {
+                    // Rbn, [Rwi]
+                    // Bitwise XOR indirect byte memory with direct GPR
+                    // Rbn, [Rwi+]
+                    // Bitwise XOR indirect byte memory with direct GPR and post-increment source pointer by 1
+                    // Rbn, #data3
+                    // Bitwise XOR immediate byte data with direct GPR
                     id: 0x59,
                     mnemonic: "xorb",
                     encoding: EncodingType::data3_or_reg,
@@ -4398,6 +4710,8 @@ impl<'a> Instruction<'a> {
 
             0x57 => {
                 Ok(Instruction {
+                    // reg, #data8
+                    // Bitwise XOR immediate byte data with direct register
                     id: 0x57,
                     mnemonic: "xorb",
                     encoding: EncodingType::RR_II_xx,
@@ -4412,6 +4726,8 @@ impl<'a> Instruction<'a> {
 
             0x53 => {
                 Ok(Instruction {
+                    // reg, mem
+                    // Bitwise XOR direct byte memory with direct register
                     id: 0x53,
                     mnemonic: "xorb",
                     encoding: EncodingType::RR_MM_MM,
@@ -4426,6 +4742,8 @@ impl<'a> Instruction<'a> {
 
             0x55 => {
                 Ok(Instruction {
+                    // mem, reg
+                    // Bitwise XOR direct byte register with direct memory
                     id: 0x55,
                     mnemonic: "xorb",
                     encoding: EncodingType::RR_MM_MM,
