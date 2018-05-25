@@ -58,3 +58,16 @@ fn esil_mov_88() {
 
     assert_eq!(r2_eval_asm_op_indirect_with_init(instruction, "r7", init_cmd), "0x7890");
 }
+
+#[cfg_attr(not(feature = "integration-tests"), ignore)]
+#[test]
+fn esil_mov_c8() {
+    let instruction : &str = "C872";
+    let init_cmd : &str = "ar z=1; ar r2=0x04; s 4; wx 9078;ar r7=0x8";
+
+    assert_eq!(r2_eval_asm_op_indirect_with_init(instruction, "r7", init_cmd), "0x7890");
+
+    // Zero flag should be cleared
+    assert_eq!(r2_eval_asm_op_reg_with_init(instruction, "z", init_cmd), "0x00000000");
+}
+

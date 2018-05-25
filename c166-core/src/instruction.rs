@@ -2866,7 +2866,7 @@ impl<'a> Instruction<'a> {
                     mnemonic: "mov",
                     encoding: EncodingType::nm,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_MOV | _RAnalOpType::R_ANAL_OP_TYPE_REG,
-                    esil: "{reg1},[],{reg0},=[]",
+                    esil: "{reg1},[],{reg0},=[],$z,z,=",
                     src_param: InstructionParameter::Register1,
                     src_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER | InstructionParameterType::INDIRECT,
                     dst_param: InstructionParameter::Register0,
