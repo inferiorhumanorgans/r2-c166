@@ -11,3 +11,6 @@ runtime-fmt = "*"
 [lib]
 name = "c166_analysis"
 crate-type = ["cdylib"]
+
+[features]
+integration-tests = []

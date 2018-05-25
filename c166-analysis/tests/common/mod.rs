@@ -1,9 +1,14 @@
 use std::process::Command;
 use std::borrow::Cow;
+use std::env;
 
 pub fn run_radare<'a>(args: &[&str]) -> Cow<'a, str> {
     
     let output = Command::new("radare2")
+            .arg("-l")
+            .arg(env::var("R2_ASM_PLUGIN").unwrap())
+            .arg("-l")
+            .arg(env::var("R2_ANALYSIS_PLUGIN").unwrap())
             .args(args)
             .output()
             .expect("failed to execute process");
