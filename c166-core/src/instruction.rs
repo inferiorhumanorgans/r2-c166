@@ -2850,7 +2850,7 @@ impl<'a> Instruction<'a> {
                     mnemonic: "mov",
                     encoding: EncodingType::nm,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_MOV | _RAnalOpType::R_ANAL_OP_TYPE_REG,
-                    esil: "{reg0},NUM,2,{reg1},-=,{reg1},=[]",
+                    esil: "{reg0},NUM,2,{reg0},-=,{reg1},NUM,{reg0},=[]",
                     src_param: InstructionParameter::Register0,
                     src_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER,
                     dst_param: InstructionParameter::Register1,

@@ -42,3 +42,19 @@ fn esil_mov_b8() {
     // Hope it equals 0x1234
     assert_eq!(r2_eval_asm_op_indirect_with_init("B872", "r2", "dr r2=0x8;dr r7=0x1234"), "0x1234");
 }
+
+
+#[cfg_attr(not(feature = "integration-tests"), ignore)]
+#[test]
+fn esil_mov_88() {
+    // Write instruction '88 72' to 0x00
+    // r2 = source
+    // r7 = dest
+    // Run setup r2 command 'ar r2=0x1234;dr r7=0x8'
+    // Dereference r7
+    // Hope it equals 0x1234 which we wrote to 0x0006
+    let instruction : &str = "8872";
+    let init_cmd : &str = "ar r2=0x7890;ar r7=0x8;";
+
+    assert_eq!(r2_eval_asm_op_indirect_with_init(instruction, "r7", init_cmd), "0x7890");
+}
