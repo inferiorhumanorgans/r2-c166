@@ -1,25 +1,30 @@
 use ::common::*;
 
+#[cfg_attr(not(feature = "integration-tests"), ignore)]
 #[test]
 fn esil_mov_f0() {
     assert_eq!(r2_eval_asm_op_reg_with_init("F072", "r7", "dr r2=0x22"), "0x00000022");
 }
 
+#[cfg_attr(not(feature = "integration-tests"), ignore)]
 #[test]
 fn esil_mov_e0() {
     assert_eq!(r2_eval_asm_op_reg("E0F7", "r7"), "0x0000000f");
 }
 
+#[cfg_attr(not(feature = "integration-tests"), ignore)]
 #[test]
 fn esil_mov_e6() {
     assert_eq!(r2_eval_asm_op_reg("E6F71234", "r7"), "0x00003412");
 }
 
+#[cfg_attr(not(feature = "integration-tests"), ignore)]
 #[test]
 fn esil_mov_a8() {
     assert_eq!(r2_eval_asm_op_reg_with_init("A872", "r7", "dr r2=0x8;s 8;wx 1234;s 0"), "0x00003412");
 }
 
+#[cfg_attr(not(feature = "integration-tests"), ignore)]
 #[test]
 fn esil_mov_98() {
     let instruction : &str = "9872";
@@ -28,6 +33,7 @@ fn esil_mov_98() {
     assert_eq!(r2_eval_asm_op_reg_with_init(instruction, "r2", init_cmd), "0x0000000a");
 }
 
+#[cfg_attr(not(feature = "integration-tests"), ignore)]
 #[test]
 fn esil_mov_b8() {
     // Write instruction 'B8 72' to 0x00

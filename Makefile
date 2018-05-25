@@ -34,7 +34,10 @@ interactive: all
 	@RUST_BACKTRACE=1 radare2 -i interactive.r2 ${BIN_FILE}
 
 test-asm:
-	@CARGO_TARGET_DIR=${CARGO_TARGET_DIR} cargo test c166 --no-fail-fast
+	@CARGO_TARGET_DIR=${CARGO_TARGET_DIR} cargo test --no-fail-fast c166
+
+test-integration:
+	@CARGO_TARGET_DIR=${CARGO_TARGET_DIR} cargo test --no-fail-fast -Z package-features -p c166-analysis --features integration-tests esil::
 
 test:
 	@CARGO_TARGET_DIR=${CARGO_TARGET_DIR} cargo test --all --no-fail-fast -- --skip r2::bindgen_test_layout_max_align_t
