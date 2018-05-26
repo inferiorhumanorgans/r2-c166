@@ -75,7 +75,6 @@ extern "C" fn c166_entries(_raw_bf: *mut RBinFile) -> *mut RList {
 }
 
 fn append_symbol(list: *mut RList, name: &str, addr: u32) {
-
     let c_string = CString::new(name).unwrap();
     let p = c_string.as_ptr();
     // Don't free us...
@@ -175,6 +174,65 @@ extern "C" fn c166_symbols(_raw_bf: *mut RBinFile) -> *mut RList {
     list
 }
 
+fn append_section(list: *mut RList, name: &str, paddr: u32, vaddr: u32, size: u32) {
+    // Fixed length arrays for fun and profit :(
+    let mut chars: [c_char; (R_BIN_SIZEOF_STRINGS + 1) as usize] = [0; (R_BIN_SIZEOF_STRINGS + 1) as usize];
+
+    for (i, byte) in name.as_bytes().iter().enumerate() {
+        if i < R_BIN_SIZEOF_STRINGS as usize {
+            chars[i] = *byte as c_char;
+        }
+    }
+
+    let sym : RBinSection = RBinSection {
+        name: chars,
+        size: size as u64,
+        vsize: size as u64,
+        vaddr: vaddr as u64,
+        paddr: paddr as u64,
+        srwx: R_BIN_SCN_EXECUTABLE | R_BIN_SCN_READABLE,
+        arch: cstr_mut!("c166"),
+        format: ptr::null_mut(),
+        bits: 16,
+        has_strings: false,
+        add: true,
+        is_data: false
+    };
+
+    unsafe {
+        // (*list).free = None; // Ugh
+        let b = Box::into_raw(Box::new(sym));
+        r_list_append(list, b as *mut std::os::raw::c_void);
+    }
+}
+
+extern "C" fn c166_sections(_raw_bf: *mut RBinFile) -> *mut RList {
+    let list : *mut RList = unsafe { r_list_new() };
+
+    // This very implementation specific and doesn't belong here
+    append_section(list, "flash1",      0x00000, 0x00000, 0x0F000);
+    append_section(list, "xram",        0x0E000, 0x0E000, 0x00800);
+    append_section(list, "reserved",    0x0E800, 0x0E800, 0x00700);
+    append_section(list, "canbus",      0x0EF00, 0x0EF00, 0x00100);
+    append_section(list, "esfr",        0x0F000, 0x0F000, 0x00200);
+    append_section(list, "reserved2",   0x0F200, 0x0F200, 0x00400);
+    append_section(list, "gpr",         0x0F600, 0x0F600, 0x00100);
+    append_section(list, "stack",       0x0F700, 0x0F700, 0x005E0);
+    append_section(list, "pec",         0x0FCE0, 0x0FCE0, 0x00020);
+    append_section(list, "reserved3",   0x0FD00, 0x0FD00, 0x00100);
+    append_section(list, "sfr",         0x0FE00, 0x0FE00, 0x00100);
+    append_section(list, "sram",        0x40000, 0x40000, 0x02000);
+    append_section(list, "flash2",      0x10000, 0x90000, 0x10000);
+    append_section(list, "flash3",      0x20000, 0xA0000, 0x10000);
+    append_section(list, "flash4",      0x30000, 0xB0000, 0x10000);
+    append_section(list, "flash5",      0x40000, 0xC0000, 0x10000);
+    append_section(list, "flash6",      0x50000, 0xD0000, 0x10000);
+    append_section(list, "flash7",      0x60000, 0xE0000, 0x10000);
+    append_section(list, "flash8",      0x70000, 0x70000, 0x10000);
+
+    list
+}
+
 extern "C" fn c166_info(_: *mut RBinFile) -> *mut RBinInfo {
     let empty_hash : RBinHash = RBinHash {
         type_: ptr::null(),
@@ -241,7 +299,7 @@ const C166_BIN_PLUGIN: RBinPlugin = RBinPlugin {
     boffset: None,
     binsym: None,
     entries: Some(c166_entries),
-    sections: None,
+    sections: Some(c166_sections),
     lines: None,
     symbols: Some(c166_symbols),
     imports: None,
