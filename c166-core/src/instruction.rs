@@ -19,7 +19,7 @@ use ::r2::_RAnalOpType;
 
 use ::encoding::EncodingType;
 
-#[derive(PartialEq)]
+#[derive(Debug, PartialEq)]
 pub enum InstructionParameter {
     None,
     Address,
@@ -67,6 +67,7 @@ bitflags! {
     }
 }
 
+#[derive(Debug)]
 pub struct Instruction<'a> {
     pub id: u8,
     pub mnemonic: &'static str,
