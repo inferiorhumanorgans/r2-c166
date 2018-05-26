@@ -265,7 +265,7 @@ const C166_ANALYSIS_PLUGIN: RAnalPlugin = RAnalPlugin {
     init:               None,
     fini:               None,
     reset_counter:      None,
-    archinfo:           None, //Some(c166_archinfo),
+    archinfo:           Some(c166_archinfo),
     anal_mask:          None,
     op:                 Some(c166_op),
     bb:                 None,
