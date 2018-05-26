@@ -22,7 +22,7 @@ On FreeBSD `pkg install gmake llvm60` should be sufficient.
 
 ### Building on OSX
 
-Older version of OSX may not have a new enough version of LLVM per [rust-lang-nursery/bindgen#1006](https://github.com/rust-lang-nursery/rust-bindgen/issues/1006).  Download binaries from the [LLVM download page](http://releases.llvm.org/download.html) and set `LIBCLANG_PATH` appropriately.
+Older versions of OSX may not have a new enough version of LLVM per [rust-lang-nursery/bindgen#1006](https://github.com/rust-lang-nursery/rust-bindgen/issues/1006).  Download binaries from the [LLVM download page](http://releases.llvm.org/download.html) and set `LIBCLANG_PATH` appropriately.
 
 OSX appears to require that you tell clang to allow undefined symbols in libraries via a `~/.cargo/config` stanza like so:
 
