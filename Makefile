@@ -31,7 +31,7 @@ run: all
 	@echo
 
 interactive: all
-	@RUST_BACKTRACE=1 radare2 -i interactive.r2 ${BIN_FILE}
+	@RUST_BACKTRACE=1 radare2 -a c166 -F c166-rom  ${BIN_FILE}
 
 test-asm:
 	@CARGO_TARGET_DIR=${CARGO_TARGET_DIR} cargo test c166 --no-fail-fast
