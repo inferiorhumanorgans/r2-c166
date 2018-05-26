@@ -18,7 +18,7 @@ all:
 # Need to find the proper directory for rasm2 plugins :(
 # https://github.com/radare/radare2/issues/4495
 	@echo "Installing to ${INST_DIR}"
-	@cp -f ${BUILD_DIR}/libc166_asm$(SHARED_EXT) ${BUILD_DIR}/libc166_analysis$(SHARED_EXT) ${INST_DIR}/
+	@cp -f ${BUILD_DIR}/libc166_asm$(SHARED_EXT) ${BUILD_DIR}/libc166_analysis$(SHARED_EXT) ${BUILD_DIR}/libc166_bin$(SHARED_EXT) ${INST_DIR}/
 	@echo
 
 clean:
@@ -31,7 +31,7 @@ run: all
 	@echo
 
 interactive: all
-	@RUST_BACKTRACE=1 radare2 -i interactive.r2 ${BIN_FILE}
+	@RUST_BACKTRACE=1 radare2 -a c166 -F c166-rom  ${BIN_FILE}
 
 test-asm:
 	@CARGO_TARGET_DIR=${CARGO_TARGET_DIR} cargo test --no-fail-fast -p c166-core c166

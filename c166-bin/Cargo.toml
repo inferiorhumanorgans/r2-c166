@@ -1,0 +1,11 @@
+[package]
+name = "c166-bin"
+version = "0.1.6"
+authors = ["Alex Zepeda <alex@inferiorhumanorgans.com>"]
+
+[dependencies]
+c166-core = { path = "../c166-core" }
+
+[lib]
+name = "c166_bin"
+crate-type = ["cdylib"]

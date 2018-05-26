@@ -2,5 +2,6 @@
 members = [
     "c166-core",
     "c166-asm",
-    "c166-analysis"
+    "c166-analysis",
+    "c166-bin"
 ]
