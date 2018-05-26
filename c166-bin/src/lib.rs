@@ -114,6 +114,7 @@ extern "C" fn c166_symbols(_raw_bf: *mut RBinFile) -> *mut RList {
     append_symbol(list, "NMITRAP", 0x0008);
     append_symbol(list, "STOTRAP", 0x0010);
     append_symbol(list, "STUTRAP", 0x0018);
+    append_symbol(list, "BTRAP", 0x0028);
     append_symbol(list, "CC0INT", 0x0040);
     append_symbol(list, "CC1INT", 0x0044);
     append_symbol(list, "CC2INT", 0x0048);
