@@ -251,7 +251,6 @@ extern "C" fn c166_op(an: *mut RAnal, raw_op: *mut RAnalOp, pc: u64, buf: *const
     out_op.size
 }
 
-#[allow(non_upper_case_globals)]
 const C166_ANALYSIS_PLUGIN: RAnalPlugin = RAnalPlugin {
     name:               cstr_mut!("c166"),
     desc:               cstr_mut!("c166 analysis plugin"),

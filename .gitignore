@@ -3,3 +3,6 @@
 **/*.rs.bk
 Cargo.lock
 ffi.rs
+.envrc
+clang*
+*.bin
