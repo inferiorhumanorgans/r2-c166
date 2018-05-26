@@ -4623,7 +4623,7 @@ impl<'a> Instruction<'a> {
                     mnemonic: "xor",
                     encoding: EncodingType::RR_II_II,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_XOR | _RAnalOpType::R_ANAL_OP_TYPE_REG,
-                    esil: "{immed},{reg0},^=",
+                    esil: "{immed},{reg0},^=,$z,z,=,$0,v,=,$0,c,=",
                     src_param: InstructionParameter::Data,
                     src_type: InstructionParameterType::IMMEDIATE | InstructionParameterType::DATA_16,
                     dst_param: InstructionParameter::Register0,
