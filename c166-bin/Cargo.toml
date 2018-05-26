@@ -5,3 +5,7 @@ authors = ["Alex Zepeda <alex@inferiorhumanorgans.com>"]
 
 [dependencies]
 c166-core = { path = "../c166-core" }
+
+[lib]
+name = "c166_bin"
+crate-type = ["cdylib"]

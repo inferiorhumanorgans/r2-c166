@@ -18,7 +18,7 @@ all:
 # Need to find the proper directory for rasm2 plugins :(
 # https://github.com/radare/radare2/issues/4495
 	@echo "Installing to ${INST_DIR}"
-	@cp -f ${BUILD_DIR}/libc166_asm$(SHARED_EXT) ${BUILD_DIR}/libc166_analysis$(SHARED_EXT) ${INST_DIR}/
+	@cp -f ${BUILD_DIR}/libc166_asm$(SHARED_EXT) ${BUILD_DIR}/libc166_analysis$(SHARED_EXT) ${BUILD_DIR}/libc166_bin$(SHARED_EXT) ${INST_DIR}/
 	@echo
 
 clean:
