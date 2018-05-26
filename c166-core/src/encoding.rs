@@ -19,6 +19,7 @@ use byteorder::ByteOrder;
 use byteorder::{LittleEndian};
 
 #[allow(non_camel_case_types)]
+#[derive(Debug)]
 pub enum EncodingType {
     NO_ARGS2,	// NO_ARGS
     NO_ARGS4,	// NO_ARGS
@@ -53,7 +54,7 @@ pub enum EncodingType {
     trap7,	    // t:ttt0
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct InstructionArguments {
     pub bit0 : Option<u8>,
     pub bit1 : Option<u8>,
