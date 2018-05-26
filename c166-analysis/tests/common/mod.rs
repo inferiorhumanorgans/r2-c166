@@ -38,7 +38,7 @@ pub fn r2_eval_asm_op_with_init<'a>(op: &str, cmd: &str, init: &str) -> String {
     substr
 }
 
-pub fn r2_eval_asm_op_reg(op: &str, reg: &str) -> String {
+pub fn r2_eval_asm_op_reg(op: &str, reg: &str) -> i32 {
     r2_eval_asm_op_reg_with_init(op, reg, "")
 }
 
@@ -46,9 +46,11 @@ pub fn r2_eval_asm_op_reg(op: &str, reg: &str) -> String {
 // Takes a register where we expect the result to be located
 // Returns the contents of the target register
 // Takes an r2 command string to run before evaluating the C166 op
-pub fn r2_eval_asm_op_reg_with_init(op: &str, reg: &str, init: &str) -> String {
+pub fn r2_eval_asm_op_reg_with_init(op: &str, reg: &str, init: &str) -> i32 {
     let reg_cmd = format!("ar {reg}", reg=reg);
-    r2_eval_asm_op_with_init(op, reg_cmd.as_str(), init)
+    let ret : String = r2_eval_asm_op_with_init(op, reg_cmd.as_str(), init);
+    // https://github.com/rust-lang/rfcs/issues/1098
+    i32::from_str_radix(&ret[2..], 16).unwrap()
 }
 
 // Runs a C166 op
@@ -56,7 +58,8 @@ pub fn r2_eval_asm_op_reg_with_init(op: &str, reg: &str, init: &str) -> String {
 // Runs some ESIL to dereference the register
 // Returns the  memory pointed to by the register
 // Takes an r2 command string to run before evaluating the C166 op
-pub fn r2_eval_asm_op_indirect_with_init(op: &str, reg: &str, init: &str) -> String {
+pub fn r2_eval_asm_op_indirect_with_init(op: &str, reg: &str, init: &str) -> i32 {
     let reg_cmd = format!("ae {reg},[]", reg=reg);
-    r2_eval_asm_op_with_init(op, reg_cmd.as_str(), init)
+    let ret : String = r2_eval_asm_op_with_init(op, reg_cmd.as_str(), init);
+    i32::from_str_radix(&ret[2..], 16).unwrap()
 }
