@@ -71,7 +71,6 @@ fn esil_mov_c8() {
     assert_eq!(r2_eval_asm_op_reg_with_init(instruction, "z", init_cmd), 0x0000);
 }
 
-
 #[cfg_attr(not(feature = "integration-tests"), ignore)]
 #[test]
 fn esil_mov_c8_2() {
@@ -82,4 +81,30 @@ fn esil_mov_c8_2() {
 
     // Zero flag should be set
     assert_eq!(r2_eval_asm_op_reg_with_init(instruction, "z", init_cmd), 0x0001);
+}
+
+#[cfg_attr(not(feature = "integration-tests"), ignore)]
+#[test]
+fn esil_mov_d8() {
+    let instruction : &str = "D827";
+    let init_cmd : &str = "ar z=0; ar r2=0x04; ar r7=0x8; s 0x8; wx 4567";
+
+    assert_eq!(r2_eval_asm_op_reg_with_init(instruction, "r2", init_cmd), 0x0006);
+    assert_eq!(r2_eval_asm_op_mem_with_init(instruction, "0x0004", init_cmd), 0x4567);
+
+    // Zero flag should be clear
+    assert_eq!(r2_eval_asm_op_reg_with_init(instruction, "z", init_cmd), 0x0000);
+}
+
+#[cfg_attr(not(feature = "integration-tests"), ignore)]
+#[test]
+fn esil_mov_e8() {
+    let instruction : &str = "E827";
+    let init_cmd : &str = "ar z=0; ar r2=0x04; ar r7=0x8; s 0x8; wx 4567";
+
+    assert_eq!(r2_eval_asm_op_reg_with_init(instruction, "r7", init_cmd), 0x000A);
+    assert_eq!(r2_eval_asm_op_mem_with_init(instruction, "0x0004", init_cmd), 0x4567);
+
+    // Zero flag should be clear
+    assert_eq!(r2_eval_asm_op_reg_with_init(instruction, "z", init_cmd), 0x0000);
 }

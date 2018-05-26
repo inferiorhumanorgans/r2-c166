@@ -4,7 +4,6 @@ use std::env;
 
 // Runs radare2 and loads our just built asm and analysis plugins manually
 pub fn run_radare<'a>(args: &[&str]) -> Cow<'a, str> {
-    
     let output = Command::new("radare2")
             .arg("-l")
             .arg(env::var("R2_ASM_PLUGIN").unwrap())
@@ -62,4 +61,10 @@ pub fn r2_eval_asm_op_indirect_with_init(op: &str, reg: &str, init: &str) -> i32
     let reg_cmd = format!("ae {reg},[]", reg=reg);
     let ret : String = r2_eval_asm_op_with_init(op, reg_cmd.as_str(), init);
     i32::from_str_radix(&ret[2..], 16).unwrap()
+}
+
+pub fn r2_eval_asm_op_mem_with_init(op: &str, address: &str, init: &str) -> i32 {
+    let reg_cmd = format!("p8 2@{address}", address=address);
+    let ret : String = r2_eval_asm_op_with_init(op, reg_cmd.as_str(), init);
+    i32::from_str_radix(&ret, 16).unwrap()
 }

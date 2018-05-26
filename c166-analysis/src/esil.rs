@@ -22,7 +22,6 @@ use c166_core::instruction::*;
 use c166_core::encoding::*;
 use c166_core::register::*;
 
-
 pub fn register_to_esil(some_reg: Option<u8>, reg_type: &InstructionParameterType) -> String {
     let register : u8 = some_reg.unwrap();
 
