@@ -9,8 +9,91 @@ toolchain.
 
 * If you don't have clang installed already, install it.  Version 5.0 or newer is required.
 * Install `rustfmt-nightly` globally via `cargo` before building.
-* Run `make` to build and install the library.  Optionally, take a look at the travis.yml file to see how to build (but not install) using just cargo.
+* Run (GNU) `make` to build and install the library.  Optionally, take a look at the travis.yml file to see how to build (but not install) using just cargo.
 * Run `make test-asm` to validate the instruction decoding or `make test` / `cargo test` to run all the tests.  One of the bindgen generated tests is known to fail.
+
+## Feature Status
+
+<table width=85%>
+  <thead>
+    <tr>
+      <th width=25%>Feature</th>
+      <th>Status</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <tr>
+      <th colspan=2>c166-analysis</th>
+    </tr>
+    <tr>
+      <td>Resolve memory references</td>
+      <td>Does not track DPP / extended ops</td>
+    </tr>
+    <tr>
+      <td>Mark call/jump targets</td>
+      <td>✔?</td>
+    </tr>
+    <tr>
+      <td>Translate jump conditions</td>
+      <td>✔</td>
+    </tr>
+    <tr>
+      <td>Generate ESIL</td>
+      <td>WIP</td>
+    </tr>
+    <tr>
+      <td>Annotate SFR config / ops</td>
+      <td>WIP</td>
+    </tr>
+  </tbody>
+
+  <tbody>
+    <tr>
+      <th colspan=2>c166-asm</th>
+    </tr>
+    <tr>
+      <td>Assembler</td>
+      <td>WIP</td>
+    </tr>
+    <tr>
+      <td>Disassembler</td>
+      <td>All opcodes decoded<br>Extended reg/mem ops not tracked (SFR vs ESFR)</td>
+    </tr>
+    <tr>
+      <td>Mnemonics</td>
+      <td>✔</td>
+    </tr>
+  </tbody>
+
+  <tbody>
+    <tr>
+      <th colspan=2>c166-bin</th>
+    </tr>
+    <tr>
+      <td>Mark entry point</td>
+      <td>✔</td>
+    </tr>
+    <tr>
+      <td>Mark interrupt / trap vectors</td>
+      <td>✔</td>
+    </tr>
+    <tr>
+      <td>Mark interrupt / trap handlers/thunks</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>Mark main() function</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>Make generated segment definitions optional</td>
+      <td></td>
+    </tr>
+  </tbody>
+
+  <tbody>
+</table>
 
 ## Notes
 
@@ -34,4 +117,6 @@ rustflags = [
 ]
 ```
 
-Additionally if you install `radare2` via `brew` you'll need to edit build.rs to search for the `radare2` and `openssl` headers in the appropriate directory.  TODO: update the build script to take additional include search paths in via an environment variable.
+Additionally if you install `radare2` via `brew` you'll need to edit `c166-core/build.rs` to search for the `radare2` and `openssl` headers in the appropriate directory.
+
+TODO: update the build script to take additional include search paths in via an environment variable.
