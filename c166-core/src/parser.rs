@@ -471,6 +471,17 @@ pub fn operation_to_bytes<'a>(asm: &AsmOperation) -> Result<Vec<u8>, &'a str> {
                             _ => continue
                         };
 
+                        match op2 {
+                            Operand::Register(r) |
+                            Operand::Indirect(r) |
+                            Operand::IndirectPostIncrement(r) => {
+                                if r.to_reg4().unwrap() > 0b11 {
+                                    continue;
+                                }
+                            },
+                            _ => continue
+                        }
+
                         args.op1 = Some(*reg);
                         args.op2 = Some(*op2);
                         encode_op = Some(&isn);

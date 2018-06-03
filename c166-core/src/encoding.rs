@@ -470,15 +470,14 @@ impl<'a> From<&'a EncodingType> for Encoding<'a> {
                             Operand::Indirect(reg1) => {
                                 let reg_id = reg1.to_reg4().unwrap();
                                 if reg_id > 3 {
-                                    // TODO: FIX THIS
-                                    return Err("This op only works with GPR 0-3, should catch this in the parser")
+                                    panic!("This op only works with GPR 0-3, should catch this in the parser")
                                 }
                                 Ok(vec![isn.id, (reg << 4) | (0b10 << 2) | reg_id & 0b11])
                             },
                             Operand::IndirectPostIncrement(reg1) => {
                                 let reg_id = reg1.to_reg4().unwrap();
                                 if reg_id > 3 {
-                                    return Err("This op only works with GPR 0-3, should catch this in the parser")
+                                    panic!("This op only works with GPR 0-3, should catch this in the parser")
                                 }
                                 Ok(vec![isn.id, (reg << 4) | (0b11 << 2) | reg_id & 0b11])
                             },

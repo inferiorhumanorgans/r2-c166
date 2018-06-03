@@ -48,6 +48,11 @@ fn op_33() {
 }
 
 #[test]
-fn op_35() {
+fn op_35_1() {
     test_asm_op!("subcb CCFFh, rl6", [0x35, 0xFC, 0xFF, 0xCC]);
+}
+
+#[test]
+fn op_35_2() {
+    test_asm_op!("subcb CCFFh, ZEROS", [0x35, 0x8E, 0xFF, 0xCC]);
 }
