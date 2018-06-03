@@ -1,8 +1,11 @@
 
 /target
 **/*.rs.bk
+**/*.rs.bak
 Cargo.lock
 ffi.rs
 .envrc
 clang*
 *.bin
+.DS_Store
+.idea

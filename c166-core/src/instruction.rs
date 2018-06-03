@@ -15,56 +15,139 @@
     along with r2-c166.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+use std::convert::TryFrom;
+use std::str::FromStr;
+use num_traits::FromPrimitive;
+use std::fmt;
+
 use ::r2::_RAnalOpType;
-
 use ::encoding::EncodingType;
+use ::reg::*;
 
-#[derive(Debug, PartialEq)]
-pub enum InstructionParameter {
-    None,
-    Address,
-    Bit0,
-    Bit1,
-    BitOffset0,
-    BitOffset1,
-    Condition,
-    Data,
-    IRange,
-    Mask,
-    Memory,
-    Mnemonic,
-    PageOrSegment,
-    Register0,
-    Register1,
-    RelativeAddress,
-    Segment,
-    SubOp,
-    Trap
+#[allow(non_camel_case_types)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Primitive)]
+pub enum OpCondition {
+    cc_UC   = 0x00,
+    cc_NET  = 0x01,
+    cc_Z    = 0x02,
+    cc_NZ   = 0x03,
+    cc_V    = 0x04,
+    cc_NV   = 0x05,
+    cc_N    = 0x06,
+    cc_NN   = 0x07,
+    cc_C    = 0x08,
+    cc_NC   = 0x09,
+    cc_SGT  = 0x0A,
+    cc_SLE  = 0x0B,
+    cc_SLT  = 0x0C,
+    cc_SGE  = 0x0D,
+    cc_UGT  = 0x0E,
+    cc_ULE  = 0x0F
 }
 
-bitflags! {
-    pub struct InstructionParameterType : u32 {
-        const NONE              = 0b00000000000000000000;
-        const GENERAL_REGISTER  = 0b00000000000000000001;
-        const SPECIAL_REGISTER  = 0b00000000000000000010;
-        const WORD_REGISTER     = 0b00000000000000000100;
-        const BYTE_REGISTER     = 0b00000000000000001000;
-        const DIRECT_MEMORY     = 0b00000000000000010000;
-        const INDIRECT          = 0b00000000000000100000;
-        const INCREMENT         = 0b00000000000001000000;
-        const DECREMENT         = 0b00000000000010000000;
-        const IMMEDIATE         = 0b00000000000100000000;
-        const DATA_3            = 0b00000000001000000000;
-        const DATA_4            = 0b00000000010000000000;
-        const DATA_8            = 0b00000000100000000000;
-        const DATA_16           = 0b00000001000000000000;
-        const BIT_OFFSET        = 0b00000010000000000000;
-        const BIT_OFFSET_BIT    = 0b00000100000000000000;
-        const BIT_OFFSET_MASK   = 0b00001000000000000000;
-        const TRAP              = 0b00010000000000000000;
-        const CONDITION         = 0b00100000000000000000;
-        const SEGMENT           = 0b01000000000000000000;
+impl<'a> FromStr for OpCondition {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<OpCondition, ()> {
+        let mnem = String::from(s).to_uppercase();
+        match mnem.as_str() {
+            "CC_UC"     => Ok(OpCondition::cc_UC),
+            "CC_NET"    => Ok(OpCondition::cc_NET),
+            "CC_Z"      => Ok(OpCondition::cc_Z),
+            "CC_NZ"     => Ok(OpCondition::cc_NZ),
+            "CC_V"      => Ok(OpCondition::cc_V),
+            "CC_NV"     => Ok(OpCondition::cc_NV),
+            "CC_N"      => Ok(OpCondition::cc_N),
+            "CC_NN"     => Ok(OpCondition::cc_NN),
+            "CC_C"      => Ok(OpCondition::cc_C),
+            "CC_NC"     => Ok(OpCondition::cc_NC),
+            "CC_SGT"    => Ok(OpCondition::cc_SGT),
+            "CC_SLE"    => Ok(OpCondition::cc_SLE),
+            "CC_SLT"    => Ok(OpCondition::cc_SLT),
+            "CC_SGE"    => Ok(OpCondition::cc_SGE),
+            "CC_UGT"    => Ok(OpCondition::cc_UGT),
+            "CC_ULE"    => Ok(OpCondition::cc_ULE),
+            _           => Err(())
+        }
     }
+}
+
+
+impl TryFrom<u8> for OpCondition {
+    type Error = &'static str;
+
+    fn try_from(byte: u8) -> Result<OpCondition, &'static str> {
+        match OpCondition::from_u8(byte) {
+            Some(condition) => Ok(condition),
+            None => Err("Condition must be 0x00..=0x0F")
+        }
+    }
+}
+
+impl fmt::Display for OpCondition {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            _ => {
+                write!(f, "{:?}", self)
+            }
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum OperandType {
+    Condition,
+
+    ByteRegister(u8),
+    WordRegister(u8),
+
+    ExtendedRegister, // Don't use me directly
+
+    DirectMemory16,
+    DirectCaddr16,
+    DirectSegment8,
+    DirectRelative8S,
+
+    Indirect(u8),
+    IndirectPostIncrement(u8),
+    IndirectPreDecrement(u8),
+    IndirectAndImmediate(u8),
+
+    BitAddr(u8),
+    BitOffset(u8),
+
+    ImmediateData3,
+    ImmediateData4,
+    ImmediateData8,
+    ImmediateData16,
+    ImmediateMask8,
+    ImmediateTrap7,
+    ImmediatePage10,
+    ImmediateSegment8,
+    ImmediateIrange2
+}
+
+#[derive(Clone, Copy, Debug)]
+pub enum Operand {
+    Condition(OpCondition),
+    BitAddr(u8, u8),
+    Register(Reg),                  // SFR, ESFR, GPR
+    Direct(u16, u8),                // mem, caddr, seg, rel
+    Indirect(Reg),                  // [GPR],
+    IndirectPostIncrement(Reg),     // [GPR+]
+    IndirectPreDecrement(Reg),      // [-GPR]
+    IndirectAndImmediate(Reg, u16), // [GPR+DATA16],
+    Immediate(u16, u8),             // data, bitwidth; #data3, #data4, #data8, #data16, #mask8, #trap7, #pag10, #seg8, #irang2
+}
+
+#[derive(Default, Debug)]
+pub struct InstructionArguments {
+    pub op1: Option<Operand>,
+    pub op2: Option<Operand>,
+    pub op3: Option<Operand>,
+
+    pub mnemonic : Option<String>,
+    pub sub_op : Option<u8>,
 }
 
 #[derive(Debug)]
@@ -74,17 +157,16 @@ pub struct Instruction<'a> {
     pub encoding: EncodingType,
     pub r2_op_type: _RAnalOpType,
     pub esil: &'a str,
-    pub src_param : InstructionParameter,
-    pub src_type : InstructionParameterType,
-    pub dst_param : InstructionParameter,
-    pub dst_type : InstructionParameterType
+    pub op1: Option<OperandType>,
+    pub op2: Option<OperandType>,
+    pub op3: Option<OperandType>,
 }
 
-impl<'a> Instruction<'a> {
-    pub fn from_addr_array(bytes: &[u8]) -> Result<Instruction, String> {
-        let raw_opcode = bytes[0];
+impl<'a> TryFrom<u8> for Instruction<'a> {
+    type Error = &'a str;
 
-        match raw_opcode {
+    fn try_from(byte: u8) -> Result<Instruction<'a>, &'a str> {
+        match byte {
             // ADD: Integer Addition
             // Performs a 2's complement binary addition of the source operand specified by op2 and the
             // destination operand specified by op1. The sum is then stored in op1.
@@ -100,13 +182,12 @@ impl<'a> Instruction<'a> {
                     // Add direct word GPR to direct GPR
                     id: 0x00,
                     mnemonic: "add",
-                    encoding: EncodingType::nm,
+                    encoding: EncodingType::reg4_reg4,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::WordRegister(1)),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_ADD | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Register1,
-                    src_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER
                 })
             },
 
@@ -116,13 +197,12 @@ impl<'a> Instruction<'a> {
                     // Add direct word memory to direct register
                     id: 0x02,
                     mnemonic: "add",
-                    encoding: EncodingType::RR_MM_MM,
+                    encoding: EncodingType::reg8_mem16,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::DirectMemory16),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_ADD | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Memory,
-                    src_type: InstructionParameterType::DIRECT_MEMORY,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::SPECIAL_REGISTER | InstructionParameterType::WORD_REGISTER
                 })
             },
 
@@ -132,13 +212,12 @@ impl<'a> Instruction<'a> {
                     // Add direct word register to direct memory
                     id: 0x04,
                     mnemonic: "add",
-                    encoding: EncodingType::RR_MM_MM,
+                    encoding: EncodingType::reg8_mem16,
+                    op1: Some(OperandType::DirectMemory16),
+                    op2: Some(OperandType::WordRegister(0)),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_ADD | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Register0,
-                    src_type: InstructionParameterType::SPECIAL_REGISTER | InstructionParameterType::WORD_REGISTER,
-                    dst_param: InstructionParameter::Memory,
-                    dst_type: InstructionParameterType::DIRECT_MEMORY
                 })
             },
 
@@ -148,13 +227,12 @@ impl<'a> Instruction<'a> {
                     // Add immediate word data to direct register
                     id: 0x06,
                     mnemonic: "add",
-                    encoding: EncodingType::RR_II_II,
+                    encoding: EncodingType::reg8_data16,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::ImmediateData16),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_ADD | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Data,
-                    src_type: InstructionParameterType::IMMEDIATE | InstructionParameterType::DATA_16,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::SPECIAL_REGISTER | InstructionParameterType::WORD_REGISTER
                 })
             },
 
@@ -168,13 +246,12 @@ impl<'a> Instruction<'a> {
                     // Add immediate word data to direct GPR
                     id: 0x08,
                     mnemonic: "add",
-                    encoding: EncodingType::data3_or_reg,
+                    encoding: EncodingType::reg4_or_data3,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::ImmediateData3),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_ADD,
                     esil: "",
-                    src_param: InstructionParameter::None,
-                    src_type: InstructionParameterType::DATA_3 | InstructionParameterType::WORD_REGISTER,
-                    dst_param: InstructionParameter::None,
-                    dst_type: InstructionParameterType::NONE
                 })
             },
 
@@ -193,13 +270,12 @@ impl<'a> Instruction<'a> {
                     // Add direct byte GPR to direct GPR
                     id: 0x01,
                     mnemonic: "addb",
-                    encoding: EncodingType::nm,
+                    encoding: EncodingType::reg4_reg4,
+                    op1: Some(OperandType::ByteRegister(0)),
+                    op2: Some(OperandType::ByteRegister(1)),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_ADD | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Register1,
-                    src_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::BYTE_REGISTER,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::BYTE_REGISTER
                 })
             },
 
@@ -209,13 +285,12 @@ impl<'a> Instruction<'a> {
                     // Add direct byte memory to direct register
                     id: 0x03,
                     mnemonic: "addb",
-                    encoding: EncodingType::RR_MM_MM,
+                    encoding: EncodingType::reg8_mem16,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::DirectMemory16),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_ADD | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Memory,
-                    src_type: InstructionParameterType::DIRECT_MEMORY,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::SPECIAL_REGISTER | InstructionParameterType::BYTE_REGISTER
                 })
             },
 
@@ -225,13 +300,12 @@ impl<'a> Instruction<'a> {
                     // Add direct byte register to direct memory
                     id: 0x05,
                     mnemonic: "addb",
-                    encoding: EncodingType::RR_MM_MM,
+                    encoding: EncodingType::reg8_mem16,
+                    op1: Some(OperandType::DirectMemory16),
+                    op2: Some(OperandType::WordRegister(0)),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_ADD | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Register0,
-                    src_type: InstructionParameterType::SPECIAL_REGISTER | InstructionParameterType::BYTE_REGISTER,
-                    dst_param: InstructionParameter::Memory,
-                    dst_type: InstructionParameterType::DIRECT_MEMORY
                 })
             },
 
@@ -241,13 +315,12 @@ impl<'a> Instruction<'a> {
                     // Add immediate byte data to direct register
                     id: 0x07,
                     mnemonic: "addb",
-                    encoding: EncodingType::RR_II_xx,
+                    encoding: EncodingType::reg8_data8_nop8,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::ImmediateData8),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_ADD | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Data,
-                    src_type: InstructionParameterType::IMMEDIATE | InstructionParameterType::DATA_8,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::SPECIAL_REGISTER | InstructionParameterType::BYTE_REGISTER
                 })
             },
 
@@ -261,13 +334,12 @@ impl<'a> Instruction<'a> {
                     // Add immediate byte data to direct GPR
                     id: 0x09,
                     mnemonic: "addb",
-                    encoding: EncodingType::data3_or_reg,
+                    encoding: EncodingType::reg4_or_data3,
+                    op1: Some(OperandType::ByteRegister(0)),
+                    op2: Some(OperandType::ImmediateData3),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_ADD,
                     esil: "",
-                    src_param: InstructionParameter::None,
-                    src_type: InstructionParameterType::DATA_3 | InstructionParameterType::BYTE_REGISTER,
-                    dst_param: InstructionParameter::None,
-                    dst_type: InstructionParameterType::NONE
                 })
             },
 
@@ -287,13 +359,12 @@ impl<'a> Instruction<'a> {
                     // Add direct word GPR to direct GPR with Carry
                     id: 0x10,
                     mnemonic: "addc",
-                    encoding: EncodingType::nm,
+                    encoding: EncodingType::reg4_reg4,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::WordRegister(1)),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_ADD | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Register1,
-                    src_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::GENERAL_REGISTER |InstructionParameterType::WORD_REGISTER
                 })
             },
 
@@ -307,13 +378,12 @@ impl<'a> Instruction<'a> {
                     // Add immediate word data to direct GPR with Carry
                     id: 0x18,
                     mnemonic: "addc",
-                    encoding: EncodingType::data3_or_reg,
+                    encoding: EncodingType::reg4_or_data3,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::ImmediateData3),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_ADD,
                     esil: "",
-                    src_param: InstructionParameter::None,
-                    src_type: InstructionParameterType::DATA_3 | InstructionParameterType::WORD_REGISTER,
-                    dst_param: InstructionParameter::None,
-                    dst_type: InstructionParameterType::NONE
                 })
             },
 
@@ -323,13 +393,12 @@ impl<'a> Instruction<'a> {
                     // Add immediate word data to direct register with Carry
                     id: 0x16,
                     mnemonic: "addc",
-                    encoding: EncodingType::RR_II_II,
+                    encoding: EncodingType::reg8_data16,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::ImmediateData16),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_ADD | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Data,
-                    src_type: InstructionParameterType::IMMEDIATE | InstructionParameterType::DATA_16,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::SPECIAL_REGISTER | InstructionParameterType::WORD_REGISTER
                 })
             },
 
@@ -339,13 +408,12 @@ impl<'a> Instruction<'a> {
                     // Add direct word memory to direct register with Carry
                     id: 0x12,
                     mnemonic: "addc",
-                    encoding: EncodingType::RR_MM_MM,
+                    encoding: EncodingType::reg8_mem16,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::DirectMemory16),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_ADD | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Memory,
-                    src_type: InstructionParameterType::DIRECT_MEMORY,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::SPECIAL_REGISTER | InstructionParameterType::WORD_REGISTER
                 })
             },
 
@@ -355,13 +423,12 @@ impl<'a> Instruction<'a> {
                     // Add direct word register to direct memory with Carry
                     id: 0x14,
                     mnemonic: "addc",
-                    encoding: EncodingType::RR_MM_MM,
+                    encoding: EncodingType::reg8_mem16,
+                    op1: Some(OperandType::DirectMemory16),
+                    op2: Some(OperandType::WordRegister(0)),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_ADD | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Register0,
-                    src_type: InstructionParameterType::SPECIAL_REGISTER | InstructionParameterType::WORD_REGISTER,
-                    dst_param: InstructionParameter::Memory,
-                    dst_type: InstructionParameterType::DIRECT_MEMORY
                 })
             },
 
@@ -381,13 +448,12 @@ impl<'a> Instruction<'a> {
                     // Add direct byte GPR to direct GPR with Carry
                     id: 0x11,
                     mnemonic: "addcb",
-                    encoding: EncodingType::nm,
+                    encoding: EncodingType::reg4_reg4,
+                    op1: Some(OperandType::ByteRegister(0)),
+                    op2: Some(OperandType::ByteRegister(1)),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_ADD | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Register1,
-                    src_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::BYTE_REGISTER,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::BYTE_REGISTER
                 })
             },
 
@@ -401,13 +467,12 @@ impl<'a> Instruction<'a> {
                     // Add immediate byte data to direct GPR with Carry
                     id: 0x19,
                     mnemonic: "addcb",
-                    encoding: EncodingType::data3_or_reg,
+                    encoding: EncodingType::reg4_or_data3,
+                    op1: Some(OperandType::ByteRegister(0)),
+                    op2: Some(OperandType::ImmediateData3),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_ADD,
                     esil: "",
-                    src_param: InstructionParameter::None,
-                    src_type: InstructionParameterType::DATA_3 | InstructionParameterType::BYTE_REGISTER,
-                    dst_param: InstructionParameter::None,
-                    dst_type: InstructionParameterType::NONE
                 })
             },
 
@@ -417,13 +482,12 @@ impl<'a> Instruction<'a> {
                     // Add immediate byte data to direct register with Carry
                     id: 0x17,
                     mnemonic: "addcb",
-                    encoding: EncodingType::RR_II_xx,
+                    encoding: EncodingType::reg8_data8_nop8,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::ImmediateData8),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_ADD | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Data,
-                    src_type: InstructionParameterType::IMMEDIATE | InstructionParameterType::DATA_8,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::SPECIAL_REGISTER | InstructionParameterType::BYTE_REGISTER
                 })
             },
 
@@ -433,13 +497,12 @@ impl<'a> Instruction<'a> {
                     // Add direct byte memory to direct register with Carry
                     id: 0x13,
                     mnemonic: "addcb",
-                    encoding: EncodingType::RR_MM_MM,
+                    encoding: EncodingType::reg8_mem16,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::DirectMemory16),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_ADD | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Memory,
-                    src_type: InstructionParameterType::DIRECT_MEMORY,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::SPECIAL_REGISTER | InstructionParameterType::BYTE_REGISTER
                 })
             },
 
@@ -449,13 +512,12 @@ impl<'a> Instruction<'a> {
                     // Add direct byte register to direct memory with Carry
                     id: 0x15,
                     mnemonic: "addcb",
-                    encoding: EncodingType::RR_MM_MM,
+                    encoding: EncodingType::reg8_mem16,
+                    op1: Some(OperandType::DirectMemory16),
+                    op2: Some(OperandType::WordRegister(0)),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_ADD | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Register0,
-                    src_type: InstructionParameterType::SPECIAL_REGISTER | InstructionParameterType::BYTE_REGISTER,
-                    dst_param: InstructionParameter::Memory,
-                    dst_type: InstructionParameterType::DIRECT_MEMORY
                 })
             },
 
@@ -475,13 +537,12 @@ impl<'a> Instruction<'a> {
                     // Bitwise AND direct word GPR with direct GPR
                     id: 0x60,
                     mnemonic: "and",
-                    encoding: EncodingType::nm,
+                    encoding: EncodingType::reg4_reg4,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::WordRegister(1)),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_AND | _RAnalOpType::R_ANAL_OP_TYPE_REG,
-                    esil: "{reg1},NUM,{reg0},&=",
-                    src_param: InstructionParameter::Register1,
-                    src_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER
+                    esil: "{op2},NUM,{op1},&=",
                 })
             },
 
@@ -495,13 +556,12 @@ impl<'a> Instruction<'a> {
                     // Bitwise AND immediate word data with direct GPR
                     id: 0x68,
                     mnemonic: "and",
-                    encoding: EncodingType::data3_or_reg,
+                    encoding: EncodingType::reg4_or_data3,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::ImmediateData3),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_AND,
                     esil: "",
-                    src_param: InstructionParameter::None,
-                    src_type: InstructionParameterType::DATA_3 | InstructionParameterType::WORD_REGISTER,
-                    dst_param: InstructionParameter::None,
-                    dst_type: InstructionParameterType::NONE
                 })
             },
 
@@ -511,13 +571,12 @@ impl<'a> Instruction<'a> {
                     // Bitwise AND immediate word data with direct register
                     id: 0x66,
                     mnemonic: "and",
-                    encoding: EncodingType::RR_II_II,
+                    encoding: EncodingType::reg8_data16,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::ImmediateData16),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_AND | _RAnalOpType::R_ANAL_OP_TYPE_REG,
-                    esil: "{immed},{reg0},&=",
-                    src_param: InstructionParameter::Data,
-                    src_type: InstructionParameterType::IMMEDIATE | InstructionParameterType::DATA_16,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::SPECIAL_REGISTER | InstructionParameterType::WORD_REGISTER
+                    esil: "{op2},{op1},&=",
                 })
             },
 
@@ -527,13 +586,12 @@ impl<'a> Instruction<'a> {
                     // Bitwise AND direct word memory with direct register
                     id: 0x62,
                     mnemonic: "and",
-                    encoding: EncodingType::RR_MM_MM,
+                    encoding: EncodingType::reg8_mem16,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::DirectMemory16),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_AND | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Memory,
-                    src_type: InstructionParameterType::DIRECT_MEMORY,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::SPECIAL_REGISTER | InstructionParameterType::WORD_REGISTER
                 })
             },
 
@@ -543,13 +601,12 @@ impl<'a> Instruction<'a> {
                     // Bitwise AND direct word register with direct memory
                     id: 0x64,
                     mnemonic: "and",
-                    encoding: EncodingType::RR_MM_MM,
+                    encoding: EncodingType::reg8_mem16,
+                    op1: Some(OperandType::DirectMemory16),
+                    op2: Some(OperandType::WordRegister(0)),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_AND | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Register0,
-                    src_type: InstructionParameterType::SPECIAL_REGISTER | InstructionParameterType::WORD_REGISTER,
-                    dst_param: InstructionParameter::Memory,
-                    dst_type: InstructionParameterType::DIRECT_MEMORY
                 })
             },
 
@@ -568,13 +625,12 @@ impl<'a> Instruction<'a> {
                     // Bitwise AND direct byte GPR with direct byte GPR
                     id: 0x61,
                     mnemonic: "andb",
-                    encoding: EncodingType::nm,
+                    encoding: EncodingType::reg4_reg4,
+                    op1: Some(OperandType::ByteRegister(0)),
+                    op2: Some(OperandType::ByteRegister(1)),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_AND | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Register1,
-                    src_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::BYTE_REGISTER,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::BYTE_REGISTER
                 })
             },
 
@@ -588,13 +644,12 @@ impl<'a> Instruction<'a> {
                     // Bitwise AND immediate byte data with direct GPR
                     id: 0x69,
                     mnemonic: "andb",
-                    encoding: EncodingType::data3_or_reg,
+                    encoding: EncodingType::reg4_or_data3,
+                    op1: Some(OperandType::ByteRegister(0)),
+                    op2: Some(OperandType::ImmediateData3),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_AND,
                     esil: "",
-                    src_param: InstructionParameter::None,
-                    src_type: InstructionParameterType::DATA_3 | InstructionParameterType::BYTE_REGISTER,
-                    dst_param: InstructionParameter::None,
-                    dst_type: InstructionParameterType::NONE
                 })
             },
 
@@ -604,13 +659,12 @@ impl<'a> Instruction<'a> {
                     // Bitwise AND immediate byte data with direct register
                     id: 0x67,
                     mnemonic: "andb",
-                    encoding: EncodingType::RR_II_xx,
+                    encoding: EncodingType::reg8_data8_nop8,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::ImmediateData8),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_AND | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Data,
-                    src_type: InstructionParameterType::IMMEDIATE | InstructionParameterType::DATA_8,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::SPECIAL_REGISTER | InstructionParameterType::BYTE_REGISTER
                 })
             },
 
@@ -620,13 +674,12 @@ impl<'a> Instruction<'a> {
                     // Bitwise AND direct byte memory with direct register
                     id: 0x63,
                     mnemonic: "andb",
-                    encoding: EncodingType::RR_MM_MM,
+                    encoding: EncodingType::reg8_mem16,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::DirectMemory16),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_AND | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Memory,
-                    src_type: InstructionParameterType::DIRECT_MEMORY,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::SPECIAL_REGISTER | InstructionParameterType::BYTE_REGISTER
                 })
             },
 
@@ -636,13 +689,12 @@ impl<'a> Instruction<'a> {
                     // Bitwise AND direct byte register with direct memory
                     id: 0x65,
                     mnemonic: "andb",
-                    encoding: EncodingType::RR_MM_MM,
+                    encoding: EncodingType::reg8_mem16,
+                    op1: Some(OperandType::DirectMemory16),
+                    op2: Some(OperandType::WordRegister(0)),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_AND | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Register0,
-                    src_type: InstructionParameterType::SPECIAL_REGISTER | InstructionParameterType::BYTE_REGISTER,
-                    dst_param: InstructionParameter::Memory,
-                    dst_type: InstructionParameterType::DIRECT_MEMORY
                 })
             },
 
@@ -664,13 +716,12 @@ impl<'a> Instruction<'a> {
                     // Arithmetic (sign bit) shift right direct word GPR; number of shift cycles specified by direct GPR
                     id: 0xAC,
                     mnemonic: "ashr",
-                    encoding: EncodingType::nm,
+                    encoding: EncodingType::reg4_reg4,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::WordRegister(1)),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_SHR | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Register1,
-                    src_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER
                 })
             },
 
@@ -680,13 +731,12 @@ impl<'a> Instruction<'a> {
                     // Arithmetic (sign bit) shift right direct word GPR; number of shift cycles specified by immediate data
                     id: 0xBC,
                     mnemonic: "ashr",
-                    encoding: EncodingType::In,
+                    encoding: EncodingType::reg4_data4,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::ImmediateData4),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_SHR | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Data,
-                    src_type: InstructionParameterType::IMMEDIATE | InstructionParameterType::DATA_4,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER
                 })
             },
 
@@ -697,7 +747,7 @@ impl<'a> Instruction<'a> {
             // next 1 to 4 instructions being executed after the ATOMIC instruction. All instructions requiring multiple
             // cycles or hold states to be executed are regarded as one instruction in this sense. Any instruction type can
             // be used with the ATOMIC instruction.
-            // 
+            //
             // NOTE: The ATOMIC instruction is not available in the SAB 8XC166(W)
             // NOTE: Condition flags not affected
 
@@ -705,9 +755,9 @@ impl<'a> Instruction<'a> {
             // Causes all SFR or SFR bit accesses via the 'reg', 'bitoff' or 'bitaddr' addressing modes being made to the
             // Extended SFR space for a specified number of instructions. During their execution both standard/PEC interrupts
             // and class A hardware traps are locked. The value of op1 defines the length of the effected instruction sequence.
-            // 
+            //
             // NOTE: The EXTR instruction is not available in the SAB 8XC166(W)
-            // NOTE: Condition flags not affected            
+            // NOTE: Condition flags not affected
 
             0xD1 => {
                 Ok(Instruction {
@@ -718,13 +768,12 @@ impl<'a> Instruction<'a> {
                     // Begin EXTended Register sequence
                     id: 0xD1,
                     mnemonic: "atomic_extr",
-                    encoding: EncodingType::atomic_extr,
+                    encoding: EncodingType::op_d1,
+                    op1: Some(OperandType::ImmediateIrange2),
+                    op2: None,
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_NULL,
                     esil: "",
-                    src_param: InstructionParameter::IRange,
-                    src_type: InstructionParameterType::IMMEDIATE,
-                    dst_param: InstructionParameter::None,
-                    dst_type: InstructionParameterType::NONE
                 })
             },
 
@@ -743,13 +792,12 @@ impl<'a> Instruction<'a> {
                     // AND direct bit with direct bit
                     id: 0x6A,
                     mnemonic: "band",
-                    encoding: EncodingType::QQ_ZZ_qz,
+                    encoding: EncodingType::bitaddr8_bitaddr8_bit4_bit4,
+                    op1: Some(OperandType::BitAddr(1)),
+                    op2: Some(OperandType::BitAddr(0)),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_AND,
                     esil: "",
-                    src_param: InstructionParameter::BitOffset1,
-                    src_type: InstructionParameterType::BIT_OFFSET | InstructionParameterType::BIT_OFFSET_BIT,
-                    dst_param: InstructionParameter::BitOffset0,
-                    dst_type: InstructionParameterType::BIT_OFFSET | InstructionParameterType::BIT_OFFSET_BIT
                 })
             },
 
@@ -767,13 +815,12 @@ impl<'a> Instruction<'a> {
                     // Clear direct bit
                     id: 0x0E,
                     mnemonic: "bclr",
-                    encoding: EncodingType::q_QQ,
+                    encoding: EncodingType::bitopcode4_e_bitaddr8,
+                    op1: Some(OperandType::BitAddr(0)),
+                    op2: None,
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_AND,
                     esil: "",
-                    src_param: InstructionParameter::BitOffset0,
-                    src_type: InstructionParameterType::BIT_OFFSET | InstructionParameterType::BIT_OFFSET_BIT,
-                    dst_param: InstructionParameter::None,
-                    dst_type: InstructionParameterType::NONE
                 })
             },
 
@@ -783,13 +830,12 @@ impl<'a> Instruction<'a> {
                     // Clear direct bit
                     id: 0x1E,
                     mnemonic: "bclr",
-                    encoding: EncodingType::q_QQ,
+                    encoding: EncodingType::bitopcode4_e_bitaddr8,
+                    op1: Some(OperandType::BitAddr(0)),
+                    op2: None,
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_AND,
                     esil: "",
-                    src_param: InstructionParameter::BitOffset0,
-                    src_type: InstructionParameterType::BIT_OFFSET | InstructionParameterType::BIT_OFFSET_BIT,
-                    dst_param: InstructionParameter::None,
-                    dst_type: InstructionParameterType::NONE
                 })
             },
 
@@ -799,13 +845,12 @@ impl<'a> Instruction<'a> {
                     // Clear direct bit
                     id: 0x2E,
                     mnemonic: "bclr",
-                    encoding: EncodingType::q_QQ,
+                    encoding: EncodingType::bitopcode4_e_bitaddr8,
+                    op1: Some(OperandType::BitAddr(0)),
+                    op2: None,
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_AND,
                     esil: "",
-                    src_param: InstructionParameter::BitOffset0,
-                    src_type: InstructionParameterType::BIT_OFFSET | InstructionParameterType::BIT_OFFSET_BIT,
-                    dst_param: InstructionParameter::None,
-                    dst_type: InstructionParameterType::NONE
                 })
             },
 
@@ -815,13 +860,12 @@ impl<'a> Instruction<'a> {
                     // Clear direct bit
                     id: 0x3E,
                     mnemonic: "bclr",
-                    encoding: EncodingType::q_QQ,
+                    encoding: EncodingType::bitopcode4_e_bitaddr8,
+                    op1: Some(OperandType::BitAddr(0)),
+                    op2: None,
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_AND,
                     esil: "",
-                    src_param: InstructionParameter::BitOffset0,
-                    src_type: InstructionParameterType::BIT_OFFSET | InstructionParameterType::BIT_OFFSET_BIT,
-                    dst_param: InstructionParameter::None,
-                    dst_type: InstructionParameterType::NONE
                 })
             },
 
@@ -831,13 +875,12 @@ impl<'a> Instruction<'a> {
                     // Clear direct bit
                     id: 0x4E,
                     mnemonic: "bclr",
-                    encoding: EncodingType::q_QQ,
+                    encoding: EncodingType::bitopcode4_e_bitaddr8,
+                    op1: Some(OperandType::BitAddr(0)),
+                    op2: None,
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_AND,
                     esil: "",
-                    src_param: InstructionParameter::BitOffset0,
-                    src_type: InstructionParameterType::BIT_OFFSET | InstructionParameterType::BIT_OFFSET_BIT,
-                    dst_param: InstructionParameter::None,
-                    dst_type: InstructionParameterType::NONE
                 })
             },
 
@@ -847,13 +890,12 @@ impl<'a> Instruction<'a> {
                     // Clear direct bit
                     id: 0x5E,
                     mnemonic: "bclr",
-                    encoding: EncodingType::q_QQ,
+                    encoding: EncodingType::bitopcode4_e_bitaddr8,
+                    op1: Some(OperandType::BitAddr(0)),
+                    op2: None,
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_AND,
                     esil: "",
-                    src_param: InstructionParameter::BitOffset0,
-                    src_type: InstructionParameterType::BIT_OFFSET | InstructionParameterType::BIT_OFFSET_BIT,
-                    dst_param: InstructionParameter::None,
-                    dst_type: InstructionParameterType::NONE
                 })
             },
 
@@ -863,13 +905,12 @@ impl<'a> Instruction<'a> {
                     // Clear direct bit
                     id: 0x6E,
                     mnemonic: "bclr",
-                    encoding: EncodingType::q_QQ,
+                    encoding: EncodingType::bitopcode4_e_bitaddr8,
+                    op1: Some(OperandType::BitAddr(0)),
+                    op2: None,
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_AND,
                     esil: "",
-                    src_param: InstructionParameter::BitOffset0,
-                    src_type: InstructionParameterType::BIT_OFFSET | InstructionParameterType::BIT_OFFSET_BIT,
-                    dst_param: InstructionParameter::None,
-                    dst_type: InstructionParameterType::NONE
                 })
             },
 
@@ -879,13 +920,12 @@ impl<'a> Instruction<'a> {
                     // Clear direct bit
                     id: 0x7E,
                     mnemonic: "bclr",
-                    encoding: EncodingType::q_QQ,
+                    encoding: EncodingType::bitopcode4_e_bitaddr8,
+                    op1: Some(OperandType::BitAddr(0)),
+                    op2: None,
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_AND,
                     esil: "",
-                    src_param: InstructionParameter::BitOffset0,
-                    src_type: InstructionParameterType::BIT_OFFSET | InstructionParameterType::BIT_OFFSET_BIT,
-                    dst_param: InstructionParameter::None,
-                    dst_type: InstructionParameterType::NONE
                 })
             },
 
@@ -895,13 +935,12 @@ impl<'a> Instruction<'a> {
                     // Clear direct bit
                     id: 0x8E,
                     mnemonic: "bclr",
-                    encoding: EncodingType::q_QQ,
+                    encoding: EncodingType::bitopcode4_e_bitaddr8,
+                    op1: Some(OperandType::BitAddr(0)),
+                    op2: None,
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_AND,
                     esil: "",
-                    src_param: InstructionParameter::BitOffset0,
-                    src_type: InstructionParameterType::BIT_OFFSET | InstructionParameterType::BIT_OFFSET_BIT,
-                    dst_param: InstructionParameter::None,
-                    dst_type: InstructionParameterType::NONE
                 })
             },
 
@@ -911,13 +950,12 @@ impl<'a> Instruction<'a> {
                     // Clear direct bit
                     id: 0x9E,
                     mnemonic: "bclr",
-                    encoding: EncodingType::q_QQ,
+                    encoding: EncodingType::bitopcode4_e_bitaddr8,
+                    op1: Some(OperandType::BitAddr(0)),
+                    op2: None,
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_AND,
                     esil: "",
-                    src_param: InstructionParameter::BitOffset0,
-                    src_type: InstructionParameterType::BIT_OFFSET | InstructionParameterType::BIT_OFFSET_BIT,
-                    dst_param: InstructionParameter::None,
-                    dst_type: InstructionParameterType::NONE
                 })
             },
 
@@ -927,13 +965,12 @@ impl<'a> Instruction<'a> {
                     // Clear direct bit
                     id: 0xAE,
                     mnemonic: "bclr",
-                    encoding: EncodingType::q_QQ,
+                    encoding: EncodingType::bitopcode4_e_bitaddr8,
+                    op1: Some(OperandType::BitAddr(0)),
+                    op2: None,
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_AND,
                     esil: "",
-                    src_param: InstructionParameter::BitOffset0,
-                    src_type: InstructionParameterType::BIT_OFFSET | InstructionParameterType::BIT_OFFSET_BIT,
-                    dst_param: InstructionParameter::None,
-                    dst_type: InstructionParameterType::NONE
                 })
             },
 
@@ -943,13 +980,12 @@ impl<'a> Instruction<'a> {
                     // Clear direct bit
                     id: 0xBE,
                     mnemonic: "bclr",
-                    encoding: EncodingType::q_QQ,
+                    encoding: EncodingType::bitopcode4_e_bitaddr8,
+                    op1: Some(OperandType::BitAddr(0)),
+                    op2: None,
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_AND,
                     esil: "",
-                    src_param: InstructionParameter::BitOffset0,
-                    src_type: InstructionParameterType::BIT_OFFSET | InstructionParameterType::BIT_OFFSET_BIT,
-                    dst_param: InstructionParameter::None,
-                    dst_type: InstructionParameterType::NONE
                 })
             },
 
@@ -959,13 +995,12 @@ impl<'a> Instruction<'a> {
                     // Clear direct bit
                     id: 0xCE,
                     mnemonic: "bclr",
-                    encoding: EncodingType::q_QQ,
+                    encoding: EncodingType::bitopcode4_e_bitaddr8,
+                    op1: Some(OperandType::BitAddr(0)),
+                    op2: None,
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_AND,
                     esil: "",
-                    src_param: InstructionParameter::BitOffset0,
-                    src_type: InstructionParameterType::BIT_OFFSET | InstructionParameterType::BIT_OFFSET_BIT,
-                    dst_param: InstructionParameter::None,
-                    dst_type: InstructionParameterType::NONE
                 })
             },
 
@@ -975,13 +1010,12 @@ impl<'a> Instruction<'a> {
                     // Clear direct bit
                     id: 0xDE,
                     mnemonic: "bclr",
-                    encoding: EncodingType::q_QQ,
+                    encoding: EncodingType::bitopcode4_e_bitaddr8,
+                    op1: Some(OperandType::BitAddr(0)),
+                    op2: None,
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_AND,
                     esil: "",
-                    src_param: InstructionParameter::BitOffset0,
-                    src_type: InstructionParameterType::BIT_OFFSET | InstructionParameterType::BIT_OFFSET_BIT,
-                    dst_param: InstructionParameter::None,
-                    dst_type: InstructionParameterType::NONE
                 })
             },
 
@@ -991,13 +1025,12 @@ impl<'a> Instruction<'a> {
                     // Clear direct bit
                     id: 0xEE,
                     mnemonic: "bclr",
-                    encoding: EncodingType::q_QQ,
+                    encoding: EncodingType::bitopcode4_e_bitaddr8,
+                    op1: Some(OperandType::BitAddr(0)),
+                    op2: None,
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_AND,
                     esil: "",
-                    src_param: InstructionParameter::BitOffset0,
-                    src_type: InstructionParameterType::BIT_OFFSET | InstructionParameterType::BIT_OFFSET_BIT,
-                    dst_param: InstructionParameter::None,
-                    dst_type: InstructionParameterType::NONE
                 })
             },
 
@@ -1007,13 +1040,12 @@ impl<'a> Instruction<'a> {
                     // Clear direct bit
                     id: 0xFE,
                     mnemonic: "bclr",
-                    encoding: EncodingType::q_QQ,
+                    encoding: EncodingType::bitopcode4_e_bitaddr8,
+                    op1: Some(OperandType::BitAddr(0)),
+                    op2: None,
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_AND,
                     esil: "",
-                    src_param: InstructionParameter::BitOffset0,
-                    src_type: InstructionParameterType::BIT_OFFSET | InstructionParameterType::BIT_OFFSET_BIT,
-                    dst_param: InstructionParameter::None,
-                    dst_type: InstructionParameterType::NONE
                 })
             },
 
@@ -1033,13 +1065,12 @@ impl<'a> Instruction<'a> {
                     // Compare direct bit to direct bit
                     id: 0x2A,
                     mnemonic: "bcmp",
-                    encoding: EncodingType::QQ_ZZ_qz,
+                    encoding: EncodingType::bitaddr8_bitaddr8_bit4_bit4,
+                    op1: Some(OperandType::BitAddr(1)),
+                    op2: Some(OperandType::BitAddr(0)),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_CMP,
                     esil: "",
-                    src_param: InstructionParameter::BitOffset1,
-                    src_type: InstructionParameterType::BIT_OFFSET | InstructionParameterType::BIT_OFFSET_BIT,
-                    dst_param: InstructionParameter::BitOffset0,
-                    dst_type: InstructionParameterType::BIT_OFFSET | InstructionParameterType::BIT_OFFSET_BIT
                 })
             },
 
@@ -1047,7 +1078,7 @@ impl<'a> Instruction<'a> {
             // Replaces those bits in the high byte of the destination word operand op1 which are selected by
             // a '1' in the AND mask op2 with the bits at the corresponding positions in the OR mask specified
             // by op3.
-            // 
+            //
             // NOTE: op1 bits which shall remain unchanged must have a '0' in the respective bit of both the AND
             // mask op2 and the OR mask op3.  Otherwise a '1' in op3 will set the corresponding op1 bit
             // (see "Operation"). If the target operand (op1) features bit-protection only the bits marked by a
@@ -1064,13 +1095,12 @@ impl<'a> Instruction<'a> {
                     // Bitwise modify masked high byte of bit-addressable direct word memory with immediate data
                     id: 0x1A,
                     mnemonic: "bfldh",
-                    encoding: EncodingType::QQ_AA_II,
+                    encoding: EncodingType::bitoff8_mask8_data8,
+                    op1: Some(OperandType::BitOffset(0)),
+                    op2: Some(OperandType::ImmediateMask8),
+                    op3: Some(OperandType::ImmediateData8),
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_NULL,
                     esil: "",
-                    src_param: InstructionParameter::Data,
-                    src_type: InstructionParameterType::IMMEDIATE | InstructionParameterType::DATA_8,
-                    dst_param: InstructionParameter::BitOffset0,
-                    dst_type: InstructionParameterType::BIT_OFFSET | InstructionParameterType::BIT_OFFSET_MASK
                 })
             },
 
@@ -1078,7 +1108,7 @@ impl<'a> Instruction<'a> {
             // Replaces those bits in the low byte of the destination word operand op1 which are selected by
             // a '1' in the AND mask op2 with the bits at the corresponding positions in the OR mask specified
             // by op3.
-            // 
+            //
             // NOTE: op1 bits which shall remain unchanged must have a '0' in the respective bit of both the AND
             // mask op2 and the OR mask op3.  Otherwise a '1' in op3 will set the corresponding op1 bit
             // (see "Operation"). If the target operand (op1) features bit-protection only the bits marked by a
@@ -1095,13 +1125,12 @@ impl<'a> Instruction<'a> {
                     // Bitwise modify masked low byte of bit-addressable direct word memory with immediate data
                     id: 0x0A,
                     mnemonic: "bfldl",
-                    encoding: EncodingType::QQ_AA_II,
+                    encoding: EncodingType::bitoff8_mask8_data8,
+                    op1: Some(OperandType::BitOffset(0)),
+                    op2: Some(OperandType::ImmediateMask8),
+                    op3: Some(OperandType::ImmediateData8),
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_NULL,
                     esil: "",
-                    src_param: InstructionParameter::Data,
-                    src_type: InstructionParameterType::IMMEDIATE | InstructionParameterType::DATA_8,
-                    dst_param: InstructionParameter::BitOffset0,
-                    dst_type: InstructionParameterType::BIT_OFFSET | InstructionParameterType::BIT_OFFSET_MASK
                 })
             },
 
@@ -1120,13 +1149,12 @@ impl<'a> Instruction<'a> {
                     // Move direct bit to direct bit
                     id: 0x4A,
                     mnemonic: "bmov",
-                    encoding: EncodingType::QQ_ZZ_qz,
+                    encoding: EncodingType::bitaddr8_bitaddr8_bit4_bit4,
+                    op1: Some(OperandType::BitAddr(1)),
+                    op2: Some(OperandType::BitAddr(0)),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_MOV,
                     esil: "",
-                    src_param: InstructionParameter::BitOffset1,
-                    src_type: InstructionParameterType::BIT_OFFSET | InstructionParameterType::BIT_OFFSET_BIT,
-                    dst_param: InstructionParameter::BitOffset0,
-                    dst_type: InstructionParameterType::BIT_OFFSET | InstructionParameterType::BIT_OFFSET_BIT
                 })
             },
 
@@ -1145,13 +1173,12 @@ impl<'a> Instruction<'a> {
                     // Move negated direct bit to direct bit
                     id: 0x3A,
                     mnemonic: "bmovn",
-                    encoding: EncodingType::QQ_ZZ_qz,
+                    encoding: EncodingType::bitaddr8_bitaddr8_bit4_bit4,
+                    op1: Some(OperandType::BitAddr(1)),
+                    op2: Some(OperandType::BitAddr(0)),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_MOV,
                     esil: "",
-                    src_param: InstructionParameter::BitOffset1,
-                    src_type: InstructionParameterType::BIT_OFFSET | InstructionParameterType::BIT_OFFSET_BIT,
-                    dst_param: InstructionParameter::BitOffset0,
-                    dst_type: InstructionParameterType::BIT_OFFSET | InstructionParameterType::BIT_OFFSET_BIT
                 })
             },
 
@@ -1170,13 +1197,12 @@ impl<'a> Instruction<'a> {
                     // OR direct bit with direct bit
                     id: 0x5A,
                     mnemonic: "bor",
-                    encoding: EncodingType::QQ_ZZ_qz,
+                    encoding: EncodingType::bitaddr8_bitaddr8_bit4_bit4,
+                    op1: Some(OperandType::BitAddr(1)),
+                    op2: Some(OperandType::BitAddr(0)),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_OR,
                     esil: "",
-                    src_param: InstructionParameter::BitOffset1,
-                    src_type: InstructionParameterType::BIT_OFFSET | InstructionParameterType::BIT_OFFSET_BIT,
-                    dst_param: InstructionParameter::BitOffset0,
-                    dst_type: InstructionParameterType::BIT_OFFSET | InstructionParameterType::BIT_OFFSET_BIT
                 })
             },
 
@@ -1194,13 +1220,12 @@ impl<'a> Instruction<'a> {
                     // Set direct bit
                     id: 0x0F,
                     mnemonic: "bset",
-                    encoding: EncodingType::q_QQ,
+                    encoding: EncodingType::bitopcode4_f_bitaddr8,
+                    op1: Some(OperandType::BitAddr(0)),
+                    op2: None,
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_OR,
                     esil: "",
-                    src_param: InstructionParameter::BitOffset0,
-                    src_type: InstructionParameterType::BIT_OFFSET | InstructionParameterType::BIT_OFFSET_BIT,
-                    dst_param: InstructionParameter::None,
-                    dst_type: InstructionParameterType::NONE
                 })
             },
 
@@ -1210,13 +1235,12 @@ impl<'a> Instruction<'a> {
                     // Set direct bit
                     id: 0x1F,
                     mnemonic: "bset",
-                    encoding: EncodingType::q_QQ,
+                    encoding: EncodingType::bitopcode4_f_bitaddr8,
+                    op1: Some(OperandType::BitAddr(0)),
+                    op2: None,
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_OR,
                     esil: "",
-                    src_param: InstructionParameter::BitOffset0,
-                    src_type: InstructionParameterType::BIT_OFFSET | InstructionParameterType::BIT_OFFSET_BIT,
-                    dst_param: InstructionParameter::None,
-                    dst_type: InstructionParameterType::NONE
                 })
             },
 
@@ -1226,13 +1250,12 @@ impl<'a> Instruction<'a> {
                     // Set direct bit
                     id: 0x2F,
                     mnemonic: "bset",
-                    encoding: EncodingType::q_QQ,
+                    encoding: EncodingType::bitopcode4_f_bitaddr8,
+                    op1: Some(OperandType::BitAddr(0)),
+                    op2: None,
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_OR,
                     esil: "",
-                    src_param: InstructionParameter::BitOffset0,
-                    src_type: InstructionParameterType::BIT_OFFSET | InstructionParameterType::BIT_OFFSET_BIT,
-                    dst_param: InstructionParameter::None,
-                    dst_type: InstructionParameterType::NONE
                 })
             },
 
@@ -1242,13 +1265,12 @@ impl<'a> Instruction<'a> {
                     // Set direct bit
                     id: 0x3F,
                     mnemonic: "bset",
-                    encoding: EncodingType::q_QQ,
+                    encoding: EncodingType::bitopcode4_f_bitaddr8,
+                    op1: Some(OperandType::BitAddr(0)),
+                    op2: None,
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_OR,
                     esil: "",
-                    src_param: InstructionParameter::BitOffset0,
-                    src_type: InstructionParameterType::BIT_OFFSET | InstructionParameterType::BIT_OFFSET_BIT,
-                    dst_param: InstructionParameter::None,
-                    dst_type: InstructionParameterType::NONE
                 })
             },
 
@@ -1258,13 +1280,12 @@ impl<'a> Instruction<'a> {
                     // Set direct bit
                     id: 0x4F,
                     mnemonic: "bset",
-                    encoding: EncodingType::q_QQ,
+                    encoding: EncodingType::bitopcode4_f_bitaddr8,
+                    op1: Some(OperandType::BitAddr(0)),
+                    op2: None,
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_OR,
                     esil: "",
-                    src_param: InstructionParameter::BitOffset0,
-                    src_type: InstructionParameterType::BIT_OFFSET | InstructionParameterType::BIT_OFFSET_BIT,
-                    dst_param: InstructionParameter::None,
-                    dst_type: InstructionParameterType::NONE
                 })
             },
 
@@ -1274,13 +1295,12 @@ impl<'a> Instruction<'a> {
                     // Set direct bit
                     id: 0x5F,
                     mnemonic: "bset",
-                    encoding: EncodingType::q_QQ,
+                    encoding: EncodingType::bitopcode4_f_bitaddr8,
+                    op1: Some(OperandType::BitAddr(0)),
+                    op2: None,
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_OR,
                     esil: "",
-                    src_param: InstructionParameter::BitOffset0,
-                    src_type: InstructionParameterType::BIT_OFFSET | InstructionParameterType::BIT_OFFSET_BIT,
-                    dst_param: InstructionParameter::None,
-                    dst_type: InstructionParameterType::NONE
                 })
             },
 
@@ -1290,13 +1310,12 @@ impl<'a> Instruction<'a> {
                     // Set direct bit
                     id: 0x6F,
                     mnemonic: "bset",
-                    encoding: EncodingType::q_QQ,
+                    encoding: EncodingType::bitopcode4_f_bitaddr8,
+                    op1: Some(OperandType::BitAddr(0)),
+                    op2: None,
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_OR,
                     esil: "",
-                    src_param: InstructionParameter::BitOffset0,
-                    src_type: InstructionParameterType::BIT_OFFSET | InstructionParameterType::BIT_OFFSET_BIT,
-                    dst_param: InstructionParameter::None,
-                    dst_type: InstructionParameterType::NONE
                 })
             },
 
@@ -1306,13 +1325,12 @@ impl<'a> Instruction<'a> {
                     // Set direct bit
                     id: 0x7F,
                     mnemonic: "bset",
-                    encoding: EncodingType::q_QQ,
+                    encoding: EncodingType::bitopcode4_f_bitaddr8,
+                    op1: Some(OperandType::BitAddr(0)),
+                    op2: None,
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_OR,
                     esil: "",
-                    src_param: InstructionParameter::BitOffset0,
-                    src_type: InstructionParameterType::BIT_OFFSET | InstructionParameterType::BIT_OFFSET_BIT,
-                    dst_param: InstructionParameter::None,
-                    dst_type: InstructionParameterType::NONE
                 })
             },
 
@@ -1322,13 +1340,12 @@ impl<'a> Instruction<'a> {
                     // Set direct bit
                     id: 0x8F,
                     mnemonic: "bset",
-                    encoding: EncodingType::q_QQ,
+                    encoding: EncodingType::bitopcode4_f_bitaddr8,
+                    op1: Some(OperandType::BitAddr(0)),
+                    op2: None,
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_OR,
                     esil: "",
-                    src_param: InstructionParameter::BitOffset0,
-                    src_type: InstructionParameterType::BIT_OFFSET | InstructionParameterType::BIT_OFFSET_BIT,
-                    dst_param: InstructionParameter::None,
-                    dst_type: InstructionParameterType::NONE
                 })
             },
 
@@ -1338,13 +1355,12 @@ impl<'a> Instruction<'a> {
                     // Set direct bit
                     id: 0x9F,
                     mnemonic: "bset",
-                    encoding: EncodingType::q_QQ,
+                    encoding: EncodingType::bitopcode4_f_bitaddr8,
+                    op1: Some(OperandType::BitAddr(0)),
+                    op2: None,
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_OR,
                     esil: "",
-                    src_param: InstructionParameter::BitOffset0,
-                    src_type: InstructionParameterType::BIT_OFFSET | InstructionParameterType::BIT_OFFSET_BIT,
-                    dst_param: InstructionParameter::None,
-                    dst_type: InstructionParameterType::NONE
                 })
             },
 
@@ -1354,13 +1370,12 @@ impl<'a> Instruction<'a> {
                     // Set direct bit
                     id: 0xAF,
                     mnemonic: "bset",
-                    encoding: EncodingType::q_QQ,
+                    encoding: EncodingType::bitopcode4_f_bitaddr8,
+                    op1: Some(OperandType::BitAddr(0)),
+                    op2: None,
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_OR,
                     esil: "",
-                    src_param: InstructionParameter::BitOffset0,
-                    src_type: InstructionParameterType::BIT_OFFSET | InstructionParameterType::BIT_OFFSET_BIT,
-                    dst_param: InstructionParameter::None,
-                    dst_type: InstructionParameterType::NONE
                 })
             },
 
@@ -1370,13 +1385,12 @@ impl<'a> Instruction<'a> {
                     // Set direct bit
                     id: 0xBF,
                     mnemonic: "bset",
-                    encoding: EncodingType::q_QQ,
+                    encoding: EncodingType::bitopcode4_f_bitaddr8,
+                    op1: Some(OperandType::BitAddr(0)),
+                    op2: None,
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_OR,
                     esil: "",
-                    src_param: InstructionParameter::BitOffset0,
-                    src_type: InstructionParameterType::BIT_OFFSET | InstructionParameterType::BIT_OFFSET_BIT,
-                    dst_param: InstructionParameter::None,
-                    dst_type: InstructionParameterType::NONE
                 })
             },
 
@@ -1386,13 +1400,12 @@ impl<'a> Instruction<'a> {
                     // Set direct bit
                     id: 0xCF,
                     mnemonic: "bset",
-                    encoding: EncodingType::q_QQ,
+                    encoding: EncodingType::bitopcode4_f_bitaddr8,
+                    op1: Some(OperandType::BitAddr(0)),
+                    op2: None,
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_OR,
                     esil: "",
-                    src_param: InstructionParameter::BitOffset0,
-                    src_type: InstructionParameterType::BIT_OFFSET | InstructionParameterType::BIT_OFFSET_BIT,
-                    dst_param: InstructionParameter::None,
-                    dst_type: InstructionParameterType::NONE
                 })
             },
 
@@ -1402,13 +1415,12 @@ impl<'a> Instruction<'a> {
                     // Set direct bit
                     id: 0xDF,
                     mnemonic: "bset",
-                    encoding: EncodingType::q_QQ,
+                    encoding: EncodingType::bitopcode4_f_bitaddr8,
+                    op1: Some(OperandType::BitAddr(0)),
+                    op2: None,
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_OR,
                     esil: "",
-                    src_param: InstructionParameter::BitOffset0,
-                    src_type: InstructionParameterType::BIT_OFFSET | InstructionParameterType::BIT_OFFSET_BIT,
-                    dst_param: InstructionParameter::None,
-                    dst_type: InstructionParameterType::NONE
                 })
             },
 
@@ -1418,13 +1430,12 @@ impl<'a> Instruction<'a> {
                     // Set direct bit
                     id: 0xEF,
                     mnemonic: "bset",
-                    encoding: EncodingType::q_QQ,
+                    encoding: EncodingType::bitopcode4_f_bitaddr8,
+                    op1: Some(OperandType::BitAddr(0)),
+                    op2: None,
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_OR,
                     esil: "",
-                    src_param: InstructionParameter::BitOffset0,
-                    src_type: InstructionParameterType::BIT_OFFSET | InstructionParameterType::BIT_OFFSET_BIT,
-                    dst_param: InstructionParameter::None,
-                    dst_type: InstructionParameterType::NONE
                 })
             },
 
@@ -1434,13 +1445,12 @@ impl<'a> Instruction<'a> {
                     // Set direct bit
                     id: 0xFF,
                     mnemonic: "bset",
-                    encoding: EncodingType::q_QQ,
+                    encoding: EncodingType::bitopcode4_f_bitaddr8,
+                    op1: Some(OperandType::BitAddr(0)),
+                    op2: None,
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_OR,
                     esil: "",
-                    src_param: InstructionParameter::BitOffset0,
-                    src_type: InstructionParameterType::BIT_OFFSET | InstructionParameterType::BIT_OFFSET_BIT,
-                    dst_param: InstructionParameter::None,
-                    dst_type: InstructionParameterType::NONE
                 })
             },
 
@@ -1459,13 +1469,12 @@ impl<'a> Instruction<'a> {
                     // XOR direct bit with direct bit
                     id: 0x7A,
                     mnemonic: "bxor",
-                    encoding: EncodingType::QQ_ZZ_qz,
+                    encoding: EncodingType::bitaddr8_bitaddr8_bit4_bit4,
+                    op1: Some(OperandType::BitAddr(1)),
+                    op2: Some(OperandType::BitAddr(0)),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_XOR,
                     esil: "",
-                    src_param: InstructionParameter::BitOffset1,
-                    src_type: InstructionParameterType::BIT_OFFSET | InstructionParameterType::BIT_OFFSET_BIT,
-                    dst_param: InstructionParameter::BitOffset0,
-                    dst_type: InstructionParameterType::BIT_OFFSET | InstructionParameterType::BIT_OFFSET_BIT
                 })
             },
 
@@ -1475,7 +1484,7 @@ impl<'a> Instruction<'a> {
             // system stack. Because the IP always points to the instruction following the branch instruction,
             // the value stored on the system stack represents the return address of the calling routine. If the
             // condition is not met, no action is taken and the next instruction is executed normally.
-            // 
+            //
             // NOTE: Condition flags not affected
 
             0xCA => {
@@ -1484,13 +1493,12 @@ impl<'a> Instruction<'a> {
                     // Call absolute subroutine if condition is met
                     id: 0xCA,
                     mnemonic: "calla",
-                    encoding: EncodingType::c0_MM_MM,
+                    encoding: EncodingType::cond4_0_mem16,
+                    op1: Some(OperandType::Condition),
+                    op2: Some(OperandType::DirectCaddr16),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_CALL,
                     esil: "",
-                    src_param: InstructionParameter::Memory,
-                    src_type: InstructionParameterType::DIRECT_MEMORY,
-                    dst_param: InstructionParameter::Condition,
-                    dst_type: InstructionParameterType::CONDITION
                 })
             },
 
@@ -1500,7 +1508,7 @@ impl<'a> Instruction<'a> {
             // the IP always points to the instruction following the branch instruction, the value stored on the system
             // stack represents the return address of the calling routine. If the condition is not met, no action is
             // taken and the next instruction is executed normally.
-            // 
+            //
             // NOTE: Condition flags not affected
 
             0xAB => {
@@ -1509,13 +1517,12 @@ impl<'a> Instruction<'a> {
                     // Call indirect subroutine if condition is met
                     id: 0xAB,
                     mnemonic: "calli",
-                    encoding: EncodingType::cn,
+                    encoding: EncodingType::cond4_reg4,
+                    op1: Some(OperandType::Condition),
+                    op2: Some(OperandType::Indirect(0)),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_CALL | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Register0,
-                    src_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER | InstructionParameterType::INDIRECT,
-                    dst_param: InstructionParameter::Condition,
-                    dst_type: InstructionParameterType::CONDITION
                 })
             },
 
@@ -1526,7 +1533,7 @@ impl<'a> Instruction<'a> {
             // instruction following the branch instruction, the value stored on the system stack represents the return address
             // of the calling routine. The value of the IP used in the target address calculation is the address of the
             // instruction following the CALLR instruction.
-            // 
+            //
             // NOTE: Condition flags not affected
 
             0xBB => {
@@ -1535,13 +1542,12 @@ impl<'a> Instruction<'a> {
                     // Call relative subroutine
                     id: 0xBB,
                     mnemonic: "callr",
-                    encoding: EncodingType::rr,
+                    encoding: EncodingType::rel8s,
+                    op1: Some(OperandType::DirectRelative8S),
+                    op2: None,
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_CALL,
                     esil: "",
-                    src_param: InstructionParameter::RelativeAddress,
-                    src_type: InstructionParameterType::DIRECT_MEMORY,
-                    dst_param: InstructionParameter::None,
-                    dst_type: InstructionParameterType::NONE
                 })
             },
 
@@ -1550,7 +1556,7 @@ impl<'a> Instruction<'a> {
             // instruction pointer (IP) is placed onto the system stack. Because the IP always points to the instruction following
             // the branch instruction, the value stored on the system stack represents the return address to the calling routine.
             // The previous value of the CSP is also placed on the system stack to insure correct return to the calling segment.
-            // 
+            //
             // NOTE: Condition flags not affected
 
             0xDA => {
@@ -1559,13 +1565,12 @@ impl<'a> Instruction<'a> {
                     // Call absolute subroutine in any code segment
                     id: 0xDA,
                     mnemonic: "calls",
-                    encoding: EncodingType::SS_MM_MM,
+                    encoding: EncodingType::seg8_mem16,
+                    op1: Some(OperandType::DirectSegment8),
+                    op2: Some(OperandType::DirectCaddr16),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_CALL,
                     esil: "",
-                    src_param: InstructionParameter::Memory,
-                    src_type: InstructionParameterType::DIRECT_MEMORY,
-                    dst_param: InstructionParameter::Segment,
-                    dst_type: InstructionParameterType::SEGMENT
                 })
             },
 
@@ -1585,13 +1590,12 @@ impl<'a> Instruction<'a> {
                     // Compare direct word GPR to direct GPR
                     id: 0x40,
                     mnemonic: "cmp",
-                    encoding: EncodingType::nm,
+                    encoding: EncodingType::reg4_reg4,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::WordRegister(1)),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_CMP | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Register1,
-                    src_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER
                 })
             },
 
@@ -1605,13 +1609,12 @@ impl<'a> Instruction<'a> {
                     // Compare immediate word data to direct GPR
                     id: 0x48,
                     mnemonic: "cmp",
-                    encoding: EncodingType::data3_or_reg,
+                    encoding: EncodingType::reg4_or_data3,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::ImmediateData3),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_CMP,
                     esil: "",
-                    src_param: InstructionParameter::None,
-                    src_type: InstructionParameterType::DATA_3 | InstructionParameterType::WORD_REGISTER,
-                    dst_param: InstructionParameter::None,
-                    dst_type: InstructionParameterType::NONE
                 })
             },
 
@@ -1621,13 +1624,12 @@ impl<'a> Instruction<'a> {
                     // Compare immediate word data to direct register
                     id: 0x46,
                     mnemonic: "cmp",
-                    encoding: EncodingType::RR_II_II,
+                    encoding: EncodingType::reg8_data16,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::ImmediateData16),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_CMP | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Data,
-                    src_type: InstructionParameterType::IMMEDIATE | InstructionParameterType::DATA_16,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::SPECIAL_REGISTER | InstructionParameterType::WORD_REGISTER
                 })
             },
 
@@ -1637,13 +1639,12 @@ impl<'a> Instruction<'a> {
                     // Compare direct word memory to direct register
                     id: 0x42,
                     mnemonic: "cmp",
-                    encoding: EncodingType::RR_MM_MM,
+                    encoding: EncodingType::reg8_mem16,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::DirectMemory16),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_CMP | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Memory,
-                    src_type: InstructionParameterType::DIRECT_MEMORY,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::SPECIAL_REGISTER | InstructionParameterType::WORD_REGISTER
                 })
             },
 
@@ -1663,13 +1664,12 @@ impl<'a> Instruction<'a> {
                     // Compare direct byte GPR to direct GPR
                     id: 0x41,
                     mnemonic: "cmpb",
-                    encoding: EncodingType::nm,
+                    encoding: EncodingType::reg4_reg4,
+                    op1: Some(OperandType::ByteRegister(0)),
+                    op2: Some(OperandType::ByteRegister(1)),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_CMP | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Register1,
-                    src_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::BYTE_REGISTER,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::BYTE_REGISTER
                 })
             },
 
@@ -1683,13 +1683,12 @@ impl<'a> Instruction<'a> {
                     // Compare immediate byte data to direct GPR
                     id: 0x49,
                     mnemonic: "cmpb",
-                    encoding: EncodingType::data3_or_reg,
+                    encoding: EncodingType::reg4_or_data3,
+                    op1: Some(OperandType::ByteRegister(0)),
+                    op2: Some(OperandType::ImmediateData3),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_CMP,
                     esil: "",
-                    src_param: InstructionParameter::None,
-                    src_type: InstructionParameterType::DATA_3 | InstructionParameterType::BYTE_REGISTER,
-                    dst_param: InstructionParameter::None,
-                    dst_type: InstructionParameterType::NONE
                 })
             },
 
@@ -1699,13 +1698,12 @@ impl<'a> Instruction<'a> {
                     // Compare immediate byte data to direct register
                     id: 0x47,
                     mnemonic: "cmpb",
-                    encoding: EncodingType::RR_II_xx,
+                    encoding: EncodingType::reg8_data8_nop8,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::ImmediateData8),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_CMP | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Data,
-                    src_type: InstructionParameterType::IMMEDIATE | InstructionParameterType::DATA_8,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::SPECIAL_REGISTER | InstructionParameterType::BYTE_REGISTER
                 })
             },
 
@@ -1715,13 +1713,12 @@ impl<'a> Instruction<'a> {
                     // Compare direct byte memory to direct register
                     id: 0x43,
                     mnemonic: "cmpb",
-                    encoding: EncodingType::RR_MM_MM,
+                    encoding: EncodingType::reg8_mem16,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::DirectMemory16),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_CMP | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Memory,
-                    src_type: InstructionParameterType::DIRECT_MEMORY,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::SPECIAL_REGISTER | InstructionParameterType::BYTE_REGISTER
                 })
             },
 
@@ -1744,13 +1741,12 @@ impl<'a> Instruction<'a> {
                     // Compare immediate word data to direct GPR and decrement GPR by 1
                     id: 0xA0,
                     mnemonic: "cmpd1",
-                    encoding: EncodingType::In,
+                    encoding: EncodingType::reg4_data4,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::ImmediateData4),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_CMP | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Data,
-                    src_type: InstructionParameterType::IMMEDIATE | InstructionParameterType::DATA_4,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER
                 })
             },
 
@@ -1760,13 +1756,12 @@ impl<'a> Instruction<'a> {
                     // Compare immediate word data to direct GPR and decrement GPR by 1
                     id: 0xA6,
                     mnemonic: "cmpd1",
-                    encoding: EncodingType::Fn_II_II,
+                    encoding: EncodingType::_f_reg4_data16,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::ImmediateData16),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_CMP | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Data,
-                    src_type: InstructionParameterType::IMMEDIATE | InstructionParameterType::DATA_16,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER
                 })
             },
 
@@ -1776,13 +1771,12 @@ impl<'a> Instruction<'a> {
                     // Compare direct word memory to direct GPR and decrement GPR by 1
                     id: 0xA2,
                     mnemonic: "cmpd1",
-                    encoding: EncodingType::Fn_MM_MM,
+                    encoding: EncodingType::_f_reg4_mem16,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::DirectMemory16),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_CMP | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Memory,
-                    src_type: InstructionParameterType::DIRECT_MEMORY,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER
                 })
             },
 
@@ -1804,13 +1798,12 @@ impl<'a> Instruction<'a> {
                     // Compare immediate word data to direct GPR and decrement GPR by 2
                     id: 0xB0,
                     mnemonic: "cmpd2",
-                    encoding: EncodingType::In,
+                    encoding: EncodingType::reg4_data4,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::ImmediateData4),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_CMP | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Data,
-                    src_type: InstructionParameterType::IMMEDIATE | InstructionParameterType::DATA_4,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER
                 })
             },
 
@@ -1820,13 +1813,12 @@ impl<'a> Instruction<'a> {
                     // Compare immediate word data to direct GPR and decrement GPR by 2
                     id: 0xB6,
                     mnemonic: "cmpd2",
-                    encoding: EncodingType::Fn_II_II,
+                    encoding: EncodingType::_f_reg4_data16,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::ImmediateData16),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_CMP | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Data,
-                    src_type: InstructionParameterType::IMMEDIATE | InstructionParameterType::DATA_16,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER
                 })
             },
 
@@ -1836,13 +1828,12 @@ impl<'a> Instruction<'a> {
                     // Compare direct word memory to direct GPR and decrement GPR by 2
                     id: 0xB2,
                     mnemonic: "cmpd2",
-                    encoding: EncodingType::Fn_MM_MM,
+                    encoding: EncodingType::_f_reg4_mem16,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::DirectMemory16),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_CMP | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Memory,
-                    src_type: InstructionParameterType::DIRECT_MEMORY,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER
                 })
             },
 
@@ -1864,13 +1855,12 @@ impl<'a> Instruction<'a> {
                     // Compare immediate word data to direct GPR and increment GPR by 1
                     id: 0x80,
                     mnemonic: "cmpi1",
-                    encoding: EncodingType::In,
+                    encoding: EncodingType::reg4_data4,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::ImmediateData4),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_CMP | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Data,
-                    src_type: InstructionParameterType::IMMEDIATE | InstructionParameterType::DATA_4,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER
                 })
             },
 
@@ -1880,13 +1870,12 @@ impl<'a> Instruction<'a> {
                     // Compare immediate word data to direct GPR and increment GPR by 1
                     id: 0x86,
                     mnemonic: "cmpi1",
-                    encoding: EncodingType::Fn_II_II,
+                    encoding: EncodingType::_f_reg4_data16,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::ImmediateData16),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_CMP | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Data,
-                    src_type: InstructionParameterType::IMMEDIATE | InstructionParameterType::DATA_16,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER
                 })
             },
 
@@ -1896,13 +1885,12 @@ impl<'a> Instruction<'a> {
                     // Compare direct word memory to direct GPR and increment GPR by 1
                     id: 0x82,
                     mnemonic: "cmpi1",
-                    encoding: EncodingType::Fn_MM_MM,
+                    encoding: EncodingType::_f_reg4_mem16,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::DirectMemory16),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_CMP | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Memory,
-                    src_type: InstructionParameterType::DIRECT_MEMORY,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER
                 })
             },
 
@@ -1924,13 +1912,12 @@ impl<'a> Instruction<'a> {
                     // Compare immediate word data to direct GPR and increment GPR by 2
                     id: 0x90,
                     mnemonic: "cmpi2",
-                    encoding: EncodingType::In,
+                    encoding: EncodingType::reg4_data4,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::ImmediateData4),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_CMP | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Data,
-                    src_type: InstructionParameterType::IMMEDIATE | InstructionParameterType::DATA_4,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER
                 })
             },
 
@@ -1940,13 +1927,12 @@ impl<'a> Instruction<'a> {
                     // Compare immediate word data to direct GPR and increment GPR by 2
                     id: 0x96,
                     mnemonic: "cmpi2",
-                    encoding: EncodingType::Fn_II_II,
+                    encoding: EncodingType::_f_reg4_data16,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::ImmediateData16),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_CMP | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Data,
-                    src_type: InstructionParameterType::IMMEDIATE | InstructionParameterType::DATA_16,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER
                 })
             },
 
@@ -1956,13 +1942,12 @@ impl<'a> Instruction<'a> {
                     // Compare direct word memory to direct GPR and increment GPR by 2
                     id: 0x92,
                     mnemonic: "cmpi2",
-                    encoding: EncodingType::Fn_MM_MM,
+                    encoding: EncodingType::_f_reg4_mem16,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::DirectMemory16),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_CMP | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Memory,
-                    src_type: InstructionParameterType::DIRECT_MEMORY,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER
                 })
             },
 
@@ -1980,13 +1965,12 @@ impl<'a> Instruction<'a> {
                     // Complement direct word GPR
                     id: 0x91,
                     mnemonic: "cpl",
-                    encoding: EncodingType::n0,
+                    encoding: EncodingType::reg4_0,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: None,
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_CPL | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Register0,
-                    src_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER,
-                    dst_param: InstructionParameter::None,
-                    dst_type: InstructionParameterType::NONE
                 })
             },
 
@@ -2004,13 +1988,12 @@ impl<'a> Instruction<'a> {
                     // Complement direct byte GPR
                     id: 0xB1,
                     mnemonic: "cplb",
-                    encoding: EncodingType::n0,
+                    encoding: EncodingType::reg4_0,
+                    op1: Some(OperandType::ByteRegister(0)),
+                    op2: None,
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_CPL | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Register0,
-                    src_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::BYTE_REGISTER,
-                    dst_param: InstructionParameter::None,
-                    dst_type: InstructionParameterType::NONE
                 })
             },
 
@@ -2020,7 +2003,7 @@ impl<'a> Instruction<'a> {
             // function. Following a reset, this instruction can be executed at any time until either a Service Watchdog
             // Timer instruction (SRVWDT) or an End of Initialization instruction (EINIT) are executed. Once one of these
             // instructions has been executed, the DISWDT instruction will have no effect.
-            // 
+            //
             // NOTE: To insure that this instruction is not accidentally executed, it is implemented as a protected instruction.
             // NOTE: Condition flags not affected
 
@@ -2031,12 +2014,11 @@ impl<'a> Instruction<'a> {
                     id: 0xA5,
                     mnemonic: "diswdt",
                     encoding: EncodingType::NO_ARGS4,
+                    op1: None,
+                    op2: None,
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_NULL | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::None,
-                    src_type: InstructionParameterType::NONE,
-                    dst_param: InstructionParameter::None,
-                    dst_type: InstructionParameterType::NONE
                 })
             },
 
@@ -2044,7 +2026,7 @@ impl<'a> Instruction<'a> {
             // Performs a signed 16-bit by 16-bit division of the low order word stored in the MD register by the source
             // word operand op1. The signed quotient is then stored in the low order word of the MD register (MDL) and the
             // remainder is stored in the high order word of the MD register (MDH).
-            // 
+            //
             // NOTE: DIV is interruptable.
             // E: Always cleared.
             // Z: Set if result equals zero. Cleared otherwise.
@@ -2058,13 +2040,12 @@ impl<'a> Instruction<'a> {
                     // Signed divide register MDL by direct GPR (16-bit ÷ 16-bit)
                     id: 0x4B,
                     mnemonic: "div",
-                    encoding: EncodingType::nn,
+                    encoding: EncodingType::reg4_dup,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: None,
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_DIV | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Register0,
-                    src_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER,
-                    dst_param: InstructionParameter::None,
-                    dst_type: InstructionParameterType::NONE
                 })
             },
 
@@ -2072,7 +2053,7 @@ impl<'a> Instruction<'a> {
             // Performs an extended signed 32-bit by 16-bit division of the two words stored in the MD register by the source
             // word operand op1. The signed quotient is then stored in the low order word of the MD register (MDL) and the
             // remainder is stored in the high order word of the MD register (MDH).
-            // 
+            //
             // NOTE: DIVL is interruptable.
             // E: Always cleared.
             // Z: Set if result equals zero. Cleared otherwise.
@@ -2086,13 +2067,12 @@ impl<'a> Instruction<'a> {
                     // Signed long divide register MD by direct GPR (32-bit ÷ 16-bit)
                     id: 0x6B,
                     mnemonic: "divl",
-                    encoding: EncodingType::nn,
+                    encoding: EncodingType::reg4_dup,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: None,
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_DIV | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Register0,
-                    src_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER,
-                    dst_param: InstructionParameter::None,
-                    dst_type: InstructionParameterType::NONE
                 })
             },
 
@@ -2100,7 +2080,7 @@ impl<'a> Instruction<'a> {
             // Performs an extended unsigned 32-bit by 16-bit division of the two words stored in the MD register by the source
             // word operand op1. The unsigned quotient is then stored in the low order word of the MD register (MDL) and the
             // remainder is stored in the high order word of the MD register (MDH).
-            // 
+            //
             // NOTE: DIVLU is interruptable.
             // E: Always cleared.
             // Z: Set if result equals zero. Cleared otherwise.
@@ -2114,13 +2094,12 @@ impl<'a> Instruction<'a> {
                     // Unsigned long divide register MD by direct GPR (32-bit ÷ 16-bit)
                     id: 0x7B,
                     mnemonic: "divlu",
-                    encoding: EncodingType::nn,
+                    encoding: EncodingType::reg4_dup,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: None,
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_DIV | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Register0,
-                    src_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER,
-                    dst_param: InstructionParameter::None,
-                    dst_type: InstructionParameterType::NONE
                 })
             },
 
@@ -2128,7 +2107,7 @@ impl<'a> Instruction<'a> {
             // Performs an unsigned 16-bit by 16-bit division of the low order word stored in the MD register by the source
             // word operand op1. The signed quotient is then stored in the low order word of the MD register (MDL) and the
             // remainder is stored in the high order word of the MD register (MDH).
-            // 
+            //
             // NOTE: DIVU is interruptable.
             // E: Always cleared.
             // Z: Set if result equals zero. Cleared otherwise.
@@ -2142,13 +2121,12 @@ impl<'a> Instruction<'a> {
                     // Unsigned divide register MDL by direct GPR (16-bit ÷ 16-bit)
                     id: 0x5B,
                     mnemonic: "divu",
-                    encoding: EncodingType::nn,
+                    encoding: EncodingType::reg4_dup,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: None,
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_DIV | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Register0,
-                    src_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER,
-                    dst_param: InstructionParameter::None,
-                    dst_type: InstructionParameterType::NONE
                 })
             },
 
@@ -2158,7 +2136,7 @@ impl<'a> Instruction<'a> {
             // goes high. This enables the program to signal the external circuitry that it has successfully initialized the
             // microcontroller. After the EINIT instruction has been executed, execution of the Disable Watchdog Timer instruction
             // (DISWDT) has no effect.
-            // 
+            //
             // NOTE: To insure that this instruction is not accidentally executed, it is implemented as a protected instruction.
             // NOTE: Condition flags not affected
             0xB5 => {
@@ -2168,12 +2146,11 @@ impl<'a> Instruction<'a> {
                     id: 0xB5,
                     mnemonic: "einit",
                     encoding: EncodingType::NO_ARGS4,
+                    op1: None,
+                    op2: None,
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_NULL,
                     esil: "",
-                    src_param: InstructionParameter::None,
-                    src_type: InstructionParameterType::NONE,
-                    dst_param: InstructionParameter::None,
-                    dst_type: InstructionParameterType::NONE
                 })
             },
 
@@ -2185,7 +2162,7 @@ impl<'a> Instruction<'a> {
             // by the contents of a DPP register but by the value of op1 itself. The 14-bit page offset (address bits A13 - A0) is
             // derived from the long or indirect address as usual. The value of op2 defines the length of the effected instruction
             // sequence.
-            // 
+            //
             // NOTE: The EXTP instruction is not available in the SAB 8XC166(W) devices.
             // NOTE: Condition flags not affected
 
@@ -2197,7 +2174,7 @@ impl<'a> Instruction<'a> {
             // bits A23 - A14) is not determined by the contents of a DPP register but by the value of op1 itself. The 14-bit page
             // offset (address bits A13 - A0) is derived from the long or indirect address as usual.  The value of op2 defines the
             // length of the effected instruction sequence.
-            // 
+            //
             // NOTE: The EXTP instruction is not available in the SAB 8XC166(W) devices.
             // NOTE: Condition flags not affected
 
@@ -2208,7 +2185,7 @@ impl<'a> Instruction<'a> {
             // ([...]) address in an EXTS instruction sequence, the value of op1 determines the 8-bit segment (address bits A23 -
             // A16) valid for the corresponding data access. The long or indirect address itself represents the 16-bit segment
             // offset (address bits A15 - A0).  The value of op2 defines the length of the effected instruction sequence.
-            // 
+            //
             // NOTE: The EXTP instruction is not available in the SAB 8XC166(W) devices.
             // NOTE: Condition flags not affected
 
@@ -2220,7 +2197,7 @@ impl<'a> Instruction<'a> {
             // indirect ([...]) address in an EXTSR instruction sequence, the value of op1 determines the 8-bit segment (address
             // bits A23 - A16) valid for the corresponding data access. The long or indirect address itself represents the 16-bit
             // segment offset (address bits A15 - A0). The value of op2 defines the length of the effected instruction sequence.
-            // 
+            //
             // NOTE: The EXTP instruction is not available in the SAB 8XC166(W) devices.
             // NOTE: Condition flags not affected
 
@@ -2239,14 +2216,13 @@ impl<'a> Instruction<'a> {
                     // #seg, #irang2
                     // Begin EXTended Segment and Register sequence
                     id: 0xD7,
-                    mnemonic: "ext_d7",
-                    encoding: EncodingType::ext_d7,
+                    mnemonic: "ext*",
+                    encoding: EncodingType::op_d7,
+                    op1: Some(OperandType::ImmediateData4),
+                    op2: Some(OperandType::ImmediateIrange2),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_NULL,
                     esil: "",
-                    src_param: InstructionParameter::IRange,
-                    src_type: InstructionParameterType::IMMEDIATE,
-                    dst_param: InstructionParameter::PageOrSegment,
-                    dst_type: InstructionParameterType::IMMEDIATE
                 })
             },
 
@@ -2265,14 +2241,13 @@ impl<'a> Instruction<'a> {
                     // Rwm, #irang2
                     // Begin EXTended Segment and Register sequence
                     id: 0xDC,
-                    mnemonic: "ext_dc",
-                    encoding: EncodingType::ext_dc,
+                    mnemonic: "ext*",
+                    encoding: EncodingType::op_dc,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::ImmediateIrange2),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_NULL | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::IRange,
-                    src_type: InstructionParameterType::IMMEDIATE,
-                    dst_param: InstructionParameter::Register1,
-                    dst_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER
                 })
             },
 
@@ -2281,7 +2256,7 @@ impl<'a> Instruction<'a> {
             // CPU is powered down. In idle mode the peripherals remain running, while in sleep mode also the peripherals are powered
             // down. The device remains powered down until a peripheral interrupt (only possible in Idle mode) or an external
             // interrupt occurs.
-            // 
+            //
             // NOTE: Sleep mode must be selected before executing the IDLE instruction.
             // NOTE: To insure that this instruction is not accidentally executed, it is implemented as a protected instruction.
             // NOTE: Condition flags not affected
@@ -2293,12 +2268,11 @@ impl<'a> Instruction<'a> {
                     id: 0x87,
                     mnemonic: "idle",
                     encoding: EncodingType::NO_ARGS4,
+                    op1: None,
+                    op2: None,
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_NULL,
                     esil: "",
-                    src_param: InstructionParameter::None,
-                    src_type: InstructionParameterType::NONE,
-                    dst_param: InstructionParameter::None,
-                    dst_type: InstructionParameterType::NONE
                 })
             },
 
@@ -2307,7 +2281,7 @@ impl<'a> Instruction<'a> {
             // the specified displacement, op2. The displacement is a two's complement number which is sign extended and counts the
             // relative distance in words. The value of the IP used in the target address calculation is the address of the instruction
             // following the JB instruction. If the specified bit is clear, the instruction following the JB instruction is executed.
-            // 
+            //
             // NOTE: Condition flags not affected
 
             0x8A => {
@@ -2316,13 +2290,12 @@ impl<'a> Instruction<'a> {
                     // Jump relative if direct bit is set
                     id: 0x8A,
                     mnemonic: "jb",
-                    encoding: EncodingType::QQ_rr_q0,
+                    encoding: EncodingType::bitaddr8_rel8_bit4_0,
+                    op1: Some(OperandType::BitAddr(0)),
+                    op2: Some(OperandType::DirectRelative8S),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_JMP | _RAnalOpType::R_ANAL_OP_TYPE_COND,
                     esil: "",
-                    src_param: InstructionParameter::RelativeAddress,
-                    src_type: InstructionParameterType::DIRECT_MEMORY,
-                    dst_param: InstructionParameter::BitOffset0,
-                    dst_type: InstructionParameterType::BIT_OFFSET | InstructionParameterType::BIT_OFFSET_BIT
                 })
             },
 
@@ -2344,20 +2317,19 @@ impl<'a> Instruction<'a> {
                     // Jump relative and clear bit if direct bit is set
                     id: 0xAA,
                     mnemonic: "jbc",
-                    encoding: EncodingType::QQ_rr_q0,
+                    encoding: EncodingType::bitaddr8_rel8_bit4_0,
+                    op1: Some(OperandType::BitAddr(0)),
+                    op2: Some(OperandType::DirectRelative8S),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_JMP | _RAnalOpType::R_ANAL_OP_TYPE_COND,
                     esil: "",
-                    src_param: InstructionParameter::RelativeAddress,
-                    src_type: InstructionParameterType::DIRECT_MEMORY,
-                    dst_param: InstructionParameter::BitOffset0,
-                    dst_type: InstructionParameterType::BIT_OFFSET | InstructionParameterType::BIT_OFFSET_BIT
                 })
             },
 
             // JMPA: Absolute Conditional Jump
             // If the condition specified by op1 is met, a branch to the absolute address specified by op2 is taken. If the condition
             // is not met, no action is taken, and the instruction following the JMPA instruction is executed normally.
-            // 
+            //
             // NOTE: Condition flags not affected
 
             0xEA => {
@@ -2366,20 +2338,19 @@ impl<'a> Instruction<'a> {
                     // Jump absolute if condition is met
                     id: 0xEA,
                     mnemonic: "jmpa",
-                    encoding: EncodingType::c0_MM_MM,
+                    encoding: EncodingType::cond4_0_mem16,
+                    op1: Some(OperandType::Condition),
+                    op2: Some(OperandType::DirectCaddr16),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_JMP | _RAnalOpType::R_ANAL_OP_TYPE_COND,
                     esil: "",
-                    src_param: InstructionParameter::Memory,
-                    src_type: InstructionParameterType::DIRECT_MEMORY,
-                    dst_param: InstructionParameter::Condition,
-                    dst_type: InstructionParameterType::CONDITION
                 })
             },
 
             // JMPI: Indirect Conditional Jump
             // If the condition specified by op1 is met, a branch to the absolute address specified by op2 is taken. If the condition
             // is not met, no action is taken, and the instruction following the JMPI instruction is executed normally.
-            // 
+            //
             // NOTE: Condition flags not affected
 
             0x9C => {
@@ -2388,13 +2359,12 @@ impl<'a> Instruction<'a> {
                     // Jump indirect if condition is met
                     id: 0x9C,
                     mnemonic: "jmpi",
-                    encoding: EncodingType::cn,
+                    encoding: EncodingType::cond4_reg4,
+                    op1: Some(OperandType::Condition),
+                    op2: Some(OperandType::Indirect(0)),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_JMP | _RAnalOpType::R_ANAL_OP_TYPE_COND | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Register0,
-                    src_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER | InstructionParameterType::INDIRECT,
-                    dst_param: InstructionParameter::Condition,
-                    dst_type: InstructionParameterType::CONDITION
                 })
             },
 
@@ -2404,7 +2374,7 @@ impl<'a> Instruction<'a> {
             // distance in words. The value of the IP used in the target address calculation is the address of the instruction following the
             // JMPR instruction. If the specified condition is not met, program execution continues normally with the instruction following
             // the JMPR instruction.
-            // 
+            //
             // NOTE: Condition flags not affected
 
             0x0D => {
@@ -2413,13 +2383,12 @@ impl<'a> Instruction<'a> {
                     // Jump relative if condition is met
                     id: 0x0D,
                     mnemonic: "jmpr",
-                    encoding: EncodingType::cc_rr,
+                    encoding: EncodingType::condopcode4_d_rel8s,
+                    op1: Some(OperandType::Condition),
+                    op2: Some(OperandType::DirectRelative8S),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_JMP,
                     esil: "",
-                    src_param: InstructionParameter::RelativeAddress,
-                    src_type: InstructionParameterType::DIRECT_MEMORY,
-                    dst_param: InstructionParameter::Condition,
-                    dst_type: InstructionParameterType::CONDITION
                 })
             },
 
@@ -2429,13 +2398,12 @@ impl<'a> Instruction<'a> {
                     // Jump relative if condition is met
                     id: 0x1D,
                     mnemonic: "jmpr",
-                    encoding: EncodingType::cc_rr,
+                    encoding: EncodingType::condopcode4_d_rel8s,
+                    op1: Some(OperandType::Condition),
+                    op2: Some(OperandType::DirectRelative8S),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_JMP | _RAnalOpType::R_ANAL_OP_TYPE_COND,
                     esil: "",
-                    src_param: InstructionParameter::RelativeAddress,
-                    src_type: InstructionParameterType::DIRECT_MEMORY,
-                    dst_param: InstructionParameter::Condition,
-                    dst_type: InstructionParameterType::CONDITION
                 })
             },
 
@@ -2445,13 +2413,12 @@ impl<'a> Instruction<'a> {
                     // Jump relative if condition is met
                     id: 0x2D,
                     mnemonic: "jmpr",
-                    encoding: EncodingType::cc_rr,
+                    encoding: EncodingType::condopcode4_d_rel8s,
+                    op1: Some(OperandType::Condition),
+                    op2: Some(OperandType::DirectRelative8S),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_JMP | _RAnalOpType::R_ANAL_OP_TYPE_COND,
                     esil: "",
-                    src_param: InstructionParameter::RelativeAddress,
-                    src_type: InstructionParameterType::DIRECT_MEMORY,
-                    dst_param: InstructionParameter::Condition,
-                    dst_type: InstructionParameterType::CONDITION
                 })
             },
 
@@ -2461,13 +2428,12 @@ impl<'a> Instruction<'a> {
                     // Jump relative if condition is met
                     id: 0x3D,
                     mnemonic: "jmpr",
-                    encoding: EncodingType::cc_rr,
+                    encoding: EncodingType::condopcode4_d_rel8s,
+                    op1: Some(OperandType::Condition),
+                    op2: Some(OperandType::DirectRelative8S),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_JMP | _RAnalOpType::R_ANAL_OP_TYPE_COND,
                     esil: "",
-                    src_param: InstructionParameter::RelativeAddress,
-                    src_type: InstructionParameterType::DIRECT_MEMORY,
-                    dst_param: InstructionParameter::Condition,
-                    dst_type: InstructionParameterType::CONDITION
                 })
             },
 
@@ -2477,13 +2443,12 @@ impl<'a> Instruction<'a> {
                     // Jump relative if condition is met
                     id: 0x4D,
                     mnemonic: "jmpr",
-                    encoding: EncodingType::cc_rr,
+                    encoding: EncodingType::condopcode4_d_rel8s,
+                    op1: Some(OperandType::Condition),
+                    op2: Some(OperandType::DirectRelative8S),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_JMP | _RAnalOpType::R_ANAL_OP_TYPE_COND,
                     esil: "",
-                    src_param: InstructionParameter::RelativeAddress,
-                    src_type: InstructionParameterType::DIRECT_MEMORY,
-                    dst_param: InstructionParameter::Condition,
-                    dst_type: InstructionParameterType::CONDITION
                 })
             },
 
@@ -2493,13 +2458,12 @@ impl<'a> Instruction<'a> {
                     // Jump relative if condition is met
                     id: 0x5D,
                     mnemonic: "jmpr",
-                    encoding: EncodingType::cc_rr,
+                    encoding: EncodingType::condopcode4_d_rel8s,
+                    op1: Some(OperandType::Condition),
+                    op2: Some(OperandType::DirectRelative8S),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_JMP | _RAnalOpType::R_ANAL_OP_TYPE_COND,
                     esil: "",
-                    src_param: InstructionParameter::RelativeAddress,
-                    src_type: InstructionParameterType::DIRECT_MEMORY,
-                    dst_param: InstructionParameter::Condition,
-                    dst_type: InstructionParameterType::CONDITION
                 })
             },
 
@@ -2509,13 +2473,12 @@ impl<'a> Instruction<'a> {
                     // Jump relative if condition is met
                     id: 0x6D,
                     mnemonic: "jmpr",
-                    encoding: EncodingType::cc_rr,
+                    encoding: EncodingType::condopcode4_d_rel8s,
+                    op1: Some(OperandType::Condition),
+                    op2: Some(OperandType::DirectRelative8S),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_JMP | _RAnalOpType::R_ANAL_OP_TYPE_COND,
                     esil: "",
-                    src_param: InstructionParameter::RelativeAddress,
-                    src_type: InstructionParameterType::DIRECT_MEMORY,
-                    dst_param: InstructionParameter::Condition,
-                    dst_type: InstructionParameterType::CONDITION
                 })
             },
 
@@ -2525,13 +2488,12 @@ impl<'a> Instruction<'a> {
                     // Jump relative if condition is met
                     id: 0x7D,
                     mnemonic: "jmpr",
-                    encoding: EncodingType::cc_rr,
+                    encoding: EncodingType::condopcode4_d_rel8s,
+                    op1: Some(OperandType::Condition),
+                    op2: Some(OperandType::DirectRelative8S),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_JMP | _RAnalOpType::R_ANAL_OP_TYPE_COND,
                     esil: "",
-                    src_param: InstructionParameter::RelativeAddress,
-                    src_type: InstructionParameterType::DIRECT_MEMORY,
-                    dst_param: InstructionParameter::Condition,
-                    dst_type: InstructionParameterType::CONDITION
                 })
             },
 
@@ -2541,13 +2503,12 @@ impl<'a> Instruction<'a> {
                     // Jump relative if condition is met
                     id: 0x8D,
                     mnemonic: "jmpr",
-                    encoding: EncodingType::cc_rr,
+                    encoding: EncodingType::condopcode4_d_rel8s,
+                    op1: Some(OperandType::Condition),
+                    op2: Some(OperandType::DirectRelative8S),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_JMP | _RAnalOpType::R_ANAL_OP_TYPE_COND,
                     esil: "",
-                    src_param: InstructionParameter::RelativeAddress,
-                    src_type: InstructionParameterType::DIRECT_MEMORY,
-                    dst_param: InstructionParameter::Condition,
-                    dst_type: InstructionParameterType::CONDITION
                 })
             },
 
@@ -2557,13 +2518,12 @@ impl<'a> Instruction<'a> {
                     // Jump relative if condition is met
                     id: 0x9D,
                     mnemonic: "jmpr",
-                    encoding: EncodingType::cc_rr,
+                    encoding: EncodingType::condopcode4_d_rel8s,
+                    op1: Some(OperandType::Condition),
+                    op2: Some(OperandType::DirectRelative8S),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_JMP | _RAnalOpType::R_ANAL_OP_TYPE_COND,
                     esil: "",
-                    src_param: InstructionParameter::RelativeAddress,
-                    src_type: InstructionParameterType::DIRECT_MEMORY,
-                    dst_param: InstructionParameter::Condition,
-                    dst_type: InstructionParameterType::CONDITION
                 })
             },
 
@@ -2573,13 +2533,12 @@ impl<'a> Instruction<'a> {
                     // Jump relative if condition is met
                     id: 0xAD,
                     mnemonic: "jmpr",
-                    encoding: EncodingType::cc_rr,
+                    encoding: EncodingType::condopcode4_d_rel8s,
+                    op1: Some(OperandType::Condition),
+                    op2: Some(OperandType::DirectRelative8S),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_JMP | _RAnalOpType::R_ANAL_OP_TYPE_COND,
                     esil: "",
-                    src_param: InstructionParameter::RelativeAddress,
-                    src_type: InstructionParameterType::DIRECT_MEMORY,
-                    dst_param: InstructionParameter::Condition,
-                    dst_type: InstructionParameterType::CONDITION
                 })
             },
 
@@ -2589,13 +2548,12 @@ impl<'a> Instruction<'a> {
                     // Jump relative if condition is met
                     id: 0xBD,
                     mnemonic: "jmpr",
-                    encoding: EncodingType::cc_rr,
+                    encoding: EncodingType::condopcode4_d_rel8s,
+                    op1: Some(OperandType::Condition),
+                    op2: Some(OperandType::DirectRelative8S),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_JMP | _RAnalOpType::R_ANAL_OP_TYPE_COND,
                     esil: "",
-                    src_param: InstructionParameter::RelativeAddress,
-                    src_type: InstructionParameterType::DIRECT_MEMORY,
-                    dst_param: InstructionParameter::Condition,
-                    dst_type: InstructionParameterType::CONDITION
                 })
             },
 
@@ -2605,13 +2563,12 @@ impl<'a> Instruction<'a> {
                     // Jump relative if condition is met
                     id: 0xCD,
                     mnemonic: "jmpr",
-                    encoding: EncodingType::cc_rr,
+                    encoding: EncodingType::condopcode4_d_rel8s,
+                    op1: Some(OperandType::Condition),
+                    op2: Some(OperandType::DirectRelative8S),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_JMP | _RAnalOpType::R_ANAL_OP_TYPE_COND,
                     esil: "",
-                    src_param: InstructionParameter::RelativeAddress,
-                    src_type: InstructionParameterType::DIRECT_MEMORY,
-                    dst_param: InstructionParameter::Condition,
-                    dst_type: InstructionParameterType::CONDITION
                 })
             },
 
@@ -2621,13 +2578,12 @@ impl<'a> Instruction<'a> {
                     // Jump relative if condition is met
                     id: 0xDD,
                     mnemonic: "jmpr",
-                    encoding: EncodingType::cc_rr,
+                    encoding: EncodingType::condopcode4_d_rel8s,
+                    op1: Some(OperandType::Condition),
+                    op2: Some(OperandType::DirectRelative8S),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_JMP | _RAnalOpType::R_ANAL_OP_TYPE_COND,
                     esil: "",
-                    src_param: InstructionParameter::RelativeAddress,
-                    src_type: InstructionParameterType::DIRECT_MEMORY,
-                    dst_param: InstructionParameter::Condition,
-                    dst_type: InstructionParameterType::CONDITION
                 })
             },
 
@@ -2637,13 +2593,12 @@ impl<'a> Instruction<'a> {
                     // Jump relative if condition is met
                     id: 0xED,
                     mnemonic: "jmpr",
-                    encoding: EncodingType::cc_rr,
+                    encoding: EncodingType::condopcode4_d_rel8s,
+                    op1: Some(OperandType::Condition),
+                    op2: Some(OperandType::DirectRelative8S),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_JMP | _RAnalOpType::R_ANAL_OP_TYPE_COND,
                     esil: "",
-                    src_param: InstructionParameter::RelativeAddress,
-                    src_type: InstructionParameterType::DIRECT_MEMORY,
-                    dst_param: InstructionParameter::Condition,
-                    dst_type: InstructionParameterType::CONDITION
                 })
             },
 
@@ -2653,19 +2608,18 @@ impl<'a> Instruction<'a> {
                     // Jump relative if condition is met
                     id: 0xFD,
                     mnemonic: "jmpr",
-                    encoding: EncodingType::cc_rr,
+                    encoding: EncodingType::condopcode4_d_rel8s,
+                    op1: Some(OperandType::Condition),
+                    op2: Some(OperandType::DirectRelative8S),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_JMP | _RAnalOpType::R_ANAL_OP_TYPE_COND,
                     esil: "",
-                    src_param: InstructionParameter::RelativeAddress,
-                    src_type: InstructionParameterType::DIRECT_MEMORY,
-                    dst_param: InstructionParameter::Condition,
-                    dst_type: InstructionParameterType::CONDITION
                 })
             },
 
             // JMPS: Absolute Inter-Segment Jump
             // Branches unconditionally to the absolute address specified by op2 within the segment specified by op1.
-            // 
+            //
             // NOTE: Condition flags not affected
 
             0xFA => {
@@ -2674,13 +2628,12 @@ impl<'a> Instruction<'a> {
                     // Jump absolute to a code segment
                     id: 0xFA,
                     mnemonic: "jmps",
-                    encoding: EncodingType::SS_MM_MM,
+                    encoding: EncodingType::seg8_mem16,
+                    op1: Some(OperandType::DirectSegment8),
+                    op2: Some(OperandType::DirectCaddr16),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_JMP,
                     esil: "",
-                    src_param: InstructionParameter::Memory,
-                    src_type: InstructionParameterType::DIRECT_MEMORY,
-                    dst_param: InstructionParameter::Segment,
-                    dst_type: InstructionParameterType::SEGMENT
                 })
             },
 
@@ -2690,7 +2643,7 @@ impl<'a> Instruction<'a> {
             // and counts the relative distance in words. The value of the IP used in the target address calculation is the
             // address of the instruction following the JNB instruction. If the specified bit is set, the instruction following
             // the JNB instruction is executed.
-            // 
+            //
             // NOTE: Condition flags not affected
 
             0x9A => {
@@ -2699,13 +2652,12 @@ impl<'a> Instruction<'a> {
                     // Jump relative if direct bit is not set
                     id: 0x9A,
                     mnemonic: "jnb",
-                    encoding: EncodingType::QQ_rr_q0,
+                    encoding: EncodingType::bitaddr8_rel8_bit4_0,
+                    op1: Some(OperandType::BitAddr(0)),
+                    op2: Some(OperandType::DirectRelative8S),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_JMP | _RAnalOpType::R_ANAL_OP_TYPE_COND,
                     esil: "",
-                    src_param: InstructionParameter::RelativeAddress,
-                    src_type: InstructionParameterType::DIRECT_MEMORY,
-                    dst_param: InstructionParameter::BitOffset0,
-                    dst_type: InstructionParameterType::BIT_OFFSET | InstructionParameterType::BIT_OFFSET_BIT
                 })
             },
 
@@ -2728,13 +2680,12 @@ impl<'a> Instruction<'a> {
                     // Jump relative and set bit if direct bit is not set
                     id: 0xBA,
                     mnemonic: "jnbs",
-                    encoding: EncodingType::QQ_rr_q0,
+                    encoding: EncodingType::bitaddr8_rel8_bit4_0,
+                    op1: Some(OperandType::BitAddr(0)),
+                    op2: Some(OperandType::DirectRelative8S),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_JMP | _RAnalOpType::R_ANAL_OP_TYPE_COND,
                     esil: "",
-                    src_param: InstructionParameter::RelativeAddress,
-                    src_type: InstructionParameterType::DIRECT_MEMORY,
-                    dst_param: InstructionParameter::BitOffset0,
-                    dst_type: InstructionParameterType::BIT_OFFSET | InstructionParameterType::BIT_OFFSET_BIT
                 })
             },
 
@@ -2753,13 +2704,12 @@ impl<'a> Instruction<'a> {
                     // Move direct word GPR to direct GPR
                     id: 0xF0,
                     mnemonic: "mov",
-                    encoding: EncodingType::nm,
+                    encoding: EncodingType::reg4_reg4,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::WordRegister(1)),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_MOV | _RAnalOpType::R_ANAL_OP_TYPE_REG,
-                    esil: "{reg1},NUM,{reg0},=",
-                    src_param: InstructionParameter::Register1,
-                    src_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER
+                    esil: "{op2},NUM,{op1},=",
                 })
             },
 
@@ -2769,13 +2719,12 @@ impl<'a> Instruction<'a> {
                     // Move immediate word data to direct GPR
                     id: 0xE0,
                     mnemonic: "mov",
-                    encoding: EncodingType::In,
+                    encoding: EncodingType::reg4_data4,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::ImmediateData4),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_MOV | _RAnalOpType::R_ANAL_OP_TYPE_REG,
-                    esil: "{immed},{reg0},=",
-                    src_param: InstructionParameter::Data,
-                    src_type: InstructionParameterType::IMMEDIATE | InstructionParameterType::DATA_4,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER
+                    esil: "{op2},{op1},=",
                 })
             },
 
@@ -2785,13 +2734,12 @@ impl<'a> Instruction<'a> {
                     // Move immediate word data to direct register
                     id: 0xE6,
                     mnemonic: "mov",
-                    encoding: EncodingType::RR_II_II,
+                    encoding: EncodingType::reg8_data16,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::ImmediateData16),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_MOV | _RAnalOpType::R_ANAL_OP_TYPE_REG,
-                    esil: "{immed},{reg0},=",
-                    src_param: InstructionParameter::Data,
-                    src_type: InstructionParameterType::IMMEDIATE | InstructionParameterType::DATA_16,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::SPECIAL_REGISTER | InstructionParameterType::WORD_REGISTER
+                    esil: "{op2},{op1},=",
                 })
             },
 
@@ -2801,13 +2749,12 @@ impl<'a> Instruction<'a> {
                     // Move indirect word memory to direct GPR
                     id: 0xA8,
                     mnemonic: "mov",
-                    encoding: EncodingType::nm,
+                    encoding: EncodingType::reg4_reg4,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::Indirect(1)),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_MOV | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Register1,
-                    src_type: InstructionParameterType::INDIRECT | InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER
                 })
             },
 
@@ -2817,13 +2764,12 @@ impl<'a> Instruction<'a> {
                     // Move indirect word memory to direct GPR and post-increment source pointer by 2
                     id: 0x98,
                     mnemonic: "mov",
-                    encoding: EncodingType::nm,
+                    encoding: EncodingType::reg4_reg4,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::IndirectPostIncrement(1)),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_MOV | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Register1,
-                    src_type: InstructionParameterType::INDIRECT | InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER | InstructionParameterType::INCREMENT,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER
                 })
             },
 
@@ -2833,13 +2779,12 @@ impl<'a> Instruction<'a> {
                     // Move direct word GPR to indirect memory
                     id: 0xB8,
                     mnemonic: "mov",
-                    encoding: EncodingType::nm,
+                    encoding: EncodingType::reg4_reg4,
+                    op1: Some(OperandType::Indirect(1)),
+                    op2: Some(OperandType::WordRegister(0)),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_MOV | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Register0,
-                    src_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER,
-                    dst_param: InstructionParameter::Register1,
-                    dst_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER | InstructionParameterType::INDIRECT
                 })
             },
 
@@ -2849,13 +2794,12 @@ impl<'a> Instruction<'a> {
                     // Pre-decrement destination pointer by 2 and move direct word GPR to indirect memory
                     id: 0x88,
                     mnemonic: "mov",
-                    encoding: EncodingType::nm,
+                    encoding: EncodingType::reg4_reg4,
+                    op1: Some(OperandType::IndirectPreDecrement(1)),
+                    op2: Some(OperandType::WordRegister(0)),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_MOV | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Register0,
-                    src_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER,
-                    dst_param: InstructionParameter::Register1,
-                    dst_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER | InstructionParameterType::INDIRECT | InstructionParameterType::DECREMENT
                 })
             },
 
@@ -2865,13 +2809,12 @@ impl<'a> Instruction<'a> {
                     // Move indirect word memory to indirect memory
                     id: 0xC8,
                     mnemonic: "mov",
-                    encoding: EncodingType::nm,
+                    encoding: EncodingType::reg4_reg4,
+                    op1: Some(OperandType::Indirect(0)),
+                    op2: Some(OperandType::Indirect(1)),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_MOV | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Register1,
-                    src_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER | InstructionParameterType::INDIRECT,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER | InstructionParameterType::INDIRECT
                 })
             },
 
@@ -2881,13 +2824,12 @@ impl<'a> Instruction<'a> {
                     // Move indirect word memory to indirect memory and post-increment destination pointer by 2
                     id: 0xD8,
                     mnemonic: "mov",
-                    encoding: EncodingType::nm,
+                    encoding: EncodingType::reg4_reg4,
+                    op1: Some(OperandType::IndirectPostIncrement(0)),
+                    op2: Some(OperandType::Indirect(1)),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_MOV | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Register1,
-                    src_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER | InstructionParameterType::INDIRECT,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER | InstructionParameterType::INDIRECT | InstructionParameterType::INCREMENT
                 })
             },
 
@@ -2897,13 +2839,12 @@ impl<'a> Instruction<'a> {
                     // Move indirect word memory to indirect memory and post-increment source pointer by 2
                     id: 0xE8,
                     mnemonic: "mov",
-                    encoding: EncodingType::nm,
+                    encoding: EncodingType::reg4_reg4,
+                    op1: Some(OperandType::Indirect(0)),
+                    op2: Some(OperandType::IndirectPostIncrement(1)),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_MOV | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Register1,
-                    src_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType:: WORD_REGISTER | InstructionParameterType::INDIRECT | InstructionParameterType::INCREMENT,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER | InstructionParameterType::INDIRECT
                 })
             },
 
@@ -2913,13 +2854,12 @@ impl<'a> Instruction<'a> {
                     // Move indirect word memory by base plus constant to direct word GPR
                     id: 0xD4,
                     mnemonic: "mov",
-                    encoding: EncodingType::nm_II_II,
+                    encoding: EncodingType::reg4_reg4_data16,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::IndirectAndImmediate(1)),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_MOV | _RAnalOpType::R_ANAL_OP_TYPE_REG,
-                    esil: "{reg1},NUM,{immed},+,[],{reg0}",
-                    src_param: InstructionParameter::Register1,
-                    src_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER | InstructionParameterType::INDIRECT | InstructionParameterType::IMMEDIATE | InstructionParameterType::INCREMENT | InstructionParameterType::DATA_16,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER
+                    esil: "{op2},NUM,{immed},+,[],{op1}",
                 })
             },
 
@@ -2929,13 +2869,12 @@ impl<'a> Instruction<'a> {
                     // Move direct word GPR to indirect memory by base plus constant
                     id: 0xC4,
                     mnemonic: "mov",
-                    encoding: EncodingType::nm_II_II,
+                    encoding: EncodingType::reg4_reg4_data16,
+                    op1: Some(OperandType::IndirectAndImmediate(1)),
+                    op2: Some(OperandType::WordRegister(0)),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_MOV | _RAnalOpType::R_ANAL_OP_TYPE_REG,
-                    esil: "{reg0},{reg1},NUM,{immed},+,=[]",
-                    src_param: InstructionParameter::Register0,
-                    src_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER,
-                    dst_param: InstructionParameter::Register1,
-                    dst_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER | InstructionParameterType::INDIRECT | InstructionParameterType::INCREMENT | InstructionParameterType::IMMEDIATE | InstructionParameterType::DATA_16
+                    esil: "{op2},{op1},NUM,{immed},+,=[]",
                 })
             },
 
@@ -2945,13 +2884,12 @@ impl<'a> Instruction<'a> {
                     // Move direct word memory to indirect memory
                     id: 0x84,
                     mnemonic: "mov",
-                    encoding: EncodingType::_0n_MM_MM,
+                    encoding: EncodingType::_0_reg4_mem16,
+                    op1: Some(OperandType::Indirect(0)),
+                    op2: Some(OperandType::DirectMemory16),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_MOV | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Memory,
-                    src_type: InstructionParameterType::DIRECT_MEMORY,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER | InstructionParameterType::INDIRECT
                 })
             },
 
@@ -2961,13 +2899,12 @@ impl<'a> Instruction<'a> {
                     // Move indirect word memory to direct memory
                     id: 0x94,
                     mnemonic: "mov",
-                    encoding: EncodingType::_0n_MM_MM,
+                    encoding: EncodingType::_0_reg4_mem16,
+                    op1: Some(OperandType::DirectMemory16),
+                    op2: Some(OperandType::Indirect(0)),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_MOV | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Register0,
-                    src_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER | InstructionParameterType::INDIRECT,
-                    dst_param: InstructionParameter::Memory,
-                    dst_type: InstructionParameterType::DIRECT_MEMORY
                 })
             },
 
@@ -2977,13 +2914,12 @@ impl<'a> Instruction<'a> {
                     // Move direct word memory to direct register
                     id: 0xF2,
                     mnemonic: "mov",
-                    encoding: EncodingType::RR_MM_MM,
+                    encoding: EncodingType::reg8_mem16,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::DirectMemory16),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_MOV | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Memory,
-                    src_type: InstructionParameterType::DIRECT_MEMORY,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::SPECIAL_REGISTER | InstructionParameterType::WORD_REGISTER
                 })
             },
 
@@ -2993,13 +2929,12 @@ impl<'a> Instruction<'a> {
                     // Move direct word register to direct memory
                     id: 0xF6,
                     mnemonic: "mov",
-                    encoding: EncodingType::RR_MM_MM,
+                    encoding: EncodingType::reg8_mem16,
+                    op1: Some(OperandType::DirectMemory16),
+                    op2: Some(OperandType::WordRegister(0)),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_MOV | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Register0,
-                    src_type: InstructionParameterType::SPECIAL_REGISTER | InstructionParameterType::WORD_REGISTER,
-                    dst_param: InstructionParameter::Memory,
-                    dst_type: InstructionParameterType::DIRECT_MEMORY
                 })
             },
 
@@ -3018,13 +2953,12 @@ impl<'a> Instruction<'a> {
                     // Move direct byte GPR to direct GPR
                     id: 0xF1,
                     mnemonic: "movb",
-                    encoding: EncodingType::nm,
+                    encoding: EncodingType::reg4_reg4,
+                    op1: Some(OperandType::ByteRegister(0)),
+                    op2: Some(OperandType::ByteRegister(1)),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_MOV | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Register1,
-                    src_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::BYTE_REGISTER,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::BYTE_REGISTER
                 })
             },
 
@@ -3034,13 +2968,12 @@ impl<'a> Instruction<'a> {
                     // Move immediate byte data to direct GPR
                     id: 0xE1,
                     mnemonic: "movb",
-                    encoding: EncodingType::In,
+                    encoding: EncodingType::reg4_data4,
+                    op1: Some(OperandType::ByteRegister(0)),
+                    op2: Some(OperandType::ImmediateData4),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_MOV | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Data,
-                    src_type: InstructionParameterType::IMMEDIATE | InstructionParameterType::DATA_4,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::BYTE_REGISTER
                 })
             },
 
@@ -3050,13 +2983,12 @@ impl<'a> Instruction<'a> {
                     // Move immediate byte data to direct register
                     id: 0xE7,
                     mnemonic: "movb",
-                    encoding: EncodingType::RR_II_xx,
+                    encoding: EncodingType::reg8_data8_nop8,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::ImmediateData8),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_MOV | _RAnalOpType::R_ANAL_OP_TYPE_REG,
-                    esil: "{immed},{reg0},=",
-                    src_param: InstructionParameter::Data,
-                    src_type: InstructionParameterType::IMMEDIATE | InstructionParameterType::DATA_8,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::SPECIAL_REGISTER | InstructionParameterType::BYTE_REGISTER
+                    esil: "{op2},{op1},=",
                 })
             },
 
@@ -3066,13 +2998,12 @@ impl<'a> Instruction<'a> {
                     // Move indirect byte memory to direct GPR
                     id: 0xA9,
                     mnemonic: "movb",
-                    encoding: EncodingType::nm,
+                    encoding: EncodingType::reg4_reg4,
+                    op1: Some(OperandType::ByteRegister(0)),
+                    op2: Some(OperandType::Indirect(1)),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_MOV | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Register1,
-                    src_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER | InstructionParameterType::INDIRECT,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::BYTE_REGISTER
                 })
             },
 
@@ -3082,13 +3013,12 @@ impl<'a> Instruction<'a> {
                     // Move indirect byte memory to direct GPR and post-increment source pointer by 1
                     id: 0x99,
                     mnemonic: "movb",
-                    encoding: EncodingType::nm,
+                    encoding: EncodingType::reg4_reg4,
+                    op1: Some(OperandType::ByteRegister(0)),
+                    op2: Some(OperandType::IndirectPostIncrement(1)),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_MOV | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Register1,
-                    src_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER | InstructionParameterType::INDIRECT | InstructionParameterType::INCREMENT,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::BYTE_REGISTER
                 })
             },
 
@@ -3098,13 +3028,12 @@ impl<'a> Instruction<'a> {
                     // Move direct byte GPR to indirect memory
                     id: 0xB9,
                     mnemonic: "movb",
-                    encoding: EncodingType::nm,
+                    encoding: EncodingType::reg4_reg4,
+                    op1: Some(OperandType::Indirect(1)),
+                    op2: Some(OperandType::ByteRegister(0)),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_MOV | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Register0,
-                    src_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::BYTE_REGISTER,
-                    dst_param: InstructionParameter::Register1,
-                    dst_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER | InstructionParameterType::INDIRECT
                 })
             },
 
@@ -3114,13 +3043,12 @@ impl<'a> Instruction<'a> {
                     // Pre-decrement destination pointer by 1 and move direct byte GPR to indirect memory
                     id: 0x89,
                     mnemonic: "movb",
-                    encoding: EncodingType::nm,
+                    encoding: EncodingType::reg4_reg4,
+                    op1: Some(OperandType::IndirectPreDecrement(1)),
+                    op2: Some(OperandType::ByteRegister(0)),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_MOV | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Register0,
-                    src_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::BYTE_REGISTER,
-                    dst_param: InstructionParameter::Register1,
-                    dst_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER | InstructionParameterType::INDIRECT | InstructionParameterType::DECREMENT
                 })
             },
 
@@ -3130,13 +3058,12 @@ impl<'a> Instruction<'a> {
                     // Move indirect byte memory to indirect memory
                     id: 0xC9,
                     mnemonic: "movb",
-                    encoding: EncodingType::nm,
+                    encoding: EncodingType::reg4_reg4,
+                    op1: Some(OperandType::Indirect(0)),
+                    op2: Some(OperandType::Indirect(1)),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_MOV | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Register1,
-                    src_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER | InstructionParameterType::INDIRECT,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER | InstructionParameterType::INDIRECT
                 })
             },
 
@@ -3146,13 +3073,12 @@ impl<'a> Instruction<'a> {
                     // Move indirect byte memory to indirect memory and post-increment destination pointer by 1
                     id: 0xD9,
                     mnemonic: "movb",
-                    encoding: EncodingType::nm,
+                    encoding: EncodingType::reg4_reg4,
+                    op1: Some(OperandType::IndirectPostIncrement(0)),
+                    op2: Some(OperandType::Indirect(1)),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_MOV | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Register1,
-                    src_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER | InstructionParameterType::INDIRECT,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER | InstructionParameterType::INDIRECT | InstructionParameterType::INCREMENT
                 })
             },
 
@@ -3162,13 +3088,12 @@ impl<'a> Instruction<'a> {
                     // Move indirect byte memory to indirect memory and post-increment source pointer by 1
                     id: 0xE9,
                     mnemonic: "movb",
-                    encoding: EncodingType::nm,
+                    encoding: EncodingType::reg4_reg4,
+                    op1: Some(OperandType::Indirect(0)),
+                    op2: Some(OperandType::IndirectPostIncrement(1)),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_MOV | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Register1,
-                    src_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER | InstructionParameterType::INDIRECT | InstructionParameterType::INCREMENT,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER | InstructionParameterType::INDIRECT
                 })
             },
 
@@ -3178,13 +3103,12 @@ impl<'a> Instruction<'a> {
                     // Move indirect byte memory by base plus constant to direct byte GPR
                     id: 0xF4,
                     mnemonic: "movb",
-                    encoding: EncodingType::nm_II_II,
+                    encoding: EncodingType::reg4_reg4_data16,
+                    op1: Some(OperandType::ByteRegister(0)),
+                    op2: Some(OperandType::IndirectAndImmediate(1)),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_MOV | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Register1,
-                    src_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER | InstructionParameterType::INDIRECT | InstructionParameterType::INCREMENT | InstructionParameterType::IMMEDIATE | InstructionParameterType::DATA_16,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::BYTE_REGISTER
                 })
             },
 
@@ -3194,13 +3118,12 @@ impl<'a> Instruction<'a> {
                     // Move direct byte GPR to indirect memory by base plus constant
                     id: 0xE4,
                     mnemonic: "movb",
-                    encoding: EncodingType::nm_II_II,
+                    encoding: EncodingType::reg4_reg4_data16,
+                    op1: Some(OperandType::IndirectAndImmediate(1)),
+                    op2: Some(OperandType::ByteRegister(0)),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_MOV | _RAnalOpType::R_ANAL_OP_TYPE_REG,
-                    esil: "{reg0},{reg1},NUM,{immed},+,=[]",
-                    src_param: InstructionParameter::Register0,
-                    src_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType:: BYTE_REGISTER,
-                    dst_param: InstructionParameter::Register1,
-                    dst_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER | InstructionParameterType::INDIRECT | InstructionParameterType::INCREMENT | InstructionParameterType::IMMEDIATE | InstructionParameterType::DATA_16
+                    esil: "{op2},{op1},NUM,{immed},+,=[]",
                 })
             },
 
@@ -3210,13 +3133,12 @@ impl<'a> Instruction<'a> {
                     // Move direct byte memory to indirect memory
                     id: 0xA4,
                     mnemonic: "movb",
-                    encoding: EncodingType::_0n_MM_MM,
+                    encoding: EncodingType::_0_reg4_mem16,
+                    op1: Some(OperandType::Indirect(0)),
+                    op2: Some(OperandType::DirectMemory16),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_MOV | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Memory,
-                    src_type: InstructionParameterType::DIRECT_MEMORY,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER | InstructionParameterType::INDIRECT
                 })
             },
 
@@ -3226,13 +3148,12 @@ impl<'a> Instruction<'a> {
                     // Move indirect byte memory to direct memory
                     id: 0xB4,
                     mnemonic: "movb",
-                    encoding: EncodingType::_0n_MM_MM,
+                    encoding: EncodingType::_0_reg4_mem16,
+                    op1: Some(OperandType::DirectMemory16),
+                    op2: Some(OperandType::Indirect(0)),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_MOV | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Register0,
-                    src_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER | InstructionParameterType::INDIRECT,
-                    dst_param: InstructionParameter::Memory,
-                    dst_type: InstructionParameterType::DIRECT_MEMORY
                 })
             },
 
@@ -3242,13 +3163,12 @@ impl<'a> Instruction<'a> {
                     // Move direct byte memory to direct register
                     id: 0xF3,
                     mnemonic: "movb",
-                    encoding: EncodingType::RR_MM_MM,
+                    encoding: EncodingType::reg8_mem16,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::DirectMemory16),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_MOV | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Memory,
-                    src_type: InstructionParameterType::DIRECT_MEMORY,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::SPECIAL_REGISTER | InstructionParameterType::BYTE_REGISTER
                 })
             },
 
@@ -3258,13 +3178,12 @@ impl<'a> Instruction<'a> {
                     // Move direct byte register to direct memory
                     id: 0xF7,
                     mnemonic: "movb",
-                    encoding: EncodingType::RR_MM_MM,
+                    encoding: EncodingType::reg8_mem16,
+                    op1: Some(OperandType::DirectMemory16),
+                    op2: Some(OperandType::WordRegister(0)),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_MOV | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Register0,
-                    src_type: InstructionParameterType::SPECIAL_REGISTER | InstructionParameterType::BYTE_REGISTER,
-                    dst_param: InstructionParameter::Memory,
-                    dst_type: InstructionParameterType::DIRECT_MEMORY
                 })
             },
 
@@ -3280,18 +3199,17 @@ impl<'a> Instruction<'a> {
 
             0xD0 => {
                 Ok(Instruction {
-                    // Rwn, Rbm
+                    // Rwn, Rbm  (enc = mn)
                     // Move direct byte GPR with sign extension to direct word GPR
                     id: 0xD0,
                     mnemonic: "movbs",
-                    encoding: EncodingType::mn,
+                    encoding: EncodingType::reg4_reg4,
+                    op1: Some(OperandType::WordRegister(1)),
+                    op2: Some(OperandType::ByteRegister(0)),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_MOV | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Register1,
-                    src_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::BYTE_REGISTER,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER
-                })
+               })
             },
 
             0xD2 => {
@@ -3300,13 +3218,12 @@ impl<'a> Instruction<'a> {
                     // Move direct byte memory with sign extension to direct word register
                     id: 0xD2,
                     mnemonic: "movbs",
-                    encoding: EncodingType::RR_MM_MM,
+                    encoding: EncodingType::reg8_mem16,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::DirectMemory16),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_MOV | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Memory,
-                    src_type: InstructionParameterType::DIRECT_MEMORY,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::SPECIAL_REGISTER | InstructionParameterType::BYTE_REGISTER
                 })
             },
 
@@ -3316,13 +3233,12 @@ impl<'a> Instruction<'a> {
                     // Move direct byte register with sign extension to direct word memory
                     id: 0xD5,
                     mnemonic: "movbs",
-                    encoding: EncodingType::RR_MM_MM,
+                    encoding: EncodingType::reg8_mem16,
+                    op1: Some(OperandType::DirectMemory16),
+                    op2: Some(OperandType::WordRegister(0)),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_MOV | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Register0,
-                    src_type: InstructionParameterType::SPECIAL_REGISTER | InstructionParameterType::BYTE_REGISTER,
-                    dst_param: InstructionParameter::Memory,
-                    dst_type: InstructionParameterType::DIRECT_MEMORY
                 })
             },
 
@@ -3338,17 +3254,16 @@ impl<'a> Instruction<'a> {
 
             0xC0 => {
                 Ok(Instruction {
-                    // Rwn, Rbm
+                    // Rwn, Rbm (enc = mn)
                     // Move direct byte GPR with zero extension to direct word GPR
                     id: 0xC0,
                     mnemonic: "movbz",
-                    encoding: EncodingType::mn,
+                    encoding: EncodingType::reg4_reg4,
+                    op1: Some(OperandType::WordRegister(1)),
+                    op2: Some(OperandType::ByteRegister(0)),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_MOV | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Register1,
-                    src_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::BYTE_REGISTER,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER
                 })
             },
 
@@ -3358,13 +3273,12 @@ impl<'a> Instruction<'a> {
                     // Move direct byte memory with zero extension to direct word register
                     id: 0xC2,
                     mnemonic: "movbz",
-                    encoding: EncodingType::RR_MM_MM,
+                    encoding: EncodingType::reg8_mem16,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::DirectMemory16),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_MOV | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Memory,
-                    src_type: InstructionParameterType::DIRECT_MEMORY,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::SPECIAL_REGISTER | InstructionParameterType::BYTE_REGISTER
                 })
             },
 
@@ -3374,20 +3288,19 @@ impl<'a> Instruction<'a> {
                     // Move direct byte register with zero extension to direct word memory
                     id: 0xC5,
                     mnemonic: "movbz",
-                    encoding: EncodingType::RR_MM_MM,
+                    encoding: EncodingType::reg8_mem16,
+                    op1: Some(OperandType::DirectMemory16),
+                    op2: Some(OperandType::WordRegister(0)),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_MOV | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Register0,
-                    src_type: InstructionParameterType::SPECIAL_REGISTER | InstructionParameterType::BYTE_REGISTER,
-                    dst_param: InstructionParameter::Memory,
-                    dst_type: InstructionParameterType::DIRECT_MEMORY
                 })
             },
 
             // MUL: Signed Multiplication
             // Performs a 16-bit by 16-bit signed multiplication using the two words specified by operands op1 and op2
             // respectively. The signed 32-bit result is placed in the MD register.
-            // 
+            //
             // NOTE: MUL is interruptable.
             // E: Always cleared.
             // Z: Set if the result equals zero. Cleared otherwise.
@@ -3401,20 +3314,19 @@ impl<'a> Instruction<'a> {
                     // Signed multiply direct GPR by direct GPR (16-bit × 16-bit)
                     id: 0x0B,
                     mnemonic: "mul",
-                    encoding: EncodingType::nm,
+                    encoding: EncodingType::reg4_reg4,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::WordRegister(1)),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_MUL | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Register1,
-                    src_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER
                 })
             },
 
             // MULU: Unsigned Multiplication
             // Performs a 16-bit by 16-bit unsigned multiplication using the two words specified by operands op1 and
             // op2 respectively. The unsigned 32-bit result is placed in the MD register.
-            // 
+            //
             // NOTE: MULU is interruptable.
             // E: Always cleared.
             // Z: Set if the result equals zero. Cleared otherwise.
@@ -3428,13 +3340,12 @@ impl<'a> Instruction<'a> {
                     // Unsigned multiply direct GPR by direct GPR (16-bit × 16-bit)
                     id: 0x1B,
                     mnemonic: "mulu",
-                    encoding: EncodingType::nm,
+                    encoding: EncodingType::reg4_reg4,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::WordRegister(1)),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_MUL | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Register1,
-                    src_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER
                 })
             },
 
@@ -3452,13 +3363,12 @@ impl<'a> Instruction<'a> {
                     // Negate direct word GPR
                     id: 0x81,
                     mnemonic: "neg",
-                    encoding: EncodingType::n0,
+                    encoding: EncodingType::reg4_0,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: None,
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_CPL | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Register0,
-                    src_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER,
-                    dst_param: InstructionParameter::None,
-                    dst_type: InstructionParameterType::NONE
                 })
             },
 
@@ -3476,13 +3386,12 @@ impl<'a> Instruction<'a> {
                     // Negate direct byte GPR
                     id: 0xA1,
                     mnemonic: "negb",
-                    encoding: EncodingType::n0,
+                    encoding: EncodingType::reg4_0,
+                    op1: Some(OperandType::ByteRegister(0)),
+                    op2: None,
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_CPL | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Register0,
-                    src_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::BYTE_REGISTER,
-                    dst_param: InstructionParameter::None,
-                    dst_type: InstructionParameterType::NONE
                 })
             },
 
@@ -3497,12 +3406,11 @@ impl<'a> Instruction<'a> {
                     id: 0xCC,
                     mnemonic: "nop",
                     encoding: EncodingType::NO_ARGS2,
+                    op1: None,
+                    op2: None,
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_NOP,
                     esil: "",
-                    src_param: InstructionParameter::None,
-                    src_type: InstructionParameterType::NONE,
-                    dst_param: InstructionParameter::None,
-                    dst_type: InstructionParameterType::NONE
                 })
             },
 
@@ -3521,13 +3429,12 @@ impl<'a> Instruction<'a> {
                     // Bitwise OR direct word GPR with direct GPR
                     id: 0x70,
                     mnemonic: "or",
-                    encoding: EncodingType::nm,
+                    encoding: EncodingType::reg4_reg4,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::WordRegister(1)),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_OR | _RAnalOpType::R_ANAL_OP_TYPE_REG,
-                    esil: "{reg1},NUM,{reg0},|",
-                    src_param: InstructionParameter::Register1,
-                    src_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER
+                    esil: "{op2},NUM,{op1},|",
                 })
             },
 
@@ -3541,13 +3448,12 @@ impl<'a> Instruction<'a> {
                     // Bitwise OR immediate word data with direct GPR
                     id: 0x78,
                     mnemonic: "or",
-                    encoding: EncodingType::data3_or_reg,
+                    encoding: EncodingType::reg4_or_data3,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::ImmediateData3),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_OR,
                     esil: "",
-                    src_param: InstructionParameter::None,
-                    src_type: InstructionParameterType::DATA_3 | InstructionParameterType::WORD_REGISTER,
-                    dst_param: InstructionParameter::None,
-                    dst_type: InstructionParameterType::NONE
                 })
             },
 
@@ -3557,13 +3463,12 @@ impl<'a> Instruction<'a> {
                     // Bitwise OR immediate word data with direct register
                     id: 0x76,
                     mnemonic: "or",
-                    encoding: EncodingType::RR_II_II,
+                    encoding: EncodingType::reg8_data16,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::ImmediateData16),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_OR | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Data,
-                    src_type: InstructionParameterType::IMMEDIATE | InstructionParameterType::DATA_16,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::SPECIAL_REGISTER | InstructionParameterType::WORD_REGISTER
                 })
             },
 
@@ -3573,13 +3478,12 @@ impl<'a> Instruction<'a> {
                     // Bitwise OR direct word memory with direct register
                     id: 0x72,
                     mnemonic: "or",
-                    encoding: EncodingType::RR_MM_MM,
+                    encoding: EncodingType::reg8_mem16,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::DirectMemory16),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_OR | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Memory,
-                    src_type: InstructionParameterType::DIRECT_MEMORY,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::SPECIAL_REGISTER | InstructionParameterType::WORD_REGISTER
                 })
             },
 
@@ -3589,13 +3493,12 @@ impl<'a> Instruction<'a> {
                     // Bitwise OR direct word register with direct memory
                     id: 0x74,
                     mnemonic: "or",
-                    encoding: EncodingType::RR_MM_MM,
+                    encoding: EncodingType::reg8_mem16,
+                    op1: Some(OperandType::DirectMemory16),
+                    op2: Some(OperandType::WordRegister(0)),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_OR | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Register0,
-                    src_type: InstructionParameterType::SPECIAL_REGISTER | InstructionParameterType::WORD_REGISTER,
-                    dst_param: InstructionParameter::Memory,
-                    dst_type: InstructionParameterType::DIRECT_MEMORY
                 })
             },
 
@@ -3614,13 +3517,12 @@ impl<'a> Instruction<'a> {
                     // Bitwise OR direct byte GPR with direct GPR
                     id: 0x71,
                     mnemonic: "orb",
-                    encoding: EncodingType::nm,
+                    encoding: EncodingType::reg4_reg4,
+                    op1: Some(OperandType::ByteRegister(0)),
+                    op2: Some(OperandType::ByteRegister(1)),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_OR | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Register1,
-                    src_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::BYTE_REGISTER,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::BYTE_REGISTER
                 })
             },
 
@@ -3634,13 +3536,12 @@ impl<'a> Instruction<'a> {
                     // Bitwise OR immediate byte data with direct GPR
                     id: 0x79,
                     mnemonic: "orb",
-                    encoding: EncodingType::data3_or_reg,
+                    encoding: EncodingType::reg4_or_data3,
+                    op1: Some(OperandType::ByteRegister(0)),
+                    op2: Some(OperandType::ImmediateData3),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_OR,
                     esil: "",
-                    src_param: InstructionParameter::None,
-                    src_type: InstructionParameterType::DATA_3 | InstructionParameterType::BYTE_REGISTER,
-                    dst_param: InstructionParameter::None,
-                    dst_type: InstructionParameterType::NONE
                 })
             },
 
@@ -3650,13 +3551,12 @@ impl<'a> Instruction<'a> {
                     // Bitwise OR immediate byte data with direct register
                     id: 0x77,
                     mnemonic: "orb",
-                    encoding: EncodingType::RR_II_xx,
+                    encoding: EncodingType::reg8_data8_nop8,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::ImmediateData8),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_OR | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Data,
-                    src_type: InstructionParameterType::IMMEDIATE | InstructionParameterType::DATA_8,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::SPECIAL_REGISTER | InstructionParameterType::BYTE_REGISTER
                 })
             },
 
@@ -3666,13 +3566,12 @@ impl<'a> Instruction<'a> {
                     // Bitwise OR direct byte memory with direct register
                     id: 0x73,
                     mnemonic: "orb",
-                    encoding: EncodingType::RR_MM_MM,
+                    encoding: EncodingType::reg8_mem16,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::DirectMemory16),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_OR | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Memory,
-                    src_type: InstructionParameterType::DIRECT_MEMORY,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::SPECIAL_REGISTER | InstructionParameterType::BYTE_REGISTER
                 })
             },
 
@@ -3682,13 +3581,12 @@ impl<'a> Instruction<'a> {
                     // Bitwise OR direct byte register with direct memory
                     id: 0x75,
                     mnemonic: "orb",
-                    encoding: EncodingType::RR_MM_MM,
+                    encoding: EncodingType::reg8_mem16,
+                    op1: Some(OperandType::DirectMemory16),
+                    op2: Some(OperandType::WordRegister(0)),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_OR | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Register0,
-                    src_type: InstructionParameterType::SPECIAL_REGISTER | InstructionParameterType::BYTE_REGISTER,
-                    dst_param: InstructionParameter::Memory,
-                    dst_type: InstructionParameterType::DIRECT_MEMORY
                 })
             },
 
@@ -3709,13 +3607,12 @@ impl<'a> Instruction<'a> {
                     // Push direct word register onto system stack and call absolute subroutine
                     id: 0xE2,
                     mnemonic: "pcall",
-                    encoding: EncodingType::RR_MM_MM,
+                    encoding: EncodingType::reg8_mem16,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::DirectCaddr16),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_CALL | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Memory,
-                    src_type: InstructionParameterType::DIRECT_MEMORY,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::SPECIAL_REGISTER | InstructionParameterType::WORD_REGISTER
                 })
             },
 
@@ -3734,13 +3631,12 @@ impl<'a> Instruction<'a> {
                     // Pop direct word register from system stack
                     id: 0xFC,
                     mnemonic: "pop",
-                    encoding: EncodingType::RR,
+                    encoding: EncodingType::reg8,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: None,
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_POP | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Register0,
-                    src_type: InstructionParameterType::SPECIAL_REGISTER | InstructionParameterType::WORD_REGISTER,
-                    dst_param: InstructionParameter::None,
-                    dst_type: InstructionParameterType::NONE
                 })
             },
 
@@ -3760,13 +3656,12 @@ impl<'a> Instruction<'a> {
                     // Determine number of shift cycles to normalize direct word GPR and store result in direct word GPR
                     id: 0x2B,
                     mnemonic: "prior",
-                    encoding: EncodingType::nm,
+                    encoding: EncodingType::reg4_reg4,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::WordRegister(1)),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_NULL | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Register1,
-                    src_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER
                 })
             },
 
@@ -3785,13 +3680,12 @@ impl<'a> Instruction<'a> {
                     // Push direct word register onto system stack
                     id: 0xEC,
                     mnemonic: "push",
-                    encoding: EncodingType::RR,
+                    encoding: EncodingType::reg8,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: None,
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_PUSH | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Register0,
-                    src_type: InstructionParameterType::SPECIAL_REGISTER | InstructionParameterType::WORD_REGISTER,
-                    dst_param: InstructionParameter::None,
-                    dst_type: InstructionParameterType::NONE
                 })
             },
 
@@ -3811,19 +3705,18 @@ impl<'a> Instruction<'a> {
                     id: 0x97,
                     mnemonic: "pwrdn",
                     encoding: EncodingType::NO_ARGS4,
+                    op1: None,
+                    op2: None,
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_NULL,
                     esil: "",
-                    src_param: InstructionParameter::None,
-                    src_type: InstructionParameterType::NONE,
-                    dst_param: InstructionParameter::None,
-                    dst_type: InstructionParameterType::NONE
                 })
             },
 
             // RET: Return from Subroutine
             // Returns from a subroutine. The IP is popped from the system stack. Execution resumes at the instruction following
             // the CALL instruction in the calling routine.
-            // 
+            //
             // NOTE: Condition flags not affected
 
             0xCB => {
@@ -3833,12 +3726,11 @@ impl<'a> Instruction<'a> {
                     id: 0xCB,
                     mnemonic: "ret",
                     encoding: EncodingType::NO_ARGS2,
+                    op1: None,
+                    op2: None,
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_RET,
                     esil: "",
-                    src_param: InstructionParameter::None,
-                    src_type: InstructionParameterType::NONE,
-                    dst_param: InstructionParameter::None,
-                    dst_type: InstructionParameterType::NONE
                 })
             },
 
@@ -3859,12 +3751,11 @@ impl<'a> Instruction<'a> {
                     id: 0xFB,
                     mnemonic: "reti",
                     encoding: EncodingType::NO_ARGS2,
+                    op1: None,
+                    op2: None,
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_RET,
                     esil: "",
-                    src_param: InstructionParameter::None,
-                    src_type: InstructionParameterType::NONE,
-                    dst_param: InstructionParameter::None,
-                    dst_type: InstructionParameterType::NONE
                 })
             },
 
@@ -3884,20 +3775,19 @@ impl<'a> Instruction<'a> {
                     // Return from intra-segment subroutine and pop direct word register from system stack
                     id: 0xEB,
                     mnemonic: "retp",
-                    encoding: EncodingType::RR,
+                    encoding: EncodingType::reg8,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: None,
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_RET | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Register0,
-                    src_type: InstructionParameterType::SPECIAL_REGISTER | InstructionParameterType::WORD_REGISTER,
-                    dst_param: InstructionParameter::None,
-                    dst_type: InstructionParameterType::NONE
                 })
             },
 
             // RETS: Return from Inter-Segment Subroutine
             // Returns from an inter-segment subroutine. The IP and CSP are popped from the system stack. Execution resumes at the
             // instruction following the CALLS instruction in the calling routine.
-            // 
+            //
             // NOTE: Condition flags not affected
 
             0xDB => {
@@ -3907,12 +3797,11 @@ impl<'a> Instruction<'a> {
                     id: 0xDB,
                     mnemonic: "rets",
                     encoding: EncodingType::NO_ARGS2,
+                    op1: None,
+                    op2: None,
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_RET,
                     esil: "",
-                    src_param: InstructionParameter::None,
-                    src_type: InstructionParameterType::NONE,
-                    dst_param: InstructionParameter::None,
-                    dst_type: InstructionParameterType::NONE
                 })
             },
 
@@ -3932,13 +3821,12 @@ impl<'a> Instruction<'a> {
                     // Rotate left direct word GPR; number of shift cycles specified by direct GPR
                     id: 0x0C,
                     mnemonic: "rol",
-                    encoding: EncodingType::nm,
+                    encoding: EncodingType::reg4_reg4,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::WordRegister(1)),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_ROL | _RAnalOpType::R_ANAL_OP_TYPE_REG,
-                    esil: "{reg1},NUM,{reg0},<<<",
-                    src_param: InstructionParameter::Register1,
-                    src_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER
+                    esil: "{op2},NUM,{op1},<<<",
                 })
             },
 
@@ -3948,13 +3836,12 @@ impl<'a> Instruction<'a> {
                     // Rotate left direct word GPR; number of shift cycles specified by immediate data
                     id: 0x1C,
                     mnemonic: "rol",
-                    encoding: EncodingType::In,
+                    encoding: EncodingType::reg4_data4,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::ImmediateData4),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_ROL | _RAnalOpType::R_ANAL_OP_TYPE_REG,
-                    esil: "{immed},{reg0},<<<",
-                    src_param: InstructionParameter::Data,
-                    src_type: InstructionParameterType::IMMEDIATE | InstructionParameterType::DATA_4,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER
+                    esil: "{op2},{op1},<<<",
                 })
             },
 
@@ -3974,13 +3861,12 @@ impl<'a> Instruction<'a> {
                     // Rotate right direct word GPR; number of shift cycles specified by direct GPR
                     id: 0x2C,
                     mnemonic: "ror",
-                    encoding: EncodingType::nm,
+                    encoding: EncodingType::reg4_reg4,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::WordRegister(1)),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_ROR | _RAnalOpType::R_ANAL_OP_TYPE_REG,
-                    esil: "{reg1},NUM,{reg0},>>>",
-                    src_param: InstructionParameter::Register1,
-                    src_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER
+                    esil: "{op2},NUM,{op1},>>>",
                 })
             },
 
@@ -3990,13 +3876,12 @@ impl<'a> Instruction<'a> {
                     // Rotate right direct word GPR; number of shift cycles specified by immediate data
                     id: 0x3C,
                     mnemonic: "ror",
-                    encoding: EncodingType::In,
+                    encoding: EncodingType::reg4_data4,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::ImmediateData4),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_ROR | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Data,
-                    src_type: InstructionParameterType::IMMEDIATE | InstructionParameterType::DATA_4,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER
                 })
             },
 
@@ -4004,7 +3889,7 @@ impl<'a> Instruction<'a> {
             // Used to switch contexts for any register. Switching context is a push and load operation. The contents of
             // the register specified by the first operand, op1, are pushed onto the stack. That register is then loaded
             // with the value specified by the second operand, op2.
-            // 
+            //
             // NOTE: Condition flags not affected
 
             0xC6 => {
@@ -4013,13 +3898,12 @@ impl<'a> Instruction<'a> {
                     // Push direct word register onto system stack and update register with immediate data
                     id: 0xC6,
                     mnemonic: "scxt",
-                    encoding: EncodingType::RR_II_II,
+                    encoding: EncodingType::reg8_data16,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::ImmediateData16),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_NULL | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Data,
-                    src_type: InstructionParameterType::IMMEDIATE | InstructionParameterType::DATA_16,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::SPECIAL_REGISTER | InstructionParameterType::WORD_REGISTER
                 })
             },
 
@@ -4029,13 +3913,12 @@ impl<'a> Instruction<'a> {
                     // Push direct word register onto system stack and update register with direct memory
                     id: 0xD6,
                     mnemonic: "scxt",
-                    encoding: EncodingType::RR_MM_MM,
+                    encoding: EncodingType::reg8_mem16,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::DirectMemory16),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_NULL | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Memory,
-                    src_type: InstructionParameterType::DIRECT_MEMORY,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::SPECIAL_REGISTER | InstructionParameterType::WORD_REGISTER
                 })
             },
 
@@ -4056,13 +3939,12 @@ impl<'a> Instruction<'a> {
                     // Shift left direct word GPR; number of shift cycles specified by direct GPR
                     id: 0x4C,
                     mnemonic: "shl",
-                    encoding: EncodingType::nm,
+                    encoding: EncodingType::reg4_reg4,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::WordRegister(1)),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_SHL | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Register1,
-                    src_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER
                 })
             },
 
@@ -4072,13 +3954,12 @@ impl<'a> Instruction<'a> {
                     // Shift left direct word GPR; number of shift cycles specified by immediate data
                     id: 0x5C,
                     mnemonic: "shl",
-                    encoding: EncodingType::In,
+                    encoding: EncodingType::reg4_data4,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::ImmediateData4),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_SHL | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Data,
-                    src_type: InstructionParameterType::IMMEDIATE | InstructionParameterType::DATA_4,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER
                 })
             },
 
@@ -4100,13 +3981,12 @@ impl<'a> Instruction<'a> {
                     // Shift right direct word GPR; number of shift cycles specified by direct GPR
                     id: 0x6C,
                     mnemonic: "shr",
-                    encoding: EncodingType::nm,
+                    encoding: EncodingType::reg4_reg4,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::WordRegister(1)),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_SHR | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Register1,
-                    src_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER
                 })
             },
 
@@ -4116,20 +3996,19 @@ impl<'a> Instruction<'a> {
                     // Shift right direct word GPR; number of shift cycles specified by immediate data
                     id: 0x7C,
                     mnemonic: "shr",
-                    encoding: EncodingType::In,
+                    encoding: EncodingType::reg4_data4,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::ImmediateData4),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_SHR | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Data,
-                    src_type: InstructionParameterType::IMMEDIATE | InstructionParameterType::DATA_4,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER
                 })
             },
 
             // SRST: Software Reset
             // This instruction is used to perform a software reset. A software reset has a similar effect on the microcontroller as an
             // externally applied hardware reset.
-            // 
+            //
             // NOTE: To insure that this instruction is not accidentally executed, it is implemented as a protected instruction.
             // NOTE: Condition flags not affected
 
@@ -4140,19 +4019,18 @@ impl<'a> Instruction<'a> {
                     id: 0xB7,
                     mnemonic: "srst",
                     encoding: EncodingType::NO_ARGS4,
+                    op1: None,
+                    op2: None,
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_NULL,
                     esil: "",
-                    src_param: InstructionParameter::None,
-                    src_type: InstructionParameterType::NONE,
-                    dst_param: InstructionParameter::None,
-                    dst_type: InstructionParameterType::NONE
                 })
             },
 
             // SRVWDT: Service Watchdog Timer
             // This instruction services the Watchdog Timer. It reloads the high order byte of the Watchdog Timer with a preset value
             // and clears the low byte on every occurrence. Once this instruction has been executed, the watchdog timer cannot be disabled.
-            // 
+            //
             // NOTE: To insure that this instruction is not accidentally executed, it is implemented as a protected instruction.
             // NOTE: Condition flags not affected
 
@@ -4163,12 +4041,11 @@ impl<'a> Instruction<'a> {
                     id: 0xA7,
                     mnemonic: "srvwdt",
                     encoding: EncodingType::NO_ARGS4,
+                    op1: None,
+                    op2: None,
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_NULL,
                     esil: "",
-                    src_param: InstructionParameter::None,
-                    src_type: InstructionParameterType::NONE,
-                    dst_param: InstructionParameter::None,
-                    dst_type: InstructionParameterType::NONE
                 })
             },
 
@@ -4187,13 +4064,12 @@ impl<'a> Instruction<'a> {
                     // Subtract direct word GPR from direct GPR
                     id: 0x20,
                     mnemonic: "sub",
-                    encoding: EncodingType::nm,
+                    encoding: EncodingType::reg4_reg4,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::WordRegister(1)),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_SUB | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Register1,
-                    src_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER
                 })
             },
 
@@ -4207,13 +4083,12 @@ impl<'a> Instruction<'a> {
                     // Subtract immediate word data from direct GPR
                     id: 0x28,
                     mnemonic: "sub",
-                    encoding: EncodingType::data3_or_reg,
+                    encoding: EncodingType::reg4_or_data3,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::ImmediateData3),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_SUB,
                     esil: "",
-                    src_param: InstructionParameter::None,
-                    src_type: InstructionParameterType::DATA_3 | InstructionParameterType::WORD_REGISTER,
-                    dst_param: InstructionParameter::None,
-                    dst_type: InstructionParameterType::NONE
                 })
             },
 
@@ -4223,13 +4098,12 @@ impl<'a> Instruction<'a> {
                     // Subtract immediate word data from direct register
                     id: 0x26,
                     mnemonic: "sub",
-                    encoding: EncodingType::RR_II_II,
+                    encoding: EncodingType::reg8_data16,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::ImmediateData16),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_SUB | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Data,
-                    src_type: InstructionParameterType::IMMEDIATE | InstructionParameterType::DATA_16,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::SPECIAL_REGISTER | InstructionParameterType::WORD_REGISTER
                 })
             },
 
@@ -4239,13 +4113,12 @@ impl<'a> Instruction<'a> {
                     // Subtract direct word memory from direct register
                     id: 0x22,
                     mnemonic: "sub",
-                    encoding: EncodingType::RR_MM_MM,
+                    encoding: EncodingType::reg8_mem16,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::DirectMemory16),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_SUB | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Memory,
-                    src_type: InstructionParameterType::DIRECT_MEMORY,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::SPECIAL_REGISTER | InstructionParameterType::WORD_REGISTER
                 })
             },
 
@@ -4255,13 +4128,12 @@ impl<'a> Instruction<'a> {
                     // Subtract direct word register from direct memory
                     id: 0x24,
                     mnemonic: "sub",
-                    encoding: EncodingType::RR_MM_MM,
+                    encoding: EncodingType::reg8_mem16,
+                    op1: Some(OperandType::DirectMemory16),
+                    op2: Some(OperandType::WordRegister(0)),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_SUB | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Register0,
-                    src_type: InstructionParameterType::SPECIAL_REGISTER | InstructionParameterType::WORD_REGISTER,
-                    dst_param: InstructionParameter::Memory,
-                    dst_type: InstructionParameterType::DIRECT_MEMORY
                 })
             },
 
@@ -4280,13 +4152,12 @@ impl<'a> Instruction<'a> {
                     // Subtract direct byte GPR from direct GPR
                     id: 0x21,
                     mnemonic: "subb",
-                    encoding: EncodingType::nm,
+                    encoding: EncodingType::reg4_reg4,
+                    op1: Some(OperandType::ByteRegister(0)),
+                    op2: Some(OperandType::ByteRegister(1)),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_SUB | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Register1,
-                    src_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::BYTE_REGISTER,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::BYTE_REGISTER
                 })
             },
 
@@ -4300,13 +4171,12 @@ impl<'a> Instruction<'a> {
                     // Subtract immediate byte data from direct GPR
                     id: 0x29,
                     mnemonic: "subb",
-                    encoding: EncodingType::data3_or_reg,
+                    encoding: EncodingType::reg4_or_data3,
+                    op1: Some(OperandType::ByteRegister(0)),
+                    op2: Some(OperandType::ImmediateData3),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_SUB,
                     esil: "",
-                    src_param: InstructionParameter::None,
-                    src_type: InstructionParameterType::DATA_3 | InstructionParameterType::BYTE_REGISTER,
-                    dst_param: InstructionParameter::None,
-                    dst_type: InstructionParameterType::NONE
                 })
             },
 
@@ -4316,13 +4186,12 @@ impl<'a> Instruction<'a> {
                     // Subtract immediate byte data from direct register
                     id: 0x27,
                     mnemonic: "subb",
-                    encoding: EncodingType::RR_II_xx,
+                    encoding: EncodingType::reg8_data8_nop8,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::ImmediateData8),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_SUB | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Data,
-                    src_type: InstructionParameterType::IMMEDIATE | InstructionParameterType::DATA_8,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::SPECIAL_REGISTER | InstructionParameterType::BYTE_REGISTER
                 })
             },
 
@@ -4332,13 +4201,12 @@ impl<'a> Instruction<'a> {
                     // Subtract direct byte memory from direct register
                     id: 0x23,
                     mnemonic: "subb",
-                    encoding: EncodingType::RR_MM_MM,
+                    encoding: EncodingType::reg8_mem16,
+                    op1: Some(OperandType::ByteRegister(0)),
+                    op2: Some(OperandType::DirectMemory16),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_SUB | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Memory,
-                    src_type: InstructionParameterType::DIRECT_MEMORY,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::SPECIAL_REGISTER | InstructionParameterType::BYTE_REGISTER
                 })
             },
 
@@ -4348,13 +4216,12 @@ impl<'a> Instruction<'a> {
                     // Subtract direct byte register from direct memory
                     id: 0x25,
                     mnemonic: "subb",
-                    encoding: EncodingType::RR_MM_MM,
+                    encoding: EncodingType::reg8_mem16,
+                    op1: Some(OperandType::DirectMemory16),
+                    op2: Some(OperandType::ByteRegister(0)),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_SUB | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Register0,
-                    src_type: InstructionParameterType::SPECIAL_REGISTER | InstructionParameterType::BYTE_REGISTER,
-                    dst_param: InstructionParameter::Memory,
-                    dst_type: InstructionParameterType::DIRECT_MEMORY
                 })
             },
 
@@ -4374,13 +4241,12 @@ impl<'a> Instruction<'a> {
                     // Subtract direct word GPR from direct GPR with Carry
                     id: 0x30,
                     mnemonic: "subc",
-                    encoding: EncodingType::nm,
+                    encoding: EncodingType::reg4_reg4,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::WordRegister(1)),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_SUB | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Register1,
-                    src_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER
                 })
             },
 
@@ -4394,13 +4260,12 @@ impl<'a> Instruction<'a> {
                     // Subtract immediate word data from direct GPR with Carry
                     id: 0x38,
                     mnemonic: "subc",
-                    encoding: EncodingType::data3_or_reg,
+                    encoding: EncodingType::reg4_or_data3,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::ImmediateData3),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_SUB,
                     esil: "",
-                    src_param: InstructionParameter::None,
-                    src_type: InstructionParameterType::DATA_3 | InstructionParameterType::WORD_REGISTER,
-                    dst_param: InstructionParameter::None,
-                    dst_type: InstructionParameterType::NONE
                 })
             },
 
@@ -4410,13 +4275,12 @@ impl<'a> Instruction<'a> {
                     // Subtract immediate word data from direct register with Carry
                     id: 0x36,
                     mnemonic: "subc",
-                    encoding: EncodingType::RR_II_II,
+                    encoding: EncodingType::reg8_data16,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::ImmediateData16),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_SUB | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Data,
-                    src_type: InstructionParameterType::IMMEDIATE | InstructionParameterType::DATA_16,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::SPECIAL_REGISTER | InstructionParameterType::WORD_REGISTER
                 })
             },
 
@@ -4426,13 +4290,12 @@ impl<'a> Instruction<'a> {
                     // Subtract direct word memory from direct register with Carry
                     id: 0x32,
                     mnemonic: "subc",
-                    encoding: EncodingType::RR_MM_MM,
+                    encoding: EncodingType::reg8_mem16,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::DirectMemory16),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_SUB | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Memory,
-                    src_type: InstructionParameterType::DIRECT_MEMORY,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::SPECIAL_REGISTER | InstructionParameterType::WORD_REGISTER
                 })
             },
 
@@ -4442,13 +4305,12 @@ impl<'a> Instruction<'a> {
                     // Subtract direct word register from direct memory with Carry
                     id: 0x34,
                     mnemonic: "subc",
-                    encoding: EncodingType::RR_MM_MM,
+                    encoding: EncodingType::reg8_mem16,
+                    op1: Some(OperandType::DirectMemory16),
+                    op2: Some(OperandType::WordRegister(0)),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_SUB | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Register0,
-                    src_type: InstructionParameterType::SPECIAL_REGISTER | InstructionParameterType::WORD_REGISTER,
-                    dst_param: InstructionParameter::Memory,
-                    dst_type: InstructionParameterType::DIRECT_MEMORY
                 })
             },
 
@@ -4468,13 +4330,12 @@ impl<'a> Instruction<'a> {
                     // Subtract direct byte GPR from direct GPR with Carry
                     id: 0x31,
                     mnemonic: "subcb",
-                    encoding: EncodingType::nm,
+                    encoding: EncodingType::reg4_reg4,
+                    op1: Some(OperandType::ByteRegister(0)),
+                    op2: Some(OperandType::ByteRegister(1)),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_SUB | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Register1,
-                    src_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::BYTE_REGISTER,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::BYTE_REGISTER
                 })
             },
 
@@ -4488,13 +4349,12 @@ impl<'a> Instruction<'a> {
                     // Subtract immediate byte data from direct GPR with Carry
                     id: 0x39,
                     mnemonic: "subcb",
-                    encoding: EncodingType::data3_or_reg,
+                    encoding: EncodingType::reg4_or_data3,
+                    op1: Some(OperandType::ByteRegister(0)),
+                    op2: Some(OperandType::ImmediateData3),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_SUB,
                     esil: "",
-                    src_param: InstructionParameter::None,
-                    src_type: InstructionParameterType::DATA_3 | InstructionParameterType::WORD_REGISTER,
-                    dst_param: InstructionParameter::None,
-                    dst_type: InstructionParameterType::NONE
                 })
             },
 
@@ -4504,13 +4364,12 @@ impl<'a> Instruction<'a> {
                     // Subtract immediate byte data from direct register with Carry
                     id: 0x37,
                     mnemonic: "subcb",
-                    encoding: EncodingType::RR_II_xx,
+                    encoding: EncodingType::reg8_data8_nop8,
+                    op1: Some(OperandType::ByteRegister(0)),
+                    op2: Some(OperandType::ImmediateData8),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_SUB | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Data,
-                    src_type: InstructionParameterType::IMMEDIATE | InstructionParameterType::DATA_8,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::SPECIAL_REGISTER | InstructionParameterType::BYTE_REGISTER
                 })
             },
 
@@ -4520,13 +4379,12 @@ impl<'a> Instruction<'a> {
                     // Subtract direct byte memory from direct register with Carry
                     id: 0x33,
                     mnemonic: "subcb",
-                    encoding: EncodingType::RR_MM_MM,
+                    encoding: EncodingType::reg8_mem16,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::DirectMemory16),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_SUB | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Memory,
-                    src_type: InstructionParameterType::DIRECT_MEMORY,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::SPECIAL_REGISTER | InstructionParameterType::BYTE_REGISTER
                 })
             },
 
@@ -4536,13 +4394,12 @@ impl<'a> Instruction<'a> {
                     // Subtract direct byte register from direct memory with Carry
                     id: 0x35,
                     mnemonic: "subcb",
-                    encoding: EncodingType::RR_MM_MM,
+                    encoding: EncodingType::reg8_mem16,
+                    op1: Some(OperandType::DirectMemory16),
+                    op2: Some(OperandType::ByteRegister(0)),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_SUB | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Register0,
-                    src_type: InstructionParameterType::SPECIAL_REGISTER | InstructionParameterType::BYTE_REGISTER,
-                    dst_param: InstructionParameter::Memory,
-                    dst_type: InstructionParameterType::DIRECT_MEMORY
                 })
             },
 
@@ -4552,7 +4409,7 @@ impl<'a> Instruction<'a> {
             // System state is preserved identically to hardware interrupt entry except that the CPU priority level is not affected. The
             // RETI, return from interrupt, instruction is used to resume execution after the trap or interrupt routine has completed. The
             // CSP is pushed if segmentation is enabled. This is indicated by the SGTDIS bit in the SYSCON register.
-            // 
+            //
             // NOTE: Condition flags not affected
 
             0x9B => {
@@ -4562,12 +4419,11 @@ impl<'a> Instruction<'a> {
                     id: 0x9B,
                     mnemonic: "trap",
                     encoding: EncodingType::trap7,
+                    op1: Some(OperandType::ImmediateTrap7),
+                    op2: None,
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_TRAP,
                     esil: "",
-                    src_param: InstructionParameter::Trap,
-                    src_type: InstructionParameterType::TRAP,
-                    dst_param: InstructionParameter::None,
-                    dst_type: InstructionParameterType::NONE
                 })
             },
 
@@ -4586,13 +4442,12 @@ impl<'a> Instruction<'a> {
                     // Bitwise XOR direct word GPR with direct GPR
                     id: 0x50,
                     mnemonic: "xor",
-                    encoding: EncodingType::nm,
+                    encoding: EncodingType::reg4_reg4,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::WordRegister(1)),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_XOR | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Register1,
-                    src_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::WORD_REGISTER
                 })
             },
 
@@ -4606,13 +4461,12 @@ impl<'a> Instruction<'a> {
                     // Bitwise XOR immediate word data with direct GPR
                     id: 0x58,
                     mnemonic: "xor",
-                    encoding: EncodingType::data3_or_reg,
+                    encoding: EncodingType::reg4_or_data3,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::ImmediateData3),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_XOR,
                     esil: "",
-                    src_param: InstructionParameter::None,
-                    src_type: InstructionParameterType::DATA_3 | InstructionParameterType::WORD_REGISTER,
-                    dst_param: InstructionParameter::None,
-                    dst_type: InstructionParameterType::NONE
                 })
             },
 
@@ -4622,13 +4476,12 @@ impl<'a> Instruction<'a> {
                     // Bitwise XOR immediate word data with direct register
                     id: 0x56,
                     mnemonic: "xor",
-                    encoding: EncodingType::RR_II_II,
+                    encoding: EncodingType::reg8_data16,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::ImmediateData16),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_XOR | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Data,
-                    src_type: InstructionParameterType::IMMEDIATE | InstructionParameterType::DATA_16,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::SPECIAL_REGISTER | InstructionParameterType::WORD_REGISTER
                 })
             },
 
@@ -4638,13 +4491,12 @@ impl<'a> Instruction<'a> {
                     // Bitwise XOR direct word memory with direct register
                     id: 0x52,
                     mnemonic: "xor",
-                    encoding: EncodingType::RR_MM_MM,
+                    encoding: EncodingType::reg8_mem16,
+                    op1: Some(OperandType::WordRegister(0)),
+                    op2: Some(OperandType::DirectMemory16),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_XOR | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Memory,
-                    src_type: InstructionParameterType::DIRECT_MEMORY,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::SPECIAL_REGISTER | InstructionParameterType::WORD_REGISTER
                 })
             },
 
@@ -4654,13 +4506,12 @@ impl<'a> Instruction<'a> {
                     // Bitwise XOR direct word register with direct memory
                     id: 0x54,
                     mnemonic: "xor",
-                    encoding: EncodingType::RR_MM_MM,
+                    encoding: EncodingType::reg8_mem16,
+                    op1: Some(OperandType::DirectMemory16),
+                    op2: Some(OperandType::WordRegister(0)),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_XOR | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Register0,
-                    src_type: InstructionParameterType::SPECIAL_REGISTER | InstructionParameterType::WORD_REGISTER,
-                    dst_param: InstructionParameter::Memory,
-                    dst_type: InstructionParameterType::DIRECT_MEMORY
                 })
             },
 
@@ -4679,13 +4530,12 @@ impl<'a> Instruction<'a> {
                     // Bitwise XOR direct byte GPR with direct GPR
                     id: 0x51,
                     mnemonic: "xorb",
-                    encoding: EncodingType::nm,
+                    encoding: EncodingType::reg4_reg4,
+                    op1: Some(OperandType::ByteRegister(0)),
+                    op2: Some(OperandType::ByteRegister(1)),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_XOR | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Register1,
-                    src_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::BYTE_REGISTER,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::GENERAL_REGISTER | InstructionParameterType::BYTE_REGISTER
                 })
             },
 
@@ -4699,13 +4549,12 @@ impl<'a> Instruction<'a> {
                     // Bitwise XOR immediate byte data with direct GPR
                     id: 0x59,
                     mnemonic: "xorb",
-                    encoding: EncodingType::data3_or_reg,
+                    encoding: EncodingType::reg4_or_data3,
+                    op1: Some(OperandType::ByteRegister(0)),
+                    op2: Some(OperandType::ImmediateData3),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_XOR,
                     esil: "",
-                    src_param: InstructionParameter::None,
-                    src_type: InstructionParameterType::DATA_3 | InstructionParameterType::BYTE_REGISTER,
-                    dst_param: InstructionParameter::None,
-                    dst_type: InstructionParameterType::NONE
                 })
             },
 
@@ -4715,13 +4564,12 @@ impl<'a> Instruction<'a> {
                     // Bitwise XOR immediate byte data with direct register
                     id: 0x57,
                     mnemonic: "xorb",
-                    encoding: EncodingType::RR_II_xx,
+                    encoding: EncodingType::reg8_data8_nop8,
+                    op1: Some(OperandType::ByteRegister(0)),
+                    op2: Some(OperandType::ImmediateData8),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_XOR | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Data,
-                    src_type: InstructionParameterType::IMMEDIATE | InstructionParameterType::DATA_8,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::SPECIAL_REGISTER | InstructionParameterType::BYTE_REGISTER
                 })
             },
 
@@ -4731,13 +4579,12 @@ impl<'a> Instruction<'a> {
                     // Bitwise XOR direct byte memory with direct register
                     id: 0x53,
                     mnemonic: "xorb",
-                    encoding: EncodingType::RR_MM_MM,
+                    encoding: EncodingType::reg8_mem16,
+                    op1: Some(OperandType::ByteRegister(0)),
+                    op2: Some(OperandType::DirectMemory16),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_XOR | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Memory,
-                    src_type: InstructionParameterType::DIRECT_MEMORY,
-                    dst_param: InstructionParameter::Register0,
-                    dst_type: InstructionParameterType::SPECIAL_REGISTER | InstructionParameterType::BYTE_REGISTER
                 })
             },
 
@@ -4747,19 +4594,25 @@ impl<'a> Instruction<'a> {
                     // Bitwise XOR direct byte register with direct memory
                     id: 0x55,
                     mnemonic: "xorb",
-                    encoding: EncodingType::RR_MM_MM,
+                    encoding: EncodingType::reg8_mem16,
+                    op1: Some(OperandType::DirectMemory16),
+                    op2: Some(OperandType::ByteRegister(0)),
+                    op3: None,
                     r2_op_type: _RAnalOpType::R_ANAL_OP_TYPE_XOR | _RAnalOpType::R_ANAL_OP_TYPE_REG,
                     esil: "",
-                    src_param: InstructionParameter::Register0,
-                    src_type: InstructionParameterType::SPECIAL_REGISTER | InstructionParameterType::BYTE_REGISTER,
-                    dst_param: InstructionParameter::Memory,
-                    dst_type: InstructionParameterType::DIRECT_MEMORY
                 })
             },
             _ => {
-                let err_str = format!("GOT UNKNOWN OP 0x{:X}", raw_opcode);
-                Err(err_str)
+                Err("Unknown opcode")
             }
         }
+    }
+}
+
+impl<'a> TryFrom<&'a [u8]> for Instruction<'a> {
+    type Error = &'a str;
+
+    fn try_from(bytes: &[u8]) -> Result<Instruction, &'a str> {
+        Instruction::try_from(bytes[0])
     }
 }

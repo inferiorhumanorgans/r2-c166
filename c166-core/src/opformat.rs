@@ -15,237 +15,89 @@
     along with r2-c166.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use ::encoding::{InstructionArguments};
+use std::fmt;
+
 use ::instruction::*;
-use ::register::*;
+use ::bitaddr::*;
 
-fn get_condition(condition: u8) -> String {
-    match condition {
-        0x0 => { String::from("cc_UC") },
-        0x1 => { String::from("cc_NET") },
-        0x2 => { String::from("cc_Z") },
-        0x3 => { String::from("cc_NZ") },
-        0x4 => { String::from("cc_V") },
-        0x5 => { String::from("cc_NV") },
-        0x6 => { String::from("cc_N") },
-        0x7 => { String::from("cc_NN") },
-        0x8 => { String::from("cc_C") },
-        0x9 => { String::from("cc_NC") },
-        0xA => { String::from("cc_SGT") },
-        0xB => { String::from("cc_SLE") },
-        0xC => { String::from("cc_SLT") },
-        0xD => { String::from("cc_SGE") },
-        0xE => { String::from("cc_UGT") },
-        0xF => { String::from("cc_ULE") },
-        _   => { format!("{}", condition) }
-    }
-}
+impl<'a> fmt::Display for Operand {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match &self {
 
-fn format_bitoff(offset: u8, is_ext : bool) -> String {
-    match offset {
-        0x00...0x7F => {
-            // RAM
-            format!("{:04X}h", 0xFD00 + ((2 * offset) as u16))
-        },
-        0x80...0xEF => {
-            // Special fn registers
-            match is_ext {
-                false => {
-                    // SFR
-                    let address : u16 = 0xFF00 + (2 * (offset & 0b01111111)) as u16;
-                    match get_sfr_mnem_from_physical(address) {
-                        Some(mnem) => format!("{}", mnem),
-                        None => format!("{:04X}h", address)
-                    }
-                },
-                true => {
-                    // 'reg' accesses to the ESFR area require a preceding EXT*R instruction to switch the base address
-                    // not available in the SAB 8XC166(W) devices
-                    // ESFR
-                    let address = 0xF100 + ((2 * (offset & 0b01111111)) as u16);
-                    format!("{:04X}", address)
+            Operand::BitAddr(offset, bit)               => {
+                let mnem = bitoff_to_string(*offset as u8, false).unwrap();
+                match bit {
+                    0xFF        => write!(f, "{}", mnem),
+                    0x10..=0xFF  =>  panic!("BitAddr requires a bit offset 0x00..=0x0F"),
+                    _           => write!(f, "{}.{}", mnem, bit)
                 }
-            }
-        },
-        0xF0...0xFF => {
-            let address = offset & 0b00001111;
-            format!("{}", get_word_gpr_mnem(address))
-        },
-        _ => {
-            format!("Invalid bit offset {:X}", offset)
-        }
-    }
-}
-
-#[inline]
-fn decode_immediate(parameter: &InstructionParameter, param_type: &InstructionParameterType, values: &InstructionArguments) -> String {
-    if param_type.intersects(InstructionParameterType::DATA_3) {
-        format!("#{:02X}h", values.data.unwrap())
-    } else if param_type.intersects(InstructionParameterType::DATA_4) {
-        format!("#{:02X}h", values.data.unwrap())
-    } else if param_type.intersects(InstructionParameterType::DATA_8) {
-        format!("#{:02X}h", values.data.unwrap())
-    } else if param_type.intersects(InstructionParameterType::DATA_16) {
-        format!("#{:04X}h", values.data.unwrap())
-    } else if *parameter == InstructionParameter::IRange {
-        format!("#{:X}", values.irange.unwrap())
-    } else if *parameter == InstructionParameter::PageOrSegment {
-        match values.page {
-            Some(page) => format!("#{:04X}h", page),
-            _ => format!("#{:02X}h", values.segment.unwrap()),
-        }
-    } else {
-        let value = values.data.unwrap();
-        format!("#{:X}h", value)
-    }
-}
-
-fn decode_position(mnemonic: &str, parameter: &InstructionParameter, param_type: &InstructionParameterType, values: &InstructionArguments, pc: u32) -> String {
-    let mut ret : String = String::from("");
-
-    if param_type.intersects(InstructionParameterType::GENERAL_REGISTER) {
-        let value : u8 = match parameter {
-            InstructionParameter::Register0 => values.register0.unwrap(),
-            InstructionParameter::Register1 => values.register1.unwrap(),
-            _ => unreachable!()
-        };
-
-        if param_type.intersects(InstructionParameterType::WORD_REGISTER) {
-            ret = format!("{}", get_word_gpr_mnem(value));
-        } else if param_type.intersects(InstructionParameterType::BYTE_REGISTER) {
-            ret = format!("{}", get_byte_gpr_mnem(value));
-        }
-        
-    } else if param_type.intersects(InstructionParameterType::SPECIAL_REGISTER) {
-        let value : u8 = match parameter {
-            InstructionParameter::Register0 => values.register0.unwrap(),
-            InstructionParameter::Register1 => values.register1.unwrap(),
-            _ => unreachable!()
-        };
-
-        if param_type.intersects(InstructionParameterType::WORD_REGISTER) {
-            ret = format!("{}", get_register_mnem(value, false));
-        } else if param_type.intersects(InstructionParameterType::BYTE_REGISTER) {
-            ret = format!("{}", get_register_mnem(value, true));
-        }
-    } else if param_type.intersects(InstructionParameterType::DIRECT_MEMORY) {
-        match parameter {
-            InstructionParameter::Memory => {
-                let value : u16 = values.memory.unwrap();
-                ret = format!("{:04X}h", value);
             },
-            InstructionParameter::RelativeAddress => {
-                let value : u32 = values.relative.unwrap() as u32;
-                ret = format!("{:04X}h", pc + (2 * value));
-            },
-            _ => unreachable!()
-        };
-    } else if param_type.intersects(InstructionParameterType::SEGMENT) {
-        let value : u8 = values.segment.unwrap();        
-
-        ret = format!("{:02X}h", value);
-    } else if param_type.intersects(InstructionParameterType::IMMEDIATE) {
-        ret = decode_immediate(&parameter, &param_type, &values);
-    } else if param_type.intersects(InstructionParameterType::TRAP) {
-        let value : u8 = values.trap.unwrap();
-
-        ret = format!("#{:02X}h", value);
-    } else if param_type.intersects(InstructionParameterType::BIT_OFFSET) {
-        let offset : u8;
-        let bit : Option<u8>;
-        let mask : Option<u8>;
-
-         match parameter {
-            InstructionParameter::BitOffset0 => {
-                offset = values.bitoff0.unwrap();
-                bit = match param_type.intersects(InstructionParameterType::BIT_OFFSET_BIT) {
-                    true => values.bit0,
-                    false => None
-                };
-            },
-            InstructionParameter::BitOffset1 => {
-                offset = values.bitoff1.unwrap();
-                bit = match param_type.intersects(InstructionParameterType::BIT_OFFSET_BIT) {
-                    true => values.bit1,
-                    false => None
-                };
-            },
-            _ => unreachable!()
-        };
-
-        mask = match param_type.intersects(InstructionParameterType::BIT_OFFSET_MASK) {
-            true => values.mask,
-            false => None
-        };
-
-        ret = match bit {
-            Some(bit) => format!("{}.{}", format_bitoff(offset, false), bit),
-            _ => {
-                match mask {
-                    Some(mask) => format!("{}, #{:02X}h", format_bitoff(offset, false), mask),
-                    _ => format!("{}", format_bitoff(offset, false))
+            Operand::Register(r)                    => { write!(f, "{}", r) },                  // SFR, ESFR, GPR
+            Operand::Direct(d, width)               => {
+                match width {
+                    2 => write!(f, "{:X}", d),
+                    4 |
+                    8 => write!(f, "{:02X}h", d),
+                    _ => write!(f, "{:04X}h", d)
                 }
-            }
-        }
-    } else if param_type.intersects(InstructionParameterType::CONDITION) {
-        let value : u8 = values.condition.unwrap();
-
-        ret = format!("{}", get_condition(value));
-    } else if param_type.intersects(InstructionParameterType::DATA_3) {
-        // Gross
-        let register0 : u8 = values.register0.unwrap();
-        let sub_op : u8 = values.sub_op.unwrap();
-        let register1 : Option<u8> = values.register1;
-        let data : Option<u16> = values.data;
-
-        let reg0_mnem = match mnemonic {
-            "subcb" => get_byte_gpr_mnem(register0),
-            _ => {
-                match param_type.intersects(InstructionParameterType::BYTE_REGISTER) {
-                    true => get_byte_gpr_mnem(register0),
-                    false => get_word_gpr_mnem(register0)
+            }, // mem, caddr, seg, rel
+            Operand::Indirect(r)                    => { write!(f, "[{}]", r) }, // [GPR],
+            Operand::IndirectPostIncrement(r)       => { write!(f, "[{}+]", r) }, // [GPR+]
+            Operand::IndirectPreDecrement(r)        => { write!(f, "[-{}]", r) }, // [-GPR]
+            Operand::IndirectAndImmediate(ind, imm) => { write!(f, "[{} + #{:X}h]", ind, imm) }, // [GPR+DATA16],
+            Operand::Immediate(imm, width)          => { // #data3, #data4, #data8, #data16, #mask8, #trap7, #pag10, #seg8, #irang2
+                match width {
+                    2 => write!(f, "#{:X}", imm),
+                    3 |
+                    4 |
+                    7 |
+                    8 => write!(f, "#{:02X}h", imm),
+                    10 |
+                    16 => write!(f, "#{:04X}h", imm),
+                    _ => write!(f, "{:X}h", imm),
                 }
-            }
-        };
-
-        ret = match sub_op {
-            0b10 => format!("{}, [{}]", reg0_mnem, get_word_gpr_mnem(register1.unwrap())),  /* reg */
-            0b11 => format!("{}, [{}+]", reg0_mnem, get_word_gpr_mnem(register1.unwrap())), /* reg_inc */
-            _    => format!("{}, #{:02X}h", reg0_mnem, data.unwrap())                       /* data3 */
-        };
-    }
-
-    if param_type.intersects(InstructionParameterType::INDIRECT) {
-        if param_type.intersects(InstructionParameterType::INCREMENT) {
-            if param_type.intersects(InstructionParameterType::IMMEDIATE) {
-                ret = format!("[{} + {}]", ret, decode_immediate(&parameter, &param_type, &values));
-            } else {
-                ret = format!("[{}+]", ret);
-            }
-        } else if param_type.intersects(InstructionParameterType::DECREMENT) {
-            ret = format!("[-{}]", ret);
-        } else {
-            ret = format!("[{}]", ret);
+            },
+            Operand::Condition(c)                   => { write!(f, "{}", c) },
         }
     }
-
-    ret
 }
 
-pub fn format_op(op: &Instruction, values: &InstructionArguments, pc: u32) -> String {
-        let mut ret = match &values.mnemonic {
-            Some(mnem) => format!("{}", mnem),
-            _ => format!("{}", op.mnemonic)
-        };
-
-        if !op.dst_type.is_empty() {
-            ret = format!("{} {}", ret, decode_position(&op.mnemonic, &op.dst_param, &op.dst_type, &values, pc));
-            if !op.src_type.is_empty() {
-                ret = format!("{}, {}", ret, decode_position(&op.mnemonic, &op.src_param, &op.src_type, &values, pc));
-            }
-        } else if !op.src_type.is_empty() {
-            ret = format!("{} {}", ret, decode_position(&op.mnemonic, &op.src_param, &op.src_type, &values, pc));
+pub fn expand_op(op: &Operand, op_type: &OperandType, pc: u32) -> String {
+    if let Operand::Direct(d, _) = op {
+        if let OperandType::DirectRelative8S = *op_type {
+            let direct: u16 = *d;
+            return format!("{}", Operand::Direct((direct * 2) + (pc as u16), 16));
         }
+    }
 
-        ret
+    format!("{}", op)
+}
+
+pub fn format_op(isn: &Instruction, values: &InstructionArguments, pc: u32) -> String {
+    let mnemonic = match values.mnemonic.as_ref() {
+        Some(mnem) => mnem,
+        _ => isn.mnemonic,
+    };
+
+     match (&isn.op1, &isn.op2, &isn.op3) {
+         (None, None, None) => {
+             format!("{}", mnemonic)
+         }
+         (Some(ref op1), None, None) => {
+             let val1 = expand_op(values.op1.as_ref().unwrap(), &op1, pc);
+             format!("{} {}", mnemonic, val1)
+         },
+         (Some(ref op1), Some(ref op2), None) => {
+             let val1 = expand_op(values.op1.as_ref().unwrap(), &op1, pc);
+             let val2 = expand_op(values.op2.as_ref().unwrap(), &op2, pc);
+             format!("{} {}, {}", mnemonic, val1, val2)
+         },
+         (Some(ref op1), Some(ref op2), Some(ref op3)) => {
+             let val1 = expand_op(values.op1.as_ref().unwrap(), &op1, pc);
+             let val2 = expand_op(values.op2.as_ref().unwrap(), &op2, pc);
+             let val3 = expand_op(values.op3.as_ref().unwrap(), &op3, pc);
+             format!("{} {}, {}, {}", mnemonic, val1, val2, val3)
+         }
+         _ => format!("")
+     }
 }

@@ -34,7 +34,7 @@ interactive: all
 	@RUST_BACKTRACE=1 radare2 -a c166 -F c166-rom  ${BIN_FILE}
 
 test-asm:
-	@CARGO_TARGET_DIR=${CARGO_TARGET_DIR} cargo test c166 --no-fail-fast
+	@CARGO_TARGET_DIR=${CARGO_TARGET_DIR} cargo test -p c166-core --no-fail-fast tests::decode::
 
 test:
 	@CARGO_TARGET_DIR=${CARGO_TARGET_DIR} cargo test --all --no-fail-fast -- --skip r2::bindgen_test_layout_max_align_t

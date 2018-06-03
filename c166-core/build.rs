@@ -27,6 +27,7 @@ fn build_bindings(in_path: &PathBuf, out_path: &PathBuf) {
         .clang_arg("-I/usr/include/libr/")
         .clang_arg("-I/usr/local/include/libr/")
         .clang_arg("-I/opt/include/libr/")
+        .clang_arg("-I/Users/alex/radare2/libr/include/")
         .bitfield_enum("_RAnalOpType")
         .bitfield_enum("_RAnalCond")
         .blacklist_type("IPPORT_RESERVED") 

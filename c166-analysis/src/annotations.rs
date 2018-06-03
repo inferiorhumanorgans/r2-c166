@@ -16,9 +16,8 @@
 */
 
 use std::ffi::CString;
-use c166_core::register::*;
+use c166_core::reg::*;
 use c166_core::r2::*;
-use c166_core::encoding::*;
 use c166_core::instruction::*;
 
 // Assume 20MHz
@@ -243,33 +242,42 @@ fn format_adcon(value: u16) -> String {
 }
 
 fn annotate_sfr_immed(an: *mut RAnal, pc: u64, values: &InstructionArguments) {
-    let value : u16 = values.data.unwrap();
     let mut strings : Vec<String> = Vec::new();
 
-    let sfr : SpecialFunctionRegister  = SpecialFunctionRegister::from_int(values.register0.unwrap());
+    let op1: &Operand = values.op1.as_ref().unwrap();
+    let sfr: Reg = match op1 {
+        &Operand::Register(reg) => reg,
+        _ => unreachable!()
+    };
+
+    let op2: &Operand = values.op2.as_ref().unwrap();
+    let value: u16 = match op2 {
+        &Operand::Immediate(immed, _width) => immed,
+        _ => unreachable!()
+    };
 
     match sfr {
-        SpecialFunctionRegister::ADCON => {
+        Reg::ADCON => {
             strings.push(format_adcon(value));
         },
-        SpecialFunctionRegister::ADDRSEL1 |
-        SpecialFunctionRegister::ADDRSEL2 |
-        SpecialFunctionRegister::ADDRSEL3 |
-        SpecialFunctionRegister::ADDRSEL4 => {
+        Reg::ADDRSEL1 |
+        Reg::ADDRSEL2 |
+        Reg::ADDRSEL3 |
+        Reg::ADDRSEL4 => {
         },
-        SpecialFunctionRegister::DPP0 |
-        SpecialFunctionRegister::DPP1 |
-        SpecialFunctionRegister::DPP2 |
-        SpecialFunctionRegister::DPP3 => {
+        Reg::DPP0 |
+        Reg::DPP1 |
+        Reg::DPP2 |
+        Reg::DPP3 => {
             strings.push(format!("Assume {} = {:04X}h", sfr.to_string(), value as u32 * 0x4000));
         },
-        SpecialFunctionRegister::S0BG => {
+        Reg::S0BG => {
             strings.push(format_s0bg(value))
         },
-        SpecialFunctionRegister::S0CON => {
+        Reg::S0CON => {
             strings.push(format_s0con(value))
         },
-        SpecialFunctionRegister::WDTCON => {
+        Reg::WDTCON => {
             match value & 0x01 {
                 1 => strings.push(String::from("WDTIN = Watchdog frequency 10Mhz")),
                 _ => strings.push(String::from("WDTIN = Watchdog frequency 156.25Khz"))
@@ -285,19 +293,19 @@ fn annotate_sfr_immed(an: *mut RAnal, pc: u64, values: &InstructionArguments) {
     }
 }
 
-pub fn annotate_sfr_ops(op: &Instruction, values: &InstructionArguments, an: *mut RAnal, pc: u64) {
-    let op_flags : u32 = op.r2_op_type.uint_value();
+pub fn annotate_sfr_ops(isn: &Instruction, values: &InstructionArguments, an: *mut RAnal, pc: u64) {
+    let op_flags : u32 = isn.r2_op_type.uint_value();
     let op_type : _RAnalOpType = _RAnalOpType(0x000000FF & op_flags);
 
     match op_type {
         _RAnalOpType::R_ANAL_OP_TYPE_MOV => {
-            if op.dst_type.intersects(InstructionParameterType::SPECIAL_REGISTER) &&
-            op.dst_param == InstructionParameter::Register0 &&
-            op.src_type.intersects(InstructionParameterType::IMMEDIATE) {
-                annotate_sfr_immed(an, pc, &values);
-            }
+            let op1 = isn.op1.unwrap();
+            let op2 = isn.op2.unwrap();
+            if (op1 == OperandType::WordRegister (1)|| op1 == OperandType::ByteRegister(0)) &&
+                (op2 == OperandType::ImmediateData8 || op2 == OperandType::ImmediateData16) {
+                    annotate_sfr_immed(an, pc, &values);
+            };
         },
         _ => {}
     }
 }
-

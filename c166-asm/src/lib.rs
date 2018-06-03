@@ -15,6 +15,8 @@
     along with r2-c166.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#![feature(try_from)]
+
 extern crate c166_core;
 
 use std::os::raw::c_void;
@@ -22,9 +24,10 @@ use std::os::raw::c_char;
 use std::ptr;
 
 use c166_core::r2::*;
-use c166_core::instruction::Instruction;
-use c166_core::encoding::Encoding;
-use c166_core::opformat::*;
+
+mod asm;
+mod disasm;
+mod mnemonics;
 
 // https://github.com/rust-lang/rfcs/issues/400
 macro_rules! cstr {
@@ -33,59 +36,6 @@ macro_rules! cstr {
   );
 }
 const EMPTY_STRING : *const c_char = b"\0" as *const [u8] as *const c_char;
-
-extern "C" fn c166_disassemble(raw_asm: *mut RAsm, raw_op: *mut RAsmOp, buf: *const u8, _len: i32) -> i32 {
-    let asm : &RAsm;
-    let out_op : &mut RAsmOp;
-    let bytes;
-
-    unsafe {
-        asm = &(*raw_asm);
-        out_op = &mut (*raw_op);
-
-        bytes = std::slice::from_raw_parts(buf as *const u8, 4 as usize);
-    }
-
-    match Instruction::from_addr_array(bytes) {
-        Ok(op) => {
-            let encoding = Encoding::from_encoding_type(&op.encoding).unwrap();
-
-            // https://github.com/rust-lang/rust/issues/18343
-            match (encoding.decode)(bytes) {
-                Ok(values) => {
-                    if asm.pc > <u32>::max_value() as u64 {
-                        out_op.size = -1;
-                        out_op.payload = 0;
-                        out_op.buf_asm[0] = 0;
-                    } else {
-                        let desc = format_op(&op, &values, asm.pc as u32);
-
-                        out_op.size = encoding.length;
-                        out_op.payload = 0;
-                        out_op.buf_asm[desc.len()] = 0;
-
-                        unsafe {
-                            std::ptr::copy(desc.as_bytes() as *const [u8] as *const c_char, &mut out_op.buf_asm as *mut [c_char] as *mut c_char, desc.len());
-                        }
-                    }
-                },
-                Err(_) => {
-                    out_op.size = -1;
-                    out_op.payload = 0;
-                    out_op.buf_asm[0] = 0;
-                }
-            }
-            return encoding.length;
-        },
-        Err(_) => {
-            out_op.size = -1;
-            out_op.payload = 0;
-            out_op.buf_asm[0] = 0;
-        }
-    }
-
-    out_op.size
-}
 
 #[allow(non_upper_case_globals)]
 const C166_ASM_PLUGIN: RAsmPlugin = RAsmPlugin {
@@ -96,16 +46,16 @@ const C166_ASM_PLUGIN: RAsmPlugin = RAsmPlugin {
     license:        cstr!("GPL3"),
     user:           ptr::null_mut(),
     cpus:           EMPTY_STRING,
-    desc:           cstr!("c166 disassembler"),
+    desc:           cstr!("c166 assembler plugin"),
     bits:           16,
     endian:         0,
-    disassemble:    Some(c166_disassemble),
-    assemble:       None,
+    disassemble:    Some(disasm::c166_disassemble),
+    assemble:       Some(asm::c166_assemble),
     init:           None,
     fini:           None,
     modify:         None,
     set_subarch:    None,
-    mnemonics:      None,
+    mnemonics:      Some(mnemonics::c166_mnemonic_by_id),
     features:       EMPTY_STRING,
 };
 

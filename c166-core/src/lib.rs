@@ -15,11 +15,13 @@
     along with r2-c166.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#![feature(try_from)]
+
 #[macro_use]
 extern crate enum_primitive_derive;
 
 #[macro_use]
-extern crate bitflags;
+extern crate nom;
 
 extern crate num_traits;
 extern crate byteorder;
@@ -27,7 +29,9 @@ extern crate byteorder;
 pub mod encoding;
 pub mod instruction;
 pub mod opformat;
-pub mod register;
+pub mod reg;
+pub mod bitaddr;
+pub mod parser;
 
 pub mod r2;
 

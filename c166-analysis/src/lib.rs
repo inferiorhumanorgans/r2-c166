@@ -15,6 +15,8 @@
     along with r2-c166.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#![feature(try_from)]
+
 #[macro_use]
 extern crate runtime_fmt;
 
@@ -22,6 +24,7 @@ extern crate c166_core;
 
 use std::os::raw::c_void;
 use std::os::raw::c_char;
+use std::convert::TryFrom;
 
 use c166_core::r2::*;
 use c166_core::instruction::*;
@@ -46,29 +49,24 @@ macro_rules! cstr {
   );
 }
 
-fn condition_to_r2(condition: u8) -> _RAnalCond {
-    if condition > 15 {
-        panic!("Condition shouldn't be over 15, but is actually {}", condition);
-    }
-
+fn condition_to_r2(condition: &OpCondition) -> _RAnalCond {
     match condition {
-        0x0 => _RAnalCond::R_ANAL_COND_AL, // cc_UC
-        0x1 => _RAnalCond::R_ANAL_COND_NE, // cc_NET
-        0x2 => _RAnalCond::R_ANAL_COND_EQ, // cc_Z
-        0x3 => _RAnalCond::R_ANAL_COND_NE, // cc_NZ
-        0x4 => _RAnalCond::R_ANAL_COND_VS, // cc_V
-        0x5 => _RAnalCond::R_ANAL_COND_VC, // cc_NV
-        0x6 => _RAnalCond::R_ANAL_COND_MI, // cc_N
-        0x7 => _RAnalCond::R_ANAL_COND_PL, // cc_NN
-        0x8 => _RAnalCond::R_ANAL_COND_HS, // cc_C
-        0x9 => _RAnalCond::R_ANAL_COND_LO, // cc_NC
-        0xA => _RAnalCond::R_ANAL_COND_GT, // cc_SGT
-        0xB => _RAnalCond::R_ANAL_COND_LE, // cc_SLE
-        0xC => _RAnalCond::R_ANAL_COND_LT, // cc_SLT
-        0xD => _RAnalCond::R_ANAL_COND_GE, // cc_SGE
-        0xE => _RAnalCond::R_ANAL_COND_HI, // cc_UGT
-        0xF => _RAnalCond::R_ANAL_COND_LS, // cc_ULE
-        _   => unreachable!()
+        OpCondition::cc_UC  => _RAnalCond::R_ANAL_COND_AL,
+        OpCondition::cc_NET => _RAnalCond::R_ANAL_COND_NE,
+        OpCondition::cc_Z   => _RAnalCond::R_ANAL_COND_EQ,
+        OpCondition::cc_NZ  => _RAnalCond::R_ANAL_COND_NE,
+        OpCondition::cc_V   => _RAnalCond::R_ANAL_COND_VS,
+        OpCondition::cc_NV  => _RAnalCond::R_ANAL_COND_VC,
+        OpCondition::cc_N   => _RAnalCond::R_ANAL_COND_MI,
+        OpCondition::cc_NN  => _RAnalCond::R_ANAL_COND_PL,
+        OpCondition::cc_C   => _RAnalCond::R_ANAL_COND_HS,
+        OpCondition::cc_NC  => _RAnalCond::R_ANAL_COND_LO,
+        OpCondition::cc_SGT => _RAnalCond::R_ANAL_COND_GT,
+        OpCondition::cc_SLE => _RAnalCond::R_ANAL_COND_LE,
+        OpCondition::cc_SLT => _RAnalCond::R_ANAL_COND_LT,
+        OpCondition::cc_SGE => _RAnalCond::R_ANAL_COND_GE,
+        OpCondition::cc_UGT => _RAnalCond::R_ANAL_COND_HI,
+        OpCondition::cc_ULE => _RAnalCond::R_ANAL_COND_LS,
     }
 }
 
@@ -163,9 +161,9 @@ extern "C" fn c166_set_reg_profile(a: *mut RAnal) -> i32 {
 
 extern "C" fn c166_archinfo(_anal: *mut RAnal, query: i32) -> i32 {
     match query as u32 {
-        R_ANAL_ARCHINFO_ALIGN => 0,
-        R_ANAL_ARCHINFO_MAX_OP_SIZE => 1,
-        R_ANAL_ARCHINFO_MIN_OP_SIZE => 1,
+        R_ANAL_ARCHINFO_ALIGN => -1,
+        R_ANAL_ARCHINFO_MAX_OP_SIZE => 4,
+        R_ANAL_ARCHINFO_MIN_OP_SIZE => 2,
         _ => panic!("Query must be one of: R_ANAL_ARCHINFO_ALIGN={}, R_ANAL_ARCHINFO_MAX_OP_SIZE={}, R_ANAL_ARCHINFO_MIN_OP_SIZE={}, got {}",
                 R_ANAL_ARCHINFO_ALIGN, R_ANAL_ARCHINFO_MAX_OP_SIZE, R_ANAL_ARCHINFO_MIN_OP_SIZE, query)
     }
@@ -181,47 +179,54 @@ extern "C" fn c166_op(an: *mut RAnal, raw_op: *mut RAnalOp, pc: u64, buf: *const
         bytes = std::slice::from_raw_parts(buf as *const u8, 4 as usize);
     }
 
-    match Instruction::from_addr_array(bytes) {
-        Ok(op) => {
-            let encoding = Encoding::from_encoding_type(&op.encoding).unwrap();
+    match Instruction::try_from(bytes) {
+        Ok(isn) => {
+            let encoding = Encoding::from(&isn.encoding);
 
             out_op.id = bytes[0] as i32;
             out_op.nopcode = 1;
             out_op.family = R_ANAL_OP_FAMILY_CPU; // TODO: set privileged as appropriate
-            out_op.type_ = op.r2_op_type.uint_value();
+            out_op.type_ = isn.r2_op_type.uint_value();
             out_op.size = encoding.length;
+
             out_op.addr = pc;
 
             let op_type = _RAnalOpType(0x000000FF & out_op.type_);
 
             match op_type {
+                _RAnalOpType::R_ANAL_OP_TYPE_RET => {
+                    out_op.eob = true;
+                },
                 _RAnalOpType::R_ANAL_OP_TYPE_JMP | _RAnalOpType::R_ANAL_OP_TYPE_CALL => {
                     // Always go to the next instruction on failure
                     out_op.fail = pc + (out_op.size as u64);
 
-                    match (encoding.decode)(bytes) {
+                    match (encoding.decode)(&isn, bytes) {
                         Ok(values) => {
-                            out_op.cond = match values.condition {
-                                Some(condition) => condition_to_r2(condition).uint_value() as i32,
+                            out_op.cond = match values.op1.as_ref().unwrap() {
+                                &Operand::Condition(ref condition) => condition_to_r2(condition).uint_value() as i32,
                                 _ => 0
                             };
 
-                            match values.memory {
-                                Some(address) => {
-                                    out_op.jump = match values.segment {
-                                        Some(seg) => (0x10000 * seg as u64) + (address as u64),
-                                        _ =>  address as u64
-                                    }
-                                },
-                                _ => {
-                                    match values.relative {
-                                        Some(relative) => {
-                                            out_op.jump = pc + ( (relative as u64) * 2 );
-                                        },
-                                        _ => {}
-                                    }
-                                }
+                            if out_op.cond == 0 {
+                                out_op.eob = true;
                             }
+
+                            match (isn.op2, values.op2) {
+                                (Some(OperandType::DirectCaddr16), Some(Operand::Direct(d, _width))) => {
+                                    match (isn.op1.as_ref().unwrap(), values.op1.as_ref().unwrap()) {
+                                        (OperandType::DirectSegment8, Operand::Direct(seg, _width)) => {
+                                            //                            grab from op1 Some(seg) => (0x10000 * seg as u64) + (address as u64),
+                                            out_op.jump = (0x10000 * *seg as u64) + (d as u64)
+                                        },
+                                        _ => out_op.jump = d as u64
+                                    };
+                                },
+                                (Some(OperandType::DirectRelative8S), Some(Operand::Direct(d, _width))) => {
+                                    out_op.jump = pc + ( (d as u64) * 2 );
+                                }
+                                _ => {}
+                            };
                         },
                         Err(_) => {
                             out_op.id = -1;
@@ -233,10 +238,10 @@ extern "C" fn c166_op(an: *mut RAnal, raw_op: *mut RAnalOp, pc: u64, buf: *const
                 _ => {}
             }
 
-            match (encoding.decode)(bytes) {
+            match (encoding.decode)(&isn, bytes) {
                 Ok(values) => {
-                    annotate_sfr_ops(&op, &values, an, pc);
-                    process_esil(&op, &values, raw_op);
+                    annotate_sfr_ops(&isn, &values, an, pc);
+                    process_esil(&isn, &values, raw_op);
                 },
                 _ => {}
             }
