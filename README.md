@@ -54,7 +54,7 @@ toolchain.
     </tr>
     <tr>
       <td>Assembler</td>
-      <td>WIP</td>
+      <td>All opcodes encoded<br>Various optimizations needed</td>
     </tr>
     <tr>
       <td>Disassembler</td>
