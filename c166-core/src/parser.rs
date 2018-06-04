@@ -479,7 +479,7 @@ pub fn operation_to_bytes<'a>(asm: &AsmOperation) -> Result<Vec<u8>, &'a str> {
                                     continue;
                                 }
                             },
-                            _ => continue
+                            _ => {}
                         }
 
                         args.op1 = Some(*reg);
