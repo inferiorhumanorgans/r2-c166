@@ -37,4 +37,4 @@ test-asm:
 	@CARGO_TARGET_DIR=${CARGO_TARGET_DIR} cargo test -p c166-core --no-fail-fast tests::decode::
 
 test:
-	@CARGO_TARGET_DIR=${CARGO_TARGET_DIR} cargo test --all --no-fail-fast -- --skip r2::bindgen_test_layout___max_align_t
+	@CARGO_TARGET_DIR=${CARGO_TARGET_DIR} cargo test --all --no-fail-fast -- --skip r2::bindgen_test_layout___max_align_t --skip r2::bindgen_test_layout_max_align_t
