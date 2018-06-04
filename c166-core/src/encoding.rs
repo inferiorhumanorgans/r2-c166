@@ -267,7 +267,7 @@ impl<'a> From<&'a EncodingType> for Encoding<'a> {
                 Encoding {
                     name: "cc_rr",
                     length: 2,
-                    encode: |isn, args| {
+                    encode: |_isn, args| {
                         let cond = match args.op1.unwrap() {
                             Operand::Condition(cond) => cond.to_u8().unwrap(),
                             _ => unreachable!()
@@ -888,12 +888,12 @@ impl<'a> From<&'a EncodingType> for Encoding<'a> {
                         let data : u16 = LittleEndian::read_u16(slice);
 
                         let reg_op = get_reg_op_position(&isn);
-                        let reg = Reg::from_reg8(reg_addr, reg_op.as_ref().unwrap());
+                        let reg8 = Reg::from_reg8(reg_addr, reg_op.as_ref().unwrap());
 
-                        match reg {
+                        match reg8 {
                             Ok(register) => {
                                 Ok(InstructionArguments {
-                                    op1: Some(Operand::Register(reg.unwrap())),
+                                    op1: Some(Operand::Register(register)),
                                     op2: Some(Operand::Immediate(data, 16)),
                                     ..Default::default()
                                 })
@@ -1268,8 +1268,6 @@ impl<'a> From<&'a EncodingType> for Encoding<'a> {
                         let upper : u8 = (buf[1] & 0b11110000) >> 4;
 
                         if lower == upper {
-                            let register0 : u8 = lower;
-
                             let op1 = get_reg4(isn.op1.as_ref().unwrap(), lower, upper);
 
                             Ok(InstructionArguments {

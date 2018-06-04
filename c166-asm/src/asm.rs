@@ -18,11 +18,8 @@
 use std::os::raw::c_char;
 use std::ffi::CStr;
 use std::str;
-use std::convert::TryFrom;
 
 use c166_core::r2::*;
-use c166_core::instruction::*;
-use c166_core::encoding::*;
 use c166_core::parser::*;
 
 lazy_static! {
@@ -37,13 +34,13 @@ pub extern "C" fn c166_assemble(_asm: *mut RAsm, raw_op: *mut RAsmOp, buf: *cons
     let op_lut: &OpLookUpTable = &OP_LUT;
 
     let c_str: &CStr = unsafe { CStr::from_ptr(buf) };
-    let mut init_data: &[u8] = c_str.to_bytes_with_nul();
+    let init_data: &[u8] = c_str.to_bytes_with_nul();
     let data: &str = str::from_utf8(init_data).unwrap();
     let out_op : &mut RAsmOp = unsafe {&mut (*raw_op)};
 
     out_op.size = 0;
         match asm_lines(data) {
-        Ok((remainder, ops)) => {
+        Ok((_remainder, ops)) => {
             for op in ops {
                 eprintln!("");
                 eprintln!("OP: {:?}", op);

@@ -1016,7 +1016,6 @@ impl Reg {
             Reg::R10 => false,
             Reg::R12 => false,
             Reg::R13 => false,
-            Reg::R13 => false,
             Reg::R14 => false,
             Reg::R15 => false,
             _        => true,

@@ -362,7 +362,6 @@ pub fn build_lut(lut: &mut OpLookUpTable) {
 }
 
 pub fn operation_to_bytes<'a>(asm: &AsmOperation, op_lut: &OpLookUpTable) -> Result<Vec<u8>, &'a str> {
-    let panic_on_bad_op: bool = false;
     let mut encode_op: Option<&Instruction> = None;
     let mut args = InstructionArguments {
         ..Default::default()
@@ -549,9 +548,9 @@ pub fn operation_to_bytes<'a>(asm: &AsmOperation, op_lut: &OpLookUpTable) -> Res
                         encode_op = Some(&isn);
                         break;
                     },
-                    (reg4_reg4, reg_type0 @ &OperandType::Indirect(_), reg0 @ &Operand::Indirect(_), reg_type1 @ &OperandType::Indirect(_), reg1 @ &Operand::Indirect(_)) |
-                    (reg4_reg4, reg_type0 @ &OperandType::IndirectPostIncrement(_), reg0 @ &Operand::IndirectPostIncrement(_), reg_type1 @ &OperandType::Indirect(_), reg1 @ &Operand::Indirect(_)) |
-                    (reg4_reg4, reg_type0 @ &OperandType::Indirect(_), reg0 @ &Operand::Indirect(_), reg_type1 @ &OperandType::IndirectPostIncrement(_), reg1 @ &Operand::IndirectPostIncrement(_)) => {
+                    (EncodingType::reg4_reg4, &OperandType::Indirect(_), reg0 @ &Operand::Indirect(_), &OperandType::Indirect(_), reg1 @ &Operand::Indirect(_)) |
+                    (EncodingType::reg4_reg4, &OperandType::IndirectPostIncrement(_), reg0 @ &Operand::IndirectPostIncrement(_), &OperandType::Indirect(_), reg1 @ &Operand::Indirect(_)) |
+                    (EncodingType::reg4_reg4, &OperandType::Indirect(_), reg0 @ &Operand::Indirect(_), &OperandType::IndirectPostIncrement(_), reg1 @ &Operand::IndirectPostIncrement(_)) => {
                         args.op1= Some(*reg0);
                         args.op2= Some(*reg1);
                         encode_op = Some(&isn);
@@ -591,8 +590,8 @@ pub fn operation_to_bytes<'a>(asm: &AsmOperation, op_lut: &OpLookUpTable) -> Res
                         encode_op = Some(&isn);
                         break;
                     },
-                    (EncodingType::_0_reg4_mem16, ind_type @ &OperandType::Indirect(_), reg @ &Operand::Indirect(_), &OperandType::DirectMemory16, direct @ &Operand::Direct(_, _)) |
-                    (EncodingType::_0_reg4_mem16, &OperandType::DirectMemory16, direct @ &Operand::Direct(_, _), ind_type @ &OperandType::Indirect(_), reg @ &Operand::Indirect(_)) => {
+                    (EncodingType::_0_reg4_mem16, &OperandType::Indirect(_), reg @ &Operand::Indirect(_), &OperandType::DirectMemory16, direct @ &Operand::Direct(_, _)) |
+                    (EncodingType::_0_reg4_mem16, &OperandType::DirectMemory16, direct @ &Operand::Direct(_, _), &OperandType::Indirect(_), reg @ &Operand::Indirect(_)) => {
                         args.op1 = Some(*reg);
                         args.op2 = Some(*direct);
                         encode_op = Some(&isn);
@@ -625,10 +624,10 @@ pub fn operation_to_bytes<'a>(asm: &AsmOperation, op_lut: &OpLookUpTable) -> Res
                         encode_op = Some(&isn);
                         break;
                     },
-                    (EncodingType::reg8_data8_nop8, reg_type @ &OperandType::ByteRegister(_), reg @ &Operand::Register(_), &OperandType::ImmediateData8, &Operand::Immediate(imm, width)) |
-                    (EncodingType::reg8_data8_nop8, reg_type @ &OperandType::WordRegister(_), reg @ &Operand::Register(_), &OperandType::ImmediateData8, &Operand::Immediate(imm, width)) |
-                    (EncodingType::reg8_data16, reg_type @ &OperandType::ByteRegister(_), reg @ &Operand::Register(_), &OperandType::ImmediateData16, &Operand::Immediate(imm, width)) |
-                    (EncodingType::reg8_data16, reg_type @ &OperandType::WordRegister(_), reg @ &Operand::Register(_), &OperandType::ImmediateData16, &Operand::Immediate(imm, width)) => {
+                    (EncodingType::reg8_data8_nop8, reg_type @ &OperandType::ByteRegister(_), reg @ &Operand::Register(_), &OperandType::ImmediateData8, immed @ &Operand::Immediate(_, _)) |
+                    (EncodingType::reg8_data8_nop8, reg_type @ &OperandType::WordRegister(_), reg @ &Operand::Register(_), &OperandType::ImmediateData8, immed @ &Operand::Immediate(_, _)) |
+                    (EncodingType::reg8_data16, reg_type @ &OperandType::ByteRegister(_), reg @ &Operand::Register(_), &OperandType::ImmediateData16, immed @ &Operand::Immediate(_, _)) |
+                    (EncodingType::reg8_data16, reg_type @ &OperandType::WordRegister(_), reg @ &Operand::Register(_), &OperandType::ImmediateData16, immed @ &Operand::Immediate(_, _)) => {
                         match (reg_type, reg) {
                             (OperandType::ByteRegister(_), Operand::Register(reg)) if reg.is_byte_register() => {},
                             (OperandType::WordRegister(_) , Operand::Register(reg)) if reg.is_word_register() => {},
@@ -637,20 +636,22 @@ pub fn operation_to_bytes<'a>(asm: &AsmOperation, op_lut: &OpLookUpTable) -> Res
 
                         // TODO: Make this less gross
                         // Hope for a data3 variant
-                        if imm <= 0b111 {
-                            continue;
+                        if let Operand::Immediate(imm, _width) = immed {
+                            if *imm <= 0b111 {
+                                continue;
+                            }
                         }
 
-                        args.op1 = Some(asm.operands[0]);
-                        args.op2 = Some(asm.operands[1]);
+                        args.op1 = Some(*reg);
+                        args.op2 = Some(*immed);
                         encode_op = Some(&isn);
                         break;
                     },
-                    (EncodingType::reg8_mem16, &OperandType::DirectMemory16, &Operand::Direct(dir, width), reg_type @ &OperandType::ByteRegister(_), reg @ &Operand::Register(_)) |
-                    (EncodingType::reg8_mem16, &OperandType::DirectMemory16, &Operand::Direct(dir, width), reg_type @ &OperandType::WordRegister(_), reg @ &Operand::Register(_)) |
-                    (EncodingType::reg8_mem16, reg_type @ &OperandType::ByteRegister(_), reg @ &Operand::Register(_), &OperandType::DirectMemory16, &Operand::Direct(dir, width)) |
-                    (EncodingType::reg8_mem16, reg_type @ &OperandType::WordRegister(_), reg @ &Operand::Register(_), &OperandType::DirectCaddr16, &Operand::Direct(dir, width)) |
-                    (EncodingType::reg8_mem16, reg_type @ &OperandType::WordRegister(_), reg @ &Operand::Register(_), &OperandType::DirectMemory16, &Operand::Direct(dir, width)) => {
+                    (EncodingType::reg8_mem16, &OperandType::DirectMemory16, dir @ &Operand::Direct(_, _), reg_type @ &OperandType::ByteRegister(_), reg @ &Operand::Register(_)) |
+                    (EncodingType::reg8_mem16, &OperandType::DirectMemory16, dir @ &Operand::Direct(_, _), reg_type @ &OperandType::WordRegister(_), reg @ &Operand::Register(_)) |
+                    (EncodingType::reg8_mem16, reg_type @ &OperandType::ByteRegister(_), reg @ &Operand::Register(_), &OperandType::DirectMemory16, dir @ &Operand::Direct(_, _)) |
+                    (EncodingType::reg8_mem16, reg_type @ &OperandType::WordRegister(_), reg @ &Operand::Register(_), &OperandType::DirectCaddr16, dir @ &Operand::Direct(_, _)) |
+                    (EncodingType::reg8_mem16, reg_type @ &OperandType::WordRegister(_), reg @ &Operand::Register(_), &OperandType::DirectMemory16, dir @ &Operand::Direct(_, _)) => {
                         match (reg_type, reg) {
                             (OperandType::ByteRegister(_), Operand::Register(reg)) if reg.is_byte_register() => {},
                             (OperandType::WordRegister(_) , Operand::Register(reg)) if reg.is_word_register() => {},
@@ -658,7 +659,7 @@ pub fn operation_to_bytes<'a>(asm: &AsmOperation, op_lut: &OpLookUpTable) -> Res
                         };
 
                         args.op1 = Some(*reg);
-                        args.op2 = Some(Operand::Direct(dir, 16));
+                        args.op2 = Some(*dir);
                         encode_op = Some(&isn);
                         break;
                     },
