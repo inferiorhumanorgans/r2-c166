@@ -25,7 +25,17 @@ use c166_core::instruction::*;
 use c166_core::encoding::*;
 use c166_core::parser::*;
 
+lazy_static! {
+    static ref OP_LUT: OpLookUpTable<'static> = {
+        let mut op_lut: OpLookUpTable = OpLookUpTable::new();
+        build_lut(&mut op_lut);
+        op_lut
+    };
+}
+
 pub extern "C" fn c166_assemble(_asm: *mut RAsm, raw_op: *mut RAsmOp, buf: *const c_char) -> i32 {
+    let op_lut: &OpLookUpTable = &OP_LUT;
+
     let c_str: &CStr = unsafe { CStr::from_ptr(buf) };
     let mut init_data: &[u8] = c_str.to_bytes_with_nul();
     let data: &str = str::from_utf8(init_data).unwrap();
@@ -38,7 +48,7 @@ pub extern "C" fn c166_assemble(_asm: *mut RAsm, raw_op: *mut RAsmOp, buf: *cons
                 eprintln!("");
                 eprintln!("OP: {:?}", op);
 
-                match operation_to_bytes(&op) {
+                match operation_to_bytes(&op, &op_lut) {
                     Ok(out_bytes) => {
                         eprintln!("OKAY: {:X?}", out_bytes);
                         for byte in out_bytes.iter() {

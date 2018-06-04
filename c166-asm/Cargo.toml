@@ -5,6 +5,7 @@ authors = ["Alex Zepeda <c166@inferiorhumanorgans.com>"]
 
 [dependencies]
 c166-core = { path = "../c166-core" }
+lazy_static = "1.0"
 
 [lib]
 name = "c166_asm"

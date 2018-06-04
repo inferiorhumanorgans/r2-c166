@@ -17,10 +17,13 @@
 
 #![feature(try_from)]
 
+#[macro_use]
+extern crate lazy_static;
+
 extern crate c166_core;
 
-use std::os::raw::c_void;
 use std::os::raw::c_char;
+use std::os::raw::c_void;
 use std::ptr;
 
 use c166_core::r2::*;

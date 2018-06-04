@@ -55,7 +55,11 @@ macro_rules! test_asm_op {
         let (remainder, asm_ops) = asm_lines(data).unwrap();
         assert_eq!(remainder.len(), 0, "There should be zero bytes remaining from the parser");
         assert_eq!(asm_ops.len(), 1, "There should be exactly one operation");
-        let asm_bytes: Vec<u8> = operation_to_bytes(&asm_ops[0]).expect("The operation was unable to be encoded");
+
+        let mut op_lut: OpLookUpTable = OpLookUpTable::new();
+        build_lut(&mut op_lut);
+
+        let asm_bytes: Vec<u8> = operation_to_bytes(&asm_ops[0], &op_lut).expect("The operation was unable to be encoded");
         let expected_bytes: &[u8] = &$expected;
         assert_eq!(asm_bytes, expected_bytes);
     };

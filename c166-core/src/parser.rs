@@ -347,20 +347,22 @@ pub fn asm_lines(input: &str) -> IResult<&str, Vec<AsmOperation>> {
     Ok((buf, ops))
 }
 
-pub fn operation_to_bytes<'a>(asm: &AsmOperation) -> Result<Vec<u8>, &'a str> {
-    let panic_on_bad_op: bool = false;
-    let mut op_lut: HashMap<&str, Vec<Instruction>> = HashMap::new();
+pub type OpLookUpTable<'a> = HashMap<&'a str, Vec<Instruction<'a>>>;
 
+pub fn build_lut(lut: &mut OpLookUpTable) {
     for id in 0..=0xFF {
         match Instruction::try_from(id) {
             Ok(op) => {
-                let mut op_table = &mut op_lut.entry(op.mnemonic).or_insert_with(|| Vec::new());
+                let mut op_table = &mut lut.entry(op.mnemonic).or_insert_with(|| Vec::new());
                 op_table.push(op);
             },
             _ => {}
         }
     }
+}
 
+pub fn operation_to_bytes<'a>(asm: &AsmOperation, op_lut: &OpLookUpTable) -> Result<Vec<u8>, &'a str> {
+    let panic_on_bad_op: bool = false;
     let mut encode_op: Option<&Instruction> = None;
     let mut args = InstructionArguments {
         ..Default::default()
