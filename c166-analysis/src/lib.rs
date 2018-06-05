@@ -216,14 +216,15 @@ extern "C" fn c166_op(an: *mut RAnal, raw_op: *mut RAnalOp, pc: u64, buf: *const
                                 (Some(OperandType::DirectCaddr16), Some(Operand::Direct(d, _width))) => {
                                     match (isn.op1.as_ref().unwrap(), values.op1.as_ref().unwrap()) {
                                         (OperandType::DirectSegment8, Operand::Direct(seg, _width)) => {
-                                            //                            grab from op1 Some(seg) => (0x10000 * seg as u64) + (address as u64),
+                                            // grab from op1 Some(seg) => (0x10000 * seg as u64) + (address as u64),
                                             out_op.jump = (0x10000 * *seg as u64) + (d as u64)
                                         },
                                         _ => out_op.jump = d as u64
                                     };
                                 },
                                 (Some(OperandType::DirectRelative8S), Some(Operand::Direct(d, _width))) => {
-                                    out_op.jump = pc + ( (d as u64) * 2 );
+                                    // TODO: Grab size of next op instead of hardcoding it to 2
+                                    out_op.jump = pc + ( ((d as u64)+1) * 2 );
                                 }
                                 _ => {}
                             };
