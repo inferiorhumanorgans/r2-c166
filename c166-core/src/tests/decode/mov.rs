@@ -32,6 +32,12 @@ fn op_e6() {
     test_disasm_op!([0xE6, 0x98, 0x24, 0x42], "mov PWMCON0, #4224h");
 }
 
+// TODO: Test for ESFR variant
+#[test]
+fn op_e6_2() {
+    test_disasm_op!([0xE6, 0x12, 0x03, 0x0C], "mov FE24h, #0C03h");
+}
+
 #[test]
 fn op_a8() {
     test_disasm_op!([0xA8, 0x54], "mov r5, [r4]");

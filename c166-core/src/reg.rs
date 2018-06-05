@@ -272,6 +272,8 @@ pub enum Reg {
     XP2IC,
     XP3IC,
 
+    SFR(u8),
+    ESFR(u8),
 }
 
 impl Reg {
@@ -504,6 +506,10 @@ impl Reg {
             Reg::WDT => Ok(0x57),
             Reg::WDTCON => Ok(0xD7),
             Reg::ZEROS => Ok(0x8E),
+
+            Reg::SFR(r) => Ok(r),
+            Reg::ESFR(r) => Ok(r),
+
             _ => Err("Unknown register"),
         }
     }
@@ -617,7 +623,7 @@ impl Reg {
                     0xC7 => Ok(Reg::XP1IC),
                     0xCB => Ok(Reg::XP2IC),
                     0xCF => Ok(Reg::XP3IC),
-                    _ => Err(()) //"Invalid ESFR")
+                    r @ _ => Ok(Reg::ESFR(r)),
                 }
             },
             &OperandType::ByteRegister(_) |
@@ -783,7 +789,7 @@ impl Reg {
                         OperandType::WordRegister(_) => {
                             match reg {
                                 0xF0..=0xFF => Reg::from_reg4(reg - 0xF0, reg_type),
-                                _ => Err(()) //"Invalid SFR register short address")
+                                r @ _ => Ok(Reg::SFR(r)),
                             }
                         },
                         _ => Err(()) // "Invalid SFR register type and short address")
@@ -1262,6 +1268,9 @@ impl fmt::Display for Reg {
             Reg::RH6 => write!(f, "rh6"),
             Reg::RL7 => write!(f, "rl7"),
             Reg::RH7 => write!(f, "rh7"),
+
+            Reg::SFR(r) => write!(f, "{:04X}h", 0xFE00 + (r as u16 * 2)),
+            Reg::ESFR(r) => write!(f, "{:04X}h", 0xF000 + (r as u16 * 2)),
 
             _ => write!(f, "{:?}", self)
         }
