@@ -15,9 +15,10 @@
     along with r2-c166.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+use std::convert::TryFrom;
+
 use byteorder::ByteOrder;
 use byteorder::LittleEndian;
-use std::convert::TryFrom;
 use num_traits::{FromPrimitive, ToPrimitive};
 
 use ::instruction::*;
@@ -118,7 +119,7 @@ impl<'a> From<&'a EncodingType> for Encoding<'a> {
                             0xFB => Ok(vec![0xFB, 0x88]),
                             0xCB => Ok(vec![0xCB, 0x00]),
                             0xCC => Ok(vec![0xCC, 0x00]),
-                            _ => Err("Invalid OP")
+                            _ => Err("EncodingType::NO_ARGS2: Invalid OP")
                         }
                     },
                     decode: |_isn, buf| {
@@ -127,7 +128,7 @@ impl<'a> From<&'a EncodingType> for Encoding<'a> {
                             [0xFB, 0x88] |
                             [0xCB, 0x00] |
                             [0xCC, 0x00] => Ok(InstructionArguments {..Default::default()}),
-                            _ => Err("Invalid instruction")
+                            _ => Err("EncodingType::NO_ARGS2: Invalid instruction")
                         }
                     }
                 }
@@ -145,7 +146,7 @@ impl<'a> From<&'a EncodingType> for Encoding<'a> {
                             0xB5 => Ok(vec![0xB5, 0x4A, 0xB5, 0xB5]),
                             0xA5 => Ok(vec![0xA5, 0x5A, 0xA5, 0xA5]),
                             0x87 => Ok(vec![0x87, 0x78, 0x87, 0x87]),
-                            _ => Err("Invalid OP")
+                            _ => Err("EncodingType::NO_ARGS4: Invalid OP")
                         }
                     },
                     decode: |_isn, buf| {
@@ -156,7 +157,7 @@ impl<'a> From<&'a EncodingType> for Encoding<'a> {
                             [0xB5, 0x4A, 0xB5, 0xB5] |
                             [0xA5, 0x5A, 0xA5, 0xA5] |
                             [0x87, 0x78, 0x87, 0x87] => Ok(InstructionArguments {..Default::default()}),
-                            _ => Err("Invalid instruction")
+                            _ => Err("EncodingType::NO_ARGS4: Invalid instruction")
                         }
                     }
                 }
@@ -169,19 +170,19 @@ impl<'a> From<&'a EncodingType> for Encoding<'a> {
                     encode: |isn, args| {
                         let data: u16 = match args.op2.expect("Second operand required for EncodingType::reg4_data4") {
                             Operand::Immediate(data, _width) => data,
-                            _ => return Err("Second operand must be #data4 for EncodingType::reg4_data4")
+                            _ => return Err("EncodingType::reg4_data4: Second operand must be #data4")
                         };
 
                         if data > 0x0F {
-                            return Err("#data4 must be 0x00..=0x0F");
+                            return Err("EncodingType::reg4_data4: #data4 must be 0x00..=0x0F");
                         }
 
-                        let reg: Reg = match args.op1.expect("First operand required for EncodingType:::reg4_data4.") {
+                        let reg: Reg = match args.op1.expect("EncodingType:::reg4_data4: First operand required") {
                             Operand::Register(reg) => reg,
-                            _ => return Err("First operand must be register for EncodingType::reg4_data4")
+                            _ => return Err("EncodingType:::reg4_data4: First operand must be a register")
                         };
 
-                        let reg4: u8 = reg.to_reg4().expect("Register must be GPR for EncodingType::reg4_data4");
+                        let reg4: u8 = reg.to_reg4().expect("EncodingType:::reg4_data4: Register must be GPR");
 
                         let byte: u8 = ((data as u8) << 4) | (reg4 & 0b00001111);
 
@@ -221,13 +222,13 @@ impl<'a> From<&'a EncodingType> for Encoding<'a> {
                             Operand::Indirect(reg) |
                             Operand::IndirectPostIncrement(reg) |
                             Operand::IndirectPreDecrement(reg) |
-                            Operand::Register(reg) => reg.to_reg4().expect("Invalid GPR"),
-                            _ => return Err("Invalid Operand 1")
+                            Operand::Register(reg) => reg.to_reg4().expect("EncodingType::_0_reg4_mem16: Invalid GPR"),
+                            _ => return Err("EncodingType::_0_reg4_mem16: Invalid Operand 1")
                         };
 
                         let mem = match args.op2.as_ref().unwrap() {
                             Operand::Direct(direct, _width) => direct,
-                            _ => return Err("Invalid operand2 (expected memory)")
+                            _ => return Err("EncodingType::_0_reg4_mem16: Second operand must be memory")
                         };
 
                         Ok(vec![isn.id, reg0 & 0x00FF, (mem & 0x00FF) as u8, ((mem & 0xFF00) >> 8) as u8])
@@ -257,7 +258,7 @@ impl<'a> From<&'a EncodingType> for Encoding<'a> {
                                     })
                                 }
                             },
-                            _ => Err("Invalid instruction")
+                            _ => Err("EncodingType::_0_reg4_mem16: Invalid instruction")
                         }
                     }
                 }
@@ -276,12 +277,11 @@ impl<'a> From<&'a EncodingType> for Encoding<'a> {
                         let rel = match args.op2.unwrap() {
                             Operand::Direct(d, _width) => {
                                 if d > <i8>::max_value() as u16 {
-                                    return Err("Relative values must fit into an i8 type")
+                                    return Err("EncodingType::condopcode4_d_rel8s: Relative values must fit into an i8 type")
                                 }
-
                                 d as u8
                             },
-                            _ => unreachable!()
+                            _ => return Err("EncodingType::condopcode4_d_rel8s: Second operand must be a relative address")
                         };
 
                         Ok(vec![(cond & 0x0F) << 4 | 0x0D, rel / 2])
@@ -315,7 +315,7 @@ impl<'a> From<&'a EncodingType> for Encoding<'a> {
                             "extp"  => {
                                 let page = match args.op1.unwrap() {
                                     Operand::Immediate(immed, _width) => immed,
-                                    _ => unreachable!()
+                                    _ => return Err("EncodingType::ext_d7: extp requires a page operand")
                                 };
 
                                 Ok(vec![isn.id, (0b01 << 6) | (irange << 4), (page & 0xFF) as u8, ((page & 0b1100000000) >> 8) as u8 ])
@@ -323,7 +323,7 @@ impl<'a> From<&'a EncodingType> for Encoding<'a> {
                             "extpr" => {
                                 let page = match args.op1.unwrap() {
                                     Operand::Immediate(immed, _width) => immed,
-                                    _ => unreachable!()
+                                    _ => return Err("EncodingType::ext_d7: extpr requires a page operand")
                                 };
 
                                 Ok(vec![isn.id, (0b11 << 6) | (irange << 4), (page & 0xFF) as u8, ((page & 0b1100000000) >> 8) as u8 ])
@@ -331,7 +331,7 @@ impl<'a> From<&'a EncodingType> for Encoding<'a> {
                             "exts"  => {
                                 let seg = match args.op1.unwrap() {
                                     Operand::Immediate(immed, _width) => immed as u8,
-                                    _ => unreachable!()
+                                    _ => return Err("EncodingType::ext_d7: exts requires an immediate segment operand")
                                 };
 
                                 Ok(vec![isn.id, (0b00 << 6) | (irange << 4), seg, 0x00 ])
@@ -339,17 +339,17 @@ impl<'a> From<&'a EncodingType> for Encoding<'a> {
                             "extsr" => {
                                 let seg = match args.op1.unwrap() {
                                     Operand::Immediate(immed, _width) => immed as u8,
-                                    _ => unreachable!()
+                                    _ => return Err("EncodingType::ext_d7: extsr requires an immediate segment operand")
                                 };
 
                                 Ok(vec![isn.id, (0b10 << 6) as u8 | (irange << 4), seg, 0x00 ])
                             },
-                            _ => unreachable!()
+                            _ => return Err("EncodingType::ext_d7: Invalid mnemonic. Encoding only applies to extp/extpr and exts/extsr")
                         }
                     },
                     decode: |_isn, buf| {
                         if (buf[1] & 0b00001111) != 0 {
-                            return Err("Instruction was invalid")
+                            return Err("EncodingType::ext_d7: Instruction was invalid")
                         }
 
                         let sub_op : u8 = (buf[1] & 0b11000000) >> 6;
@@ -366,7 +366,7 @@ impl<'a> From<&'a EncodingType> for Encoding<'a> {
 
                         if irange > 4 {
                             // This should be unreachable, but...
-                            return Err("Instruction was invalid, irange must be 0..=4")
+                            return Err("EncodingType::ext_d7: Invalid instruction, irange must be 0..=4")
                         }
 
                         let mut values = InstructionArguments {
@@ -383,7 +383,7 @@ impl<'a> From<&'a EncodingType> for Encoding<'a> {
                                     0x00 => {
                                         values.op1 = Some(Operand::Immediate(buf[2] as u16, 8));
                                     },
-                                    _    => return Err("Instruction was invalid")
+                                    _    => return Err("EncodingType::ext_d7: Invalid instruction. Fourth byte must be zero.")
                                 }
                             },
                             0b11 | 0b01 => {
@@ -393,7 +393,7 @@ impl<'a> From<&'a EncodingType> for Encoding<'a> {
                                         let page : u16 = ((buf[3] & 0b00000011) as u16) << 8 | buf[2] as u16;
                                         values.op1 = Some(Operand::Immediate(page, 10));
                                     },
-                                    _    => return Err("Instruction was invalid")
+                                    _    => return Err("EncodingType::ext_d7: Invalid instruction. Top 6 bits of fourth byte must be zero")
                                 }
                             },
                             _ => unreachable!()
@@ -424,7 +424,7 @@ impl<'a> From<&'a EncodingType> for Encoding<'a> {
                             "extpr" => Ok(vec![isn.id, (0b11 << 6) | (irange << 4) | reg]),
                             "exts"  => Ok(vec![isn.id, (0b00 << 6) | (irange << 4) | reg]),
                             "extsr" => Ok(vec![isn.id, (0b10 << 6) | (irange << 4) | reg]),
-                            _ => unreachable!()
+                            _ => return Err("EncodingType::op_dc: Invalid mnemonic. This encoding only applies to extp/extpr and exts/extsr")
                         }
                     },
                     decode: |isn, buf| {
@@ -460,7 +460,7 @@ impl<'a> From<&'a EncodingType> for Encoding<'a> {
                     encode: |isn, args| {
                         let reg = match args.op1.unwrap() {
                             Operand::Register(reg) => reg.to_reg4().unwrap(),
-                            _ => unreachable!()
+                            _ => return Err("EncodingType::reg4_or_data3: First operand must be a register")
                         };
 
                         match args.op2.unwrap() {
@@ -470,18 +470,18 @@ impl<'a> From<&'a EncodingType> for Encoding<'a> {
                             Operand::Indirect(reg1) => {
                                 let reg_id = reg1.to_reg4().unwrap();
                                 if reg_id > 3 {
-                                    panic!("This op only works with GPR 0-3, should catch this in the parser")
+                                    return Err("EncodingType::reg4_or_data3: This op only works with GPR 0-3, should catch this in the parser")
                                 }
                                 Ok(vec![isn.id, (reg << 4) | (0b10 << 2) | reg_id & 0b11])
                             },
                             Operand::IndirectPostIncrement(reg1) => {
                                 let reg_id = reg1.to_reg4().unwrap();
                                 if reg_id > 3 {
-                                    panic!("This op only works with GPR 0-3, should catch this in the parser")
+                                    return Err("EncodingType::reg4_or_data3: This op only works with GPR 0-3, should catch this in the parser")
                                 }
                                 Ok(vec![isn.id, (reg << 4) | (0b11 << 2) | reg_id & 0b11])
                             },
-                            _ => unreachable!()
+                            _ => return Err("EncodingType::reg4_or_data3: Second operand must be immediate, indirect, or indirect++")
                         }
                     },
                     decode: |isn, buf| {
@@ -524,7 +524,7 @@ impl<'a> From<&'a EncodingType> for Encoding<'a> {
                             Operand::Immediate(immed, _width) => {
                                 match immed {
                                     1..=4 => {},
-                                    _ => return Err("#irange2 value must be 1..=4")
+                                    _ => return Err("EncodingType::op_d1: #irange2 value must be 1..=4")
                                 };
 
                                 (immed - 1) as u8
@@ -539,7 +539,7 @@ impl<'a> From<&'a EncodingType> for Encoding<'a> {
                             "extr" => {
                                 Ok(vec![isn.id, 0b10000000 | (irange & 0b00000011) << 4])
                             },
-                            _ => return Err("This encoding is for atomic and extr only")
+                            _ => return Err("EncodingType::op_d1: This encoding is for atomic and extr only")
                         }
                     },
                     decode: |_isn, buf| {
@@ -562,7 +562,7 @@ impl<'a> From<&'a EncodingType> for Encoding<'a> {
 
                                 Ok(values)
                             },
-                            _ => Err("Instruction was invalid")
+                            _ => Err("EncodingType::op_d1: Instruction was invalid")
                         }
                     }
                 }
@@ -575,12 +575,12 @@ impl<'a> From<&'a EncodingType> for Encoding<'a> {
                     encode: |isn, args| {
                         let reg0 = match args.op1.unwrap() {
                             Operand::Register(reg) => reg.to_reg4().unwrap(),
-                            _ => unreachable!()
+                            _ => return Err("EncodingType::_f_reg4_data16: First operand must be register")
                         };
 
-                        let immed= match args.op2.unwrap() {
+                        let immed = match args.op2.unwrap() {
                             Operand::Immediate(immed, _width) => immed,
-                            _ => unreachable!()
+                            _ => return Err("EncodingType::_f_reg4_data16: Second operand must be immediate value")
                         };
 
                         Ok(vec![isn.id, 0xF0 | (reg0 & 0x0F), (immed & 0x00FF) as u8, ((immed & 0xFF00) >> 8) as u8 ])
@@ -610,7 +610,7 @@ impl<'a> From<&'a EncodingType> for Encoding<'a> {
                                     })
                                 }
                            },
-                            _ => Err("Instruction was invalid")
+                            _ => Err("EncodingType::_f_reg4_data16: Instruction was invalid")
                         }
                     }
                 }
@@ -621,18 +621,17 @@ impl<'a> From<&'a EncodingType> for Encoding<'a> {
                     name: "Fn_MM_MM",
                     length: 4,
                     encode: |isn, args| {
-//                        foo
                         let reg0 = match args.op1.as_ref().unwrap() {
                             Operand::Indirect(reg) |
                             Operand::IndirectPostIncrement(reg) |
                             Operand::IndirectPreDecrement(reg) |
-                            Operand::Register(reg) => reg.to_reg4().expect("Invalid register"),
-                            _ => return Err("Invalid Operand 1")
+                            Operand::Register(reg) => reg.to_reg4().expect("EncodingType::_f_reg4_mem16: Invalid register"),
+                            _ => return Err("EncodingType::_f_reg4_mem16: First operand must be indirect or register")
                         };
 
                         let memory = match args.op2.as_ref().unwrap() {
                             Operand::Direct(mem, _) => mem,
-                            _ => return Err("Invalid Operand 2")
+                            _ => return Err("EncodingType::_f_reg4_mem16: Second operand must be direct value")
                         };
 
                         Ok(vec![isn.id, 0xF0 | reg0, (memory & 0x00FF) as u8, ((memory & 0xFF00) >> 8) as u8 ])
@@ -662,7 +661,7 @@ impl<'a> From<&'a EncodingType> for Encoding<'a> {
                                     })
                                 }
                             },
-                            _ => Err("Instruction was invalid")
+                            _ => Err("EncodingType::_f_reg4_mem16: Instruction was invalid")
                         }
                     }
                 }
@@ -709,30 +708,30 @@ impl<'a> From<&'a EncodingType> for Encoding<'a> {
                                 reg_short_addr
                             },
                             unknown @ _ => {
-                                eprintln!("Got: {:X?}", unknown);
-                                return Err("Expect op1 to be a bitaddr/bitoff or a register");
+                                eprintln!("EncodingType::bitoff8_mask8_data8: Got: {:X?}", unknown);
+                                return Err("EncodingType::bitoff8_mask8_data8: Expect op1 to be a bitaddr/bitoff or a register");
                             }
                         };
 
                         let mask8 = match args.op2.unwrap() {
                             Operand::Immediate(immed, _width) => {
                                 if immed > <u8>::max_value() as u16 {
-                                    return Err("And mask must fit into an 8-bit field")
+                                    return Err("EncodingType::bitoff8_mask8_data8: And mask must fit into an 8-bit field")
                                 }
                                 immed as u8
                             },
-                            _ => unreachable!()
+                            _ => return Err("EncodingType::bitoff8_mask8_data8: Second operand must be an immediate value")
                         };
 
                         let data8 = match args.op3.unwrap() {
                             Operand::Immediate(immed, _width) => {
                                 if immed > <u8>::max_value() as u16 {
-                                    return Err("Or mask must fit into an 8-bit field")
+                                    return Err("EncodingType::bitoff8_mask8_data8: Or mask must fit into an 8-bit field")
                                 }
 
                                 immed as u8
                             },
-                            _ => unreachable!()
+                            _ => return Err("EncodingType::bitoff8_mask8_data8: Third operand must be an immediate value")
                         };
 
                         Ok(vec![isn.id, bitoff, mask8, data8])
@@ -805,11 +804,11 @@ impl<'a> From<&'a EncodingType> for Encoding<'a> {
 
                         let rel = match args.op2.unwrap() {
                             Operand::Direct(direct, _) => direct,
-                            _ => unreachable!()
+                            _ => return Err("EncodingType::bitaddr8_rel8_bit4_0: Second operand must be a direct value")
                         };
 
                         if rel > <i8>::max_value() as u16 {
-                            return Err("Relative address must be a signed 8 bit value");
+                            return Err("EncodingType::bitaddr8_rel8_bit4_0: Relative address must be a signed 8 bit value");
                         }
 
                         // TODO: properly validate relative addresses
@@ -828,7 +827,7 @@ impl<'a> From<&'a EncodingType> for Encoding<'a> {
                                     ..Default::default()
                                 })
                             },
-                            _ => Err("Invalid instruction")
+                            _ => Err("EncodingType::bitaddr8_rel8_bit4_0: Invalid instruction")
                         }
                     }
                 }
@@ -840,8 +839,8 @@ impl<'a> From<&'a EncodingType> for Encoding<'a> {
                     length: 2,
                     encode: |isn, args| {
                         match args.op1.as_ref().unwrap() {
-                            Operand::Register(reg) => Ok(vec![isn.id, reg.to_reg8().expect("Invalid register")]),
-                            _ => Err("Invalid Operand")
+                            Operand::Register(reg) => Ok(vec![isn.id, reg.to_reg8().expect("EncodingType::reg8 Invalid register")]),
+                            _ => Err("EncodingType::reg8: Invalid Operand")
                         }
                     },
                     decode: |isn, buf| {
@@ -854,7 +853,7 @@ impl<'a> From<&'a EncodingType> for Encoding<'a> {
                                    ..Default::default()
                                 })
                             },
-                            Err(_) => Err("Invalid register value")
+                            Err(_) => Err("EncodingType::reg8: Invalid register value")
                         }
                     }
                 }
@@ -870,7 +869,7 @@ impl<'a> From<&'a EncodingType> for Encoding<'a> {
                         for op in [args.op1, args.op2].iter() {
                             match op.as_ref().unwrap() {
                                 Operand::Register(r) => {
-                                    reg = Some(r.to_reg8().expect("Invalid register"));
+                                    reg = Some(r.to_reg8().expect("EncodingType::reg8_data16: Invalid register"));
                                 },
                                 Operand::Immediate(imm, _width) => {
                                     data = Some(*imm);
@@ -898,7 +897,7 @@ impl<'a> From<&'a EncodingType> for Encoding<'a> {
                                     ..Default::default()
                                 })
                             },
-                            Err(_) => return Err("Invalid register value")
+                            Err(_) => return Err("EncodingType::reg8_data16 Invalid register value")
                         }
                     }
                 }
@@ -914,7 +913,7 @@ impl<'a> From<&'a EncodingType> for Encoding<'a> {
                         for op in [args.op1, args.op2].iter() {
                             match op.as_ref().unwrap() {
                                 Operand::Register(r) => {
-                                    reg = Some(r.to_reg8().expect("Invalid register"));
+                                    reg = Some(r.to_reg8().expect("EncodingType::reg8_data8_nop8: Invalid register"));
                                 },
                                 Operand::Immediate(imm, _width) => {
                                     data = Some(*imm);
@@ -934,11 +933,11 @@ impl<'a> From<&'a EncodingType> for Encoding<'a> {
                         let reg = match reg_op.unwrap() {
                             OperandType::ByteRegister(_) |
                             OperandType::WordRegister(_) => Reg::from_reg8(reg_addr, reg_op.as_ref().unwrap()),
-                            _ => unreachable!()
+                            _ => return Err("EncodingType::reg8_data8_nop8: At least one register required")
                         };
 
                         if let Err(_) = reg {
-                            return Err("Invalid register value");
+                            return Err("EncodingType::reg8_data8_nop8; Invalid register value");
                         }
 
                         if reg_op == isn.op2 {
@@ -969,7 +968,7 @@ impl<'a> From<&'a EncodingType> for Encoding<'a> {
                         for op in [args.op1, args.op2].iter() {
                             match op.as_ref().unwrap() {
                                 Operand::Register(r) => {
-                                    reg = Some(r.to_reg8().expect("Invalid register"));
+                                    reg = Some(r.to_reg8().expect("EncodingType::reg8_mem16: Invalid register"));
                                 },
                                 Operand::Direct(direct, _width) => {
                                     data = Some(*direct);
@@ -989,12 +988,14 @@ impl<'a> From<&'a EncodingType> for Encoding<'a> {
 
                         let reg = match reg_op.unwrap() {
                             OperandType::ByteRegister(_) |
-                            OperandType::WordRegister(_) => Reg::from_reg8(reg_addr, reg_op.as_ref().unwrap()),
+                            OperandType::WordRegister(_) => {
+                                Reg::from_reg8(reg_addr, reg_op.as_ref().unwrap())
+                            },
                             _ => unreachable!()
                         };
 
                         if let Err(_) = reg {
-                            return Err("Invalid register value");
+                            return Err("EncodingType::reg8_mem16: Invalid register value");
                         }
 
                         if let OperandType::DirectMemory16 = isn.op1.unwrap() {
@@ -1020,14 +1021,14 @@ impl<'a> From<&'a EncodingType> for Encoding<'a> {
                     name: "SS_MM_MM",
                     length: 4,
                     encode: |isn, args| {
-                        let seg: u8 = match args.op1.expect("Needed op1 = segment") {
+                        let seg: u8 = match args.op1.expect("EncodingType::seg8_mem16: Needed op1 = segment") {
                             Operand::Direct(d, _width) => d as u8,
-                            _ => return Err("Needed op1=segment")
+                            _ => return Err("EncodingType::seg8_mem16: Needed op1=segment")
                         };
 
                         let mem: u16 = match args.op2.expect("needed op2=caddr16") {
                             Operand::Direct(d, _width) => d,
-                            _ => return Err("Needed op2 = caddr16")
+                            _ => return Err("EncodingType::seg8_mem16: Needed op2 = caddr16")
                         };
 
                         Ok(vec![isn.id, seg, (mem & 0x00FF) as u8, ((mem & 0x0FF00) >> 8) as u8])
