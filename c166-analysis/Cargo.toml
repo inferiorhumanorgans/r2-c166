@@ -1,6 +1,6 @@
 [package]
 name = "c166-analysis"
-version = "0.1.6"
+version = "0.2.0"
 authors = ["Alex Zepeda <c166@inferiorhumanorgans.com>"]
 
 [dependencies]
